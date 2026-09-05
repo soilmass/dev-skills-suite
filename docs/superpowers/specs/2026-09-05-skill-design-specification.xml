@@ -1,0 +1,2022 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Modeled on RFC 7991 (xml2rfc version 3) vocabulary. This is an
+     independent, non-IETF specification; it is NOT submitted to the
+     IETF and the ipr attribute below is included only as conventional
+     xml2rfc boilerplate for tooling compatibility, not as a legal
+     claim about IETF Trust provisions. -->
+<rfc ipr="trust200902" category="info" docName="draft-skill-design-spec-01"
+     submissionType="independent" version="3">
+  <front>
+    <title abbrev="SDS">Skill Design Specification (SDS): A
+    Composability, Safety, and Interoperability Layer for Agent
+    Skills</title>
+    <seriesInfo name="SDS" value="1.0-draft"/>
+    <author fullname="Edison Steele" initials="E." surname="Steele">
+      <address>
+        <email>edisonsteele@gmail.com</email>
+      </address>
+    </author>
+    <date year="2026" month="September" day="5"/>
+    <area>Independent Submission</area>
+    <workgroup>None</workgroup>
+    <keyword>agent skills</keyword>
+    <keyword>composability</keyword>
+    <keyword>SKILL.md</keyword>
+    <abstract>
+      <t>The Agent Skills format <xref target="BASESPEC"/> defines how a
+      single skill is packaged (a directory, a SKILL.md file, optional
+      scripts/, references/, and assets/ subdirectories) so that a model
+      can discover and load it. It is silent on how a family of skills,
+      authored over time by possibly different people, should relate to
+      one another so that the family behaves as one coherent, composable
+      system rather than a directory of unrelated documents that happen
+      to share a container format. This document specifies that
+      additional layer, top to bottom: a conceptual model of a skill as
+      a typed, effectful function (Part 0); the layout, registry,
+      versioning, and governance of a skill family (Part I); the
+      reference kit every family ships and the rules for extending it
+      (Part II); and the complete anatomy of a single conforming skill
+      package, from frontmatter to fixtures (Part III). Every normative
+      rule carries a permanent identifier and a conformance tag stating
+      whether a linter checks it, a human reviews it, or it is
+      advisory. It is written to be domain-independent; a companion
+      document applies it to a software-development skill catalog as a
+      worked example.</t>
+    </abstract>
+  </front>
+
+  <middle>
+
+    <section anchor="intro">
+      <name>Introduction</name>
+
+      <section anchor="scope">
+        <name>Purpose and Scope</name>
+        <t>This specification governs the design of a Skill Family: two
+        or more skills intended to be authored, versioned, and used
+        together, potentially chained so that one skill's output becomes
+        another's input. It applies regardless of domain; domain-specific
+        choices made under this specification's rules are recorded in a
+        domain-specific companion document, not here.</t>
+        <t>This document does not specify:</t>
+        <ul>
+          <li>the internal reasoning process a model uses to decide
+          whether a skill applies (that is the Base Spec's
+          trigger-matching behavior);</li>
+          <li>any particular domain's catalog of skills (see
+          <xref target="worked-example"/>);</li>
+          <li>runtime enforcement mechanisms outside the skill author's
+          control (a given host's tool-approval implementation is out
+          of scope, though <xref target="safety"/> depends on one
+          existing).</li>
+        </ul>
+      </section>
+
+      <section anchor="base-spec-rel">
+        <name>Relationship to the Base Spec</name>
+        <t>The Base Spec <xref target="BASESPEC"/> fixes the physical
+        packaging of a single skill: a directory named identically to
+        the skill's <tt>name</tt>, containing a required
+        <tt>SKILL.md</tt> with YAML frontmatter (<tt>name</tt>,
+        <tt>description</tt>, optional <tt>license</tt>,
+        <tt>compatibility</tt>, <tt>metadata</tt>, and experimental
+        <tt>allowed-tools</tt>) followed by Markdown instructions, and
+        optional <tt>scripts/</tt>, <tt>references/</tt>, and
+        <tt>assets/</tt> directories. It also fixes progressive
+        disclosure: metadata (~100 tokens) is always resident, the
+        SKILL.md body (recommended under 5,000 tokens and under 500
+        lines) loads only once a skill is activated, and files under
+        <tt>scripts/</tt>, <tt>references/</tt>, or <tt>assets/</tt>
+        load only on demand.</t>
+        <t>Every requirement in this document is expressed as
+        additional structure inside that envelope: fixed sections within
+        the SKILL.md body, additional key/value pairs inside the Base
+        Spec's free-form <tt>metadata</tt> map, constraints on the
+        contents of <tt>allowed-tools</tt>, and one family-level
+        extension directory, <tt>evals/</tt>, that hosts ignore. This
+        document defines no new frontmatter keys at the top level. Shape
+        schemas and the kit live outside any skill package, so a host
+        loading a single skill never sees them; a skill therefore cites a
+        shape by name first and by path second.</t>
+      </section>
+
+      <section anchor="terminology">
+        <name>Terminology</name>
+        <t>The key words "<bcp14>MUST</bcp14>", "<bcp14>MUST
+        NOT</bcp14>", "<bcp14>REQUIRED</bcp14>", "<bcp14>SHALL</bcp14>",
+        "<bcp14>SHALL NOT</bcp14>", "<bcp14>SHOULD</bcp14>",
+        "<bcp14>SHOULD NOT</bcp14>", "<bcp14>RECOMMENDED</bcp14>",
+        "<bcp14>NOT RECOMMENDED</bcp14>", "<bcp14>MAY</bcp14>", and
+        "<bcp14>OPTIONAL</bcp14>" in this document are to be interpreted
+        as described in BCP&#160;14 <xref target="RFC2119"/>
+        <xref target="RFC8174"/> when, and only when, they appear in
+        all capitals, as shown here.</t>
+        <dl newline="false">
+          <dt>Skill Family:</dt>
+          <dd>a set of skills governed by one instance of this
+          specification, sharing one Shape Registry
+          (<xref target="shape-registry"/>), one kit
+          (<xref target="kit"/>), and one Family Registry File
+          (<xref target="family-registry"/>).</dd>
+          <dt>Family root:</dt>
+          <dd>the directory that contains <tt>kit/</tt>,
+          <tt>skills/</tt>, and <tt>docs/</tt>. All root-relative paths
+          in this document resolve against the family root. The family
+          root is not necessarily the version-control toplevel.</dd>
+          <dt>Query Skill:</dt>
+          <dd>a skill whose most severe declared effect is
+          "external-read-only" or lower on the Effect Ladder
+          (<xref target="effect-ladder"/>). Produces an artifact;
+          performs no effect outside itself.</dd>
+          <dt>Command Skill:</dt>
+          <dd>a skill whose most severe declared effect is
+          "local-write" or higher. Performs an effect in addition to,
+          or instead of, producing an artifact.</dd>
+          <dt>Shape:</dt>
+          <dd>a named, versioned, machine-checkable structural type
+          that an artifact conforms to (<xref target="shapes"/>).</dd>
+          <dt>Stage:</dt>
+          <dd>one unit of a skill's Procedure, drawn from the closed
+          vocabulary in <xref target="stage-vocab"/>.</dd>
+          <dt>Rung:</dt>
+          <dd>one level of the six-level Effect Ladder.</dd>
+          <dt>Tier:</dt>
+          <dd>a skill's priority within its family: <tt>pillar</tt> or
+          <tt>situational</tt>.</dd>
+        </dl>
+      </section>
+
+      <section anchor="notation">
+        <name>Notational Conventions</name>
+        <t>Pipeline composition is written left to right with an arrow:
+        <tt>A -&gt; B</tt> means "the output of A is the input to B."
+        Optional stages are bracketed: <tt>[Confirm]</tt>; a
+        conditional pair is parenthesized: <tt>(Confirm -&gt; Act)</tt>.
+        A skill's overall type is written as shown below.</t>
+        <artwork name="" type="ascii-art" align="left"><![CDATA[
+(InputShape) -> Result<OutputShape, FailureShape>
+]]></artwork>
+      </section>
+
+      <section anchor="rule-ids">
+        <name>Rule Identifiers and Conformance Tags</name>
+        <t>Every normative rule in this document is stated as its own
+        paragraph headed by a permanent identifier of the form
+        <tt>SDS-P-NNN</tt>, where P is <tt>C</tt> (core model, Part 0),
+        <tt>F</tt> (family, Part I), <tt>K</tt> (kit, Part II), or
+        <tt>S</tt> (skill anatomy, Part III). Identifiers are never
+        reused; a withdrawn rule remains listed as withdrawn. Each rule
+        also carries a requirement level (MUST, SHOULD, or MAY) and
+        exactly one conformance tag:</t>
+        <dl newline="false">
+          <dt>MACHINE:</dt>
+          <dd>checked by the family's linter
+          (<xref target="kit-linter"/>). A MUST+MACHINE failure is an
+          error; SHOULD+MACHINE is a warning; MAY+MACHINE is
+          informational.</dd>
+          <dt>REVIEW:</dt>
+          <dd>requires human judgment; the linter prints these as a
+          checklist, never as failures.</dd>
+          <dt>ADVISORY:</dt>
+          <dd>guidance; never a conformance failure.</dd>
+        </dl>
+        <t><xref target="rule-index"/> lists every rule with its
+        identifier, slug, section, level, and tag; the linter's own rule
+        table <bcp14>MUST</bcp14> match it
+        (<xref target="SDS-K-071"/>).</t>
+      </section>
+
+      <section anchor="doc-map">
+        <name>Document Map</name>
+        <t>Part 0 (<xref target="model"/> through
+        <xref target="reuse"/>) is the conceptual model: what a skill
+        is, how its procedure is structured, how skills exchange
+        artifacts, and how effects are governed. Part I
+        (<xref target="family"/>) is the family and repository layer.
+        Part II (<xref target="kit"/>) is the reference kit every family
+        ships. Part III (<xref target="anatomy"/>) is the complete
+        anatomy of one skill package. Readers building a skill start at
+        Part III and follow its cross-references back into Part 0 for
+        rationale.</t>
+      </section>
+    </section>
+
+    <!-- ===================== PART 0: CORE MODEL ===================== -->
+
+    <section anchor="model">
+      <name>Conceptual Model</name>
+
+      <section anchor="skill-as-function">
+        <name>A Skill as a Function</name>
+        <t anchor="SDS-C-001"><strong>SDS-C-001</strong> (MUST, REVIEW)
+        A skill <bcp14>MUST</bcp14> declare five parts:</t>
+        <dl newline="true">
+          <dt>Trigger:</dt>
+          <dd>the condition of activation — the Base Spec's
+          <tt>description</tt> plus an explicit statement of when the
+          skill does not apply (<xref target="anatomy-sections"/>).</dd>
+          <dt>Inputs:</dt>
+          <dd>the skill's parameters, each marked
+          <bcp14>REQUIRED</bcp14> or <bcp14>OPTIONAL</bcp14> with a
+          stated default (<xref target="contract-notation"/>).</dd>
+          <dt>Procedure:</dt>
+          <dd>the ordered body, built from the stage grammar
+          (<xref target="stage-grammar"/>).</dd>
+          <dt>Permissions:</dt>
+          <dd>the skill's declared effect contract
+          (<xref target="safety"/>).</dd>
+          <dt>Output:</dt>
+          <dd>a <tt>Result</tt> — a conforming success Shape, or one of
+          a finite, declared set of failure shapes
+          (<xref target="result-type"/>).</dd>
+        </dl>
+        <t>This model lets two independently-authored skills be
+        reasoned about the same way two functions in a typed codebase
+        are: by their signature, not by reading their full
+        implementation.</t>
+      </section>
+
+      <section anchor="cqs">
+        <name>Command-Query Separation</name>
+        <t anchor="SDS-C-002"><strong>SDS-C-002</strong> (MUST, REVIEW)
+        A skill <bcp14>MUST</bcp14> obey Command-Query Separation
+        <xref target="MEYER1988"/>: it is either a Query Skill
+        (produces information, no side effect) or a Command Skill
+        (produces an effect; any information it also returns is a
+        report of that effect, not an independent analytical
+        artifact). A skill that both performs a mutating effect and
+        produces a materially independent analytical artifact
+        <bcp14>MUST</bcp14> be split into a Query Skill feeding a
+        Command Skill via the pipe composition rule in
+        <xref target="canonical-pipelines"/>.</t>
+      </section>
+
+      <section anchor="purity">
+        <name>Purity, Referential Transparency, and Idempotence</name>
+        <t anchor="SDS-C-003"><strong>SDS-C-003</strong> (MUST, REVIEW)
+        A Query Skill's Procedure is pure with respect to its declared
+        Inputs: given the same Inputs and no undeclared ambient state
+        (the current date, network state not listed as an Input, files
+        not listed as an Input), it <bcp14>MUST</bcp14> produce the
+        same Output. This is a hermeticity requirement on the Gather
+        stage: a Query Skill's Gather stage <bcp14>MUST</bcp14> read
+        only what its Inputs declaration lists. A skill satisfying this
+        is <em>referentially transparent</em>: any invocation
+        <bcp14>MAY</bcp14> be replaced, anywhere in a pipeline, by its
+        previously-computed Output for the same Inputs. Referential
+        transparency is the single property that licenses caching,
+        reordering (<xref target="composition-laws"/>), and parallel
+        execution.</t>
+        <t anchor="SDS-C-004"><strong>SDS-C-004</strong> (MAY, ADVISORY)
+        <tt>metadata.idempotent</tt> declares the weaker property "safe
+        to re-call with identical arguments," matching the Model Context
+        Protocol's <tt>idempotentHint</tt>
+        <xref target="MCPANNOT"/>. It does not declare, and does not
+        trigger, the fixed-point composition law
+        (<xref target="SDS-C-017"/>); a Command Skill can be idempotent
+        in this sense (opening an already-open PR is a no-op) without
+        being pure.</t>
+      </section>
+
+      <section anchor="totality">
+        <name>Totality</name>
+        <t anchor="SDS-C-005"><strong>SDS-C-005</strong> (MUST, REVIEW)
+        A skill's declared behavior <bcp14>MUST</bcp14> be total over
+        its declared Input domain: for every input satisfying its
+        stated preconditions, including boundary cases (empty input, a
+        single item, the maximum stated size,
+        malformed-but-precondition-satisfying input), the skill
+        <bcp14>MUST</bcp14> have a defined, non-crashing Output —
+        either a success Shape or a declared failure Shape. Undefined
+        behavior on a precondition-satisfying input is a specification
+        defect, not an implementation gap.</t>
+      </section>
+    </section>
+
+    <section anchor="stage-grammar">
+      <name>The Function-Stage Grammar</name>
+
+      <section anchor="stage-vocab">
+        <name>Stage Vocabulary</name>
+        <t anchor="SDS-C-010"><strong>SDS-C-010</strong> (MUST, REVIEW)
+        A skill's Procedure <bcp14>MUST</bcp14> be expressed using only
+        the following stage vocabulary, presented as SKILL.md
+        subheadings in the order given (machine check:
+        <xref target="SDS-S-031"/>).</t>
+        <table anchor="tab-stages">
+          <name>Function-Stage Vocabulary</name>
+          <thead>
+            <tr><th>Stage</th><th>Definition</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Gather</td><td>Collect raw material. Touches only
+            inputs declared in <xref target="contract-notation"/>.</td></tr>
+            <tr><td>Filter/Select</td><td>Narrow gathered material to
+            what is relevant.</td></tr>
+            <tr><td>Analyze/Diagnose</td><td>Interpret gathered
+            material against a rubric; the primary locus of model
+            judgment.</td></tr>
+            <tr><td>Classify/Score</td><td>Assign a label or severity
+            to each analyzed item.</td></tr>
+            <tr><td>Decide/Recommend</td><td>Choose or propose among
+            options; produces a decision-shaped artifact.</td></tr>
+            <tr><td>Synthesize/Compose</td><td>Combine analyzed
+            material into one artifact.</td></tr>
+            <tr><td>Validate/Verify</td><td>Check a claim or artifact
+            against fixed criteria.</td></tr>
+            <tr><td>Transform/Generate</td><td>Produce new content in
+            a target format from existing content.</td></tr>
+            <tr><td>Confirm</td><td>A gate; see
+            <xref target="confirm-gates"/>.</td></tr>
+            <tr><td>Act/Mutate</td><td>Change state outside the
+            skill's own output artifact. Command Skills only.</td></tr>
+            <tr><td>Communicate/Notify</td><td>Send information to an
+            audience outside the artifact itself.</td></tr>
+            <tr><td>Persist/Record</td><td>Write the artifact to its
+            declared location.</td></tr>
+            <tr><td>Delegate/Dispatch</td><td>Invoke another skill,
+            subagent, or external tool for a sub-task.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section anchor="canonical-pipelines">
+        <name>Canonical Pipelines</name>
+        <t anchor="SDS-C-011"><strong>SDS-C-011</strong> (MUST, REVIEW)
+        A Query Skill's Procedure <bcp14>MUST</bcp14> reduce to the
+        Query pipeline. Filter and Classify are optional and
+        <bcp14>MAY</bcp14> be omitted entirely.</t>
+        <t anchor="SDS-C-012"><strong>SDS-C-012</strong> (MUST, REVIEW)
+        A Command Skill's Procedure <bcp14>MUST</bcp14> reduce to the
+        Command pipeline. The parenthesized Confirm/Act pair is
+        <em>conditional</em>: it <bcp14>MAY</bcp14> be skipped on an
+        invocation only by a branch declared in Decide, per
+        <xref target="anatomy-conditional"/>; both headings are
+        retained. Communicate and Persist headings are always present
+        (<xref target="SDS-S-032"/>).</t>
+        <artwork name="" type="ascii-art" align="left"><![CDATA[
+Query pipeline (a Query Skill):
+
+   Gather -> [Filter] -> Analyze -> [Classify] -> Synthesize
+
+Command pipeline (a Command Skill):
+
+   Gather -> Analyze -> Decide -> (Confirm -> Act)
+      -> [Communicate] -> [Persist]
+]]></artwork>
+        <t anchor="SDS-C-013"><strong>SDS-C-013</strong> (MUST, REVIEW)
+        Nothing <bcp14>MAY</bcp14> follow Synthesize in a Query
+        pipeline that touches state outside the produced artifact; a
+        Procedure that does so is, by definition, a Command Skill and
+        <bcp14>MUST</bcp14> be labeled and gated as one.</t>
+      </section>
+
+      <section anchor="composition-semantics">
+        <name>Composition Semantics</name>
+        <t anchor="SDS-C-014"><strong>SDS-C-014</strong> (MUST, REVIEW)
+        Stage composition within a Procedure, and skill composition
+        within a pipeline, follows railway-oriented composition
+        <xref target="WLASCHIN"/>: every stage returns a success value
+        or a failure value. A failure at any stage <bcp14>MUST</bcp14>
+        short-circuit every subsequent stage and proceed directly to
+        the declared failure Output (<xref target="result-type"/>). A
+        Procedure or orchestrator <bcp14>MUST NOT</bcp14> require
+        per-stage bespoke "what if the prior stage failed" logic.</t>
+      </section>
+
+      <section anchor="composition-laws">
+        <name>Composition Laws</name>
+        <t>The following laws hold for a Query Skill's Procedure and are
+        checked by the eval table (<xref target="anatomy-evals"/>).</t>
+        <t anchor="SDS-C-015"><strong>SDS-C-015</strong> (MUST, REVIEW)
+        Identity. Composing a skill with the identity transform
+        <bcp14>MUST</bcp14> leave its behavior unchanged in either
+        order. An empty-result Output (<xref target="null-object"/>) is
+        the identity element of its Shape and <bcp14>MUST</bcp14> be
+        handled by downstream consumers via their ordinary code
+        path.</t>
+        <t anchor="SDS-C-016"><strong>SDS-C-016</strong> (MUST, REVIEW)
+        Associativity. For composable stages f, g, h:
+        <tt>(f -&gt; g) -&gt; h</tt> <bcp14>MUST</bcp14> equal
+        <tt>f -&gt; (g -&gt; h)</tt>. Lossy reduction ("keep only the
+        top N") <bcp14>MUST</bcp14> occur only once, at the final
+        Synthesize stage; intermediate combination <bcp14>MUST</bcp14>
+        be lossless.</t>
+        <t anchor="SDS-C-017"><strong>SDS-C-017</strong> (MUST, REVIEW)
+        Fixed point. Where a skill's <tt>shape-out</tt> equals its
+        <tt>shape-in</tt> and both name a registered Shape, applying
+        the skill to its own Output a second time <bcp14>MUST</bcp14>
+        produce no further change. <tt>freeform</tt> paired with
+        <tt>freeform</tt> does not qualify: <tt>freeform</tt> is the
+        declared absence of structure, not a structure an output can be
+        fed back into. <tt>metadata.idempotent</tt> does not trigger
+        this law (<xref target="SDS-C-004"/>). Machine check:
+        <xref target="SDS-S-094"/>.</t>
+        <t anchor="SDS-C-018"><strong>SDS-C-018</strong> (MUST, REVIEW)
+        Map fusion. Where a skill is applied across a collection,
+        <tt>map(f) -&gt; map(g)</tt> <bcp14>MUST</bcp14> equal
+        <tt>map(f -&gt; g)</tt>. Where it does not, the two stages have
+        a hidden dependency and <bcp14>MUST NOT</bcp14> be fused into a
+        single parallel pass.</t>
+      </section>
+
+      <section anchor="fail-fast">
+        <name>Fail-Fast Validation</name>
+        <t anchor="SDS-C-019"><strong>SDS-C-019</strong> (MUST, REVIEW)
+        A Procedure <bcp14>MUST</bcp14> validate every stated
+        precondition as its first action, before Gather proceeds. A
+        violation <bcp14>MUST</bcp14> produce an immediate, specific
+        failure naming the unmet precondition, mapped to a declared
+        <tt>@throws</tt> code; it <bcp14>MUST NOT</bcp14> be discovered
+        partway through Analyze or later.</t>
+      </section>
+
+      <section anchor="termination">
+        <name>Termination Requirements</name>
+        <t anchor="SDS-C-020"><strong>SDS-C-020</strong> (MUST, REVIEW)
+        Any stage that iterates internally <bcp14>MUST</bcp14> declare
+        an explicit termination condition: a convergence check or a
+        stated maximum number of iterations. Open-ended iteration with
+        no declared termination condition is nonconformant.</t>
+      </section>
+    </section>
+
+    <section anchor="shapes">
+      <name>Artifact Shapes and Interchange</name>
+
+      <section anchor="shape-registry">
+        <name>The Shape Registry</name>
+        <t>Skills compose by agreeing on the structure of what they
+        exchange, never by one skill invoking another directly. Each
+        family maintains a Shape Registry: the set of
+        <tt>kit/shapes/&lt;name&gt;.schema.json</tt> files
+        (<xref target="kit-shapes"/>).</t>
+        <t anchor="SDS-C-030"><strong>SDS-C-030</strong> (MUST, REVIEW)
+        A skill's <tt>@returns</tt> and <tt>@requires</tt>
+        <bcp14>MUST</bcp14> name a registered Shape, or explicitly
+        declare <tt>freeform</tt> where no structural contract is
+        offered. Machine checks: <xref target="SDS-S-026"/>,
+        <xref target="SDS-S-038"/>.</t>
+      </section>
+
+      <section anchor="standards-first">
+        <name>The Standards-First Rule</name>
+        <t anchor="SDS-C-031"><strong>SDS-C-031</strong> (MUST, REVIEW)
+        Before registering a new Shape, the family <bcp14>MUST</bcp14>
+        check whether an established external interchange format
+        already exists for that category of artifact in the family's
+        domain, and adopt or wrap it rather than defining a competing
+        bespoke structure. Illustrative software-development examples:
+        SARIF <xref target="SARIF"/> for finding-style results, the OSV
+        schema <xref target="OSV"/> for vulnerability records, SPDX
+        <xref target="SPDX"/> or CycloneDX <xref target="CYCLONEDX"/>
+        for dependency manifests, MADR <xref target="MADR"/> for
+        decision records, the C4 model <xref target="C4MODEL"/> for
+        architecture diagrams, Diataxis <xref target="DIATAXIS"/> for
+        documentation quadrants, OpenTelemetry semantic conventions
+        <xref target="OTELSEMCONV"/> for observability fields, the
+        Twelve-Factor App <xref target="TWELVEFACTOR"/> rubric for
+        environment checks, and Conventional Commits
+        <xref target="CONVCOMMITS"/> with Keep a Changelog
+        <xref target="KEEPACHANGELOG"/> for release-note generation.
+        Each registered Shape has a machine-checkable JSON Schema
+        <xref target="JSONSCHEMA"/> (<xref target="SDS-K-020"/>).</t>
+      </section>
+
+      <section anchor="null-object">
+        <name>The Null Object Requirement</name>
+        <t anchor="SDS-C-033"><strong>SDS-C-033</strong> (MUST, REVIEW)
+        A skill whose Analyze/Classify stage finds nothing
+        <bcp14>MUST</bcp14> still produce a fully well-formed,
+        schema-valid instance of its declared Shape with zero entries —
+        never <tt>null</tt>, an empty string, an omitted file, or a
+        distinct "nothing found" format (the Null Object pattern
+        <xref target="GOF-ADJACENT"/>).</t>
+      </section>
+
+      <section anchor="immutability">
+        <name>Immutability and Supersession</name>
+        <t anchor="SDS-C-034"><strong>SDS-C-034</strong> (SHOULD, REVIEW)
+        Once persisted, an artifact instance <bcp14>SHOULD</bcp14> be
+        treated as immutable. Where a later invocation would otherwise
+        update a decision- or plan-shaped artifact, it
+        <bcp14>MUST</bcp14> persist a new, dated instance referencing
+        the instance it supersedes (the <tt>superseded by</tt>
+        convention established by MADR <xref target="MADR"/>).</t>
+      </section>
+    </section>
+
+    <section anchor="safety">
+      <name>Effects, Permissions, and Safety</name>
+
+      <section anchor="effect-ladder">
+        <name>The Effect Ladder</name>
+        <t anchor="SDS-C-040"><strong>SDS-C-040</strong> (MUST, REVIEW)
+        Each skill <bcp14>MUST</bcp14> declare, in
+        <tt>metadata.effect-tier</tt>, the single highest rung its
+        Procedure reaches on the following ordered ladder.</t>
+        <ol type="1">
+          <li><tt>local-read-only</tt> (reads only the local filesystem)</li>
+          <li><tt>domain-read-only</tt> (reads a closed, predictable
+          domain, e.g. version-controlled repository history)</li>
+          <li><tt>external-read-only</tt> (reads an open-world external
+          system: a network API, a live service)</li>
+          <li><tt>local-write</tt> (writes only the skill's own declared
+          output location)</li>
+          <li><tt>shared-write</tt> (writes to, or notifies, something
+          other skills, people, or systems depend on)</li>
+          <li><tt>irreversible</tt> (an effect that cannot be undone by
+          a compensating action, or whose undo is itself irreversible)</li>
+        </ol>
+        <t anchor="SDS-C-041"><strong>SDS-C-041</strong> (MUST, REVIEW)
+        Rungs 1 through 3 define a Query Skill; rungs 4 through 6
+        define a Command Skill. A skill at rung 5 or 6
+        <bcp14>MUST</bcp14> include a Confirm stage. Machine check:
+        <xref target="SDS-S-025"/>.</t>
+      </section>
+
+      <section anchor="mcp-rel">
+        <name>Relationship to MCP Tool Annotations</name>
+        <t anchor="SDS-C-042"><strong>SDS-C-042</strong> (SHOULD, ADVISORY)
+        Where a skill is exposed as, or invokes, a Model Context
+        Protocol tool, its rung <bcp14>SHOULD</bcp14> be reflected in
+        that tool's annotations <xref target="MCPANNOT"/>:
+        <tt>readOnlyHint</tt> for rungs 1-3, <tt>destructiveHint</tt>
+        for rung 6, <tt>idempotentHint</tt> for the
+        <tt>metadata.idempotent</tt> declaration, and
+        <tt>openWorldHint</tt> for rung 3 or any rung reached via an
+        external system.</t>
+      </section>
+
+      <section anchor="perm-scoping">
+        <name>Permission Scoping</name>
+        <t anchor="SDS-C-043"><strong>SDS-C-043</strong> (MUST, REVIEW)
+        <tt>allowed-tools</tt> is scoped by rung, not by kind. Any
+        skill whose Procedure reaches rung 2 or above and invokes any
+        tool or bundled script <bcp14>MUST</bcp14> declare a narrow
+        scope; operations that would place the skill at rung 5 or 6
+        <bcp14>MUST NOT</bcp14> appear in it under any kind, so that
+        mis-scoping cannot suppress the host's own approval mechanism.
+        Machine checks: <xref target="SDS-S-020"/> through
+        <xref target="SDS-S-023"/>.</t>
+      </section>
+
+      <section anchor="confirm-gates">
+        <name>Confirmation Gates</name>
+        <t anchor="SDS-C-044"><strong>SDS-C-044</strong> (MUST, REVIEW)
+        A Confirm stage functions as middleware in front of Act: it
+        <bcp14>MUST</bcp14> run on every invocation that reaches an Act
+        at rung 5 or above, <bcp14>MUST NOT</bcp14> be skipped because
+        an equivalent confirmation was granted earlier in the session,
+        and <bcp14>MUST</bcp14> state concretely what specific effect is
+        about to occur.</t>
+      </section>
+
+      <section anchor="compensating">
+        <name>Compensating Actions</name>
+        <t anchor="SDS-C-045"><strong>SDS-C-045</strong> (MUST, REVIEW)
+        Each mutating step of an Act stage <bcp14>MUST</bcp14> have a
+        declared compensating action, to be taken if a later step in
+        the same sequence fails (the saga pattern
+        <xref target="SAGA"/>). Where none exists, the step
+        <bcp14>MUST</bcp14> say so and be sequenced last.</t>
+      </section>
+
+      <section anchor="checkpointing">
+        <name>Check-Before-Act and Checkpointing</name>
+        <t anchor="SDS-C-046"><strong>SDS-C-046</strong> (MUST, REVIEW)
+        Every mutating step <bcp14>MUST</bcp14> verify current state
+        before mutating and <bcp14>MUST</bcp14> skip as an explicit
+        no-op when the effect is already applied, so that re-invocation
+        after an interruption is safe rather than duplicative.</t>
+        <t anchor="SDS-C-047"><strong>SDS-C-047</strong> (MUST, REVIEW)
+        A Command Skill <bcp14>MUST</bcp14> persist a two-phase
+        checkpoint for each mutating step, written before the step and
+        updated after it, so that resumption after an interruption is
+        well-defined. The record format and location are specified in
+        <xref target="anatomy-state"/>; machine check:
+        <xref target="SDS-S-053"/>.</t>
+      </section>
+
+      <section anchor="trust-model">
+        <name>Trust Model for Declared Hints</name>
+        <t anchor="SDS-C-048"><strong>SDS-C-048</strong> (MUST, ADVISORY)
+        Effect Ladder rungs, MCP annotations, and
+        <tt>allowed-tools</tt> scopes are declared hints. A host
+        <bcp14>MUST NOT</bcp14> treat a skill's own declaration as the
+        sole safety control; declared risk, permission scoping, and
+        host-level approval are independently redundant controls
+        (defense in depth), per the caution that annotation hints are
+        untrusted unless sourced from a trusted party
+        <xref target="MCPANNOT"/>.</t>
+      </section>
+    </section>
+
+    <section anchor="contracts">
+      <name>Contracts</name>
+
+      <section anchor="contract-notation">
+        <name>Precondition/Postcondition Notation</name>
+        <t anchor="SDS-C-050"><strong>SDS-C-050</strong> (MUST, REVIEW)
+        Following Design by Contract <xref target="MEYER1992"/>, every
+        skill <bcp14>MUST</bcp14> state <tt>@requires</tt>
+        (preconditions as testable assertions), <tt>@returns</tt> (the
+        guarantee about a successful Output, naming a Shape), and
+        <tt>@throws</tt> (every declared failure mode, exhaustive with
+        respect to <xref target="SDS-C-005"/>). Machine check:
+        <xref target="SDS-S-030"/>.</t>
+        <t anchor="SDS-C-051"><strong>SDS-C-051</strong> (MUST, REVIEW)
+        Each precondition <bcp14>MUST</bcp14> be marked
+        <bcp14>REQUIRED</bcp14> or <bcp14>OPTIONAL</bcp14> with a stated
+        default. Machine check: <xref target="SDS-S-036"/>.</t>
+        <t anchor="SDS-C-052"><strong>SDS-C-052</strong> (MUST, REVIEW)
+        A skill declaring more than five REQUIRED inputs
+        <bcp14>MUST</bcp14> be split into narrower skills or take one
+        bundled Shape instead (the long-parameter-list smell). Machine
+        check: <xref target="SDS-S-037"/>.</t>
+      </section>
+
+      <section anchor="result-type">
+        <name>The Result Type and Failure Modes</name>
+        <t>A skill's Output is modeled as shown below.</t>
+        <artwork name="" type="ascii-art" align="left"><![CDATA[
+Result<Success, Failure>
+]]></artwork>
+        <t anchor="SDS-C-053"><strong>SDS-C-053</strong> (MUST, REVIEW)
+        A Failure value <bcp14>MUST</bcp14> preserve the causal chain
+        of what was being attempted at each level, in the style of
+        wrapped errors in idiomatic Go <xref target="ERRWRAP"/>
+        ("could not produce X: could not read Y: reason"), rather than
+        surfacing only the innermost cause or only a generic top-level
+        message.</t>
+      </section>
+
+      <section anchor="substitutability">
+        <name>Substitutability</name>
+        <t anchor="SDS-C-054"><strong>SDS-C-054</strong> (MUST, REVIEW)
+        A skill published as a replacement for another
+        <bcp14>MUST</bcp14> satisfy the Liskov Substitution Principle
+        <xref target="LSP"/> against every declared consumer of the
+        original: preconditions no stronger, postconditions no weaker.
+        A version increment alone does not establish substitutability;
+        it <bcp14>MUST</bcp14> be verified against declared
+        consumers.</t>
+      </section>
+    </section>
+
+    <section anchor="reuse">
+      <name>Composition and Reuse Patterns</name>
+
+      <section anchor="functional-core">
+        <name>Functional Core, Imperative Shell</name>
+        <t anchor="SDS-C-060"><strong>SDS-C-060</strong> (SHOULD, REVIEW)
+        An orchestrating Command Skill <bcp14>SHOULD</bcp14> contain no
+        Analyze, Classify, or Decide logic of its own
+        <xref target="BERNHARDT"/>; that reasoning belongs in a Query
+        Skill it invokes via a Delegate stage. The orchestrator's own
+        Procedure reduces to: delegate for a decision artifact, Confirm,
+        Act.</t>
+      </section>
+
+      <section anchor="injection">
+        <name>Specialization via Injection</name>
+        <t anchor="SDS-C-061"><strong>SDS-C-061</strong> (MUST, REVIEW)
+        A skill <bcp14>MUST NOT</bcp14> be forked to specialize it for
+        one context. Context-specific configuration
+        <bcp14>MUST</bcp14> be supplied via <tt>assets/</tt> or
+        <tt>compatibility</tt> as an injected dependency
+        <xref target="DI"/>, with the Procedure written against the
+        abstract presence of that dependency.</t>
+      </section>
+
+      <section anchor="strangler">
+        <name>Migration via the Strangler Fig Pattern</name>
+        <t anchor="SDS-C-062"><strong>SDS-C-062</strong> (MUST, REVIEW)
+        Adoption of a new Shape, standard, or convention across an
+        existing family <bcp14>MUST</bcp14> proceed incrementally
+        <xref target="FOWLER-STRANGLER"/>: revised skills adopt it
+        directly; an Adapter (a judgment-free translation script)
+        bridges unmigrated output; the Adapter is retired once no
+        unmigrated skill remains.</t>
+      </section>
+
+      <section anchor="contract-testing">
+        <name>Consumer-Driven Contract Testing</name>
+        <t anchor="SDS-C-063"><strong>SDS-C-063</strong> (SHOULD, REVIEW)
+        Where two skills are designed to chain, the eval suite
+        <bcp14>SHOULD</bcp14> include a consumer-driven contract test
+        <xref target="PACT"/>: the producer is run for real and its
+        actual Output validated against the consumer's declared
+        <tt>@requires</tt> schema. Per-skill evals passing in isolation
+        <bcp14>MUST NOT</bcp14> be treated as evidence that two skills
+        chain correctly.</t>
+      </section>
+    </section>
+
+    <!-- ===================== PART I: FAMILY ===================== -->
+
+    <section anchor="family">
+      <name>Family and Repository</name>
+
+      <section anchor="family-layout">
+        <name>Layout</name>
+        <t anchor="SDS-F-001"><strong>SDS-F-001</strong> (MUST, MACHINE)
+        The family root <bcp14>MUST</bcp14> contain <tt>kit/</tt>,
+        <tt>skills/</tt>, and <tt>docs/</tt>.</t>
+        <t anchor="SDS-F-002"><strong>SDS-F-002</strong> (MUST, MACHINE)
+        <tt>skills/</tt> <bcp14>MUST</bcp14> contain only skill package
+        directories, each holding a <tt>SKILL.md</tt>.</t>
+        <t anchor="SDS-F-003"><strong>SDS-F-003</strong> (MUST, REVIEW)
+        The XML source of this specification under
+        <tt>docs/superpowers/specs/</tt> is authoritative; rendered
+        <tt>.txt</tt> and <tt>.html</tt> files are derived and
+        <bcp14>MUST</bcp14> be regenerated with xml2rfc in the same
+        change that edits the XML.</t>
+      </section>
+
+      <section anchor="family-registry">
+        <name>The Family Registry File</name>
+        <t anchor="SDS-F-010"><strong>SDS-F-010</strong> (MUST, MACHINE)
+        The canonical registry <bcp14>MUST</bcp14> be
+        <tt>kit/registry/marketplace.json</tt>.</t>
+        <t anchor="SDS-F-011"><strong>SDS-F-011</strong> (MUST, MACHINE)
+        The registry <bcp14>MUST</bcp14> validate against
+        <tt>kit/registry/marketplace.schema.json</tt>.</t>
+        <t anchor="SDS-F-012"><strong>SDS-F-012</strong> (MUST, MACHINE)
+        Each entry <bcp14>MUST</bcp14> carry <tt>name</tt>,
+        <tt>description</tt>, <tt>version</tt>, <tt>effect-tier</tt>,
+        <tt>tier</tt>, <tt>shape-out</tt>, and <tt>shape-in</tt>.</t>
+        <t anchor="SDS-F-013"><strong>SDS-F-013</strong> (MUST, MACHINE)
+        Every <tt>skills/&lt;name&gt;/</tt> <bcp14>MUST</bcp14> have
+        exactly one entry, and the entry's <tt>version</tt>,
+        <tt>effect-tier</tt>, <tt>tier</tt>, <tt>shape-out</tt>, and
+        <tt>shape-in</tt> <bcp14>MUST</bcp14> equal the skill's
+        frontmatter.</t>
+        <t anchor="SDS-F-014"><strong>SDS-F-014</strong> (MUST, REVIEW)
+        Any human-facing index of the family's skills
+        <bcp14>MUST</bcp14> be generated from the registry, never
+        hand-maintained in parallel.</t>
+        <t anchor="SDS-F-015"><strong>SDS-F-015</strong> (MUST, MACHINE)
+        An entry's <tt>status</tt> is <tt>planned</tt> or
+        <tt>built</tt>. A <tt>built</tt> entry <bcp14>MUST</bcp14> have
+        a corresponding skill directory; a <tt>planned</tt> entry need
+        not; a skill directory without an entry is an error.</t>
+        <t anchor="SDS-F-016"><strong>SDS-F-016</strong> (SHOULD, MACHINE)
+        An entry's <tt>description</tt> <bcp14>SHOULD</bcp14> equal the
+        skill's frontmatter description after whitespace collapse.</t>
+      </section>
+
+      <section anchor="family-state">
+        <name>Root Ignore Rules and Runtime State</name>
+        <t anchor="SDS-F-020"><strong>SDS-F-020</strong> (MUST, MACHINE)
+        The family-root <tt>.gitignore</tt> <bcp14>MUST</bcp14> contain
+        <tt>.skills-state/</tt>.</t>
+        <t anchor="SDS-F-021"><strong>SDS-F-021</strong> (MUST, MACHINE)
+        No file under <tt>.skills-state/</tt> <bcp14>MUST</bcp14> be
+        tracked by version control; it is machine state for one run
+        (<xref target="anatomy-state"/>).</t>
+      </section>
+
+      <section anchor="family-paths">
+        <name>Path Convention</name>
+        <t anchor="SDS-F-030"><strong>SDS-F-030</strong> (MUST, MACHINE)
+        Every cross-reference to a file under <tt>kit/</tt>,
+        <tt>skills/</tt>, or <tt>docs/</tt> — in SKILL.md, eval files,
+        scripts, templates, and kit guides — <bcp14>MUST</bcp14> be
+        family-root-relative (e.g.
+        <tt>kit/shapes/finding-list.schema.json</tt>). Parent-relative
+        references (<tt>../</tt>) and bare <tt>shapes/</tt>,
+        <tt>shared/</tt>, <tt>templates/</tt>, or <tt>registry/</tt>
+        references <bcp14>MUST NOT</bcp14> be used, and every referenced
+        <tt>kit/</tt> path <bcp14>MUST</bcp14> exist.</t>
+        <t anchor="SDS-F-031"><strong>SDS-F-031</strong> (MUST, MACHINE)
+        Commands in SKILL.md and eval files run from the skill
+        directory and use skill-relative paths (<tt>scripts/x.py</tt>,
+        <tt>evals/fixtures/y</tt>); every such referenced path
+        <bcp14>MUST</bcp14> exist, except generated fixtures
+        (<xref target="SDS-S-096"/>).</t>
+        <t anchor="SDS-F-032"><strong>SDS-F-032</strong> (MAY, ADVISORY)
+        Tooling resolves root-relative paths by locating the family root
+        (the parent of <tt>kit/</tt>), never by asking version control
+        for its toplevel, which may be a different directory.</t>
+      </section>
+
+      <section anchor="family-versioning">
+        <name>Versioning and Release</name>
+        <t anchor="SDS-F-040"><strong>SDS-F-040</strong> (MUST, MACHINE)
+        <tt>metadata.version</tt> <bcp14>MUST</bcp14> be Semantic
+        Versioning <xref target="SEMVER"/>.</t>
+        <t anchor="SDS-F-041"><strong>SDS-F-041</strong> (MUST, REVIEW)
+        A change to a registered Shape is MAJOR if it removes or narrows
+        a field, MINOR if it adds an optional field, PATCH otherwise.</t>
+        <t anchor="SDS-F-042"><strong>SDS-F-042</strong> (MUST, MACHINE)
+        The registry's top-level <tt>sds</tt> string <bcp14>MUST</bcp14>
+        name the specification version the family conforms to (e.g.
+        <tt>1.0-draft</tt>). No <tt>metadata</tt> key is added for this;
+        the seven-key set stays closed.</t>
+        <t anchor="SDS-F-043"><strong>SDS-F-043</strong> (MUST, REVIEW)
+        A MAJOR change to a shared Shape <bcp14>MUST</bcp14> trigger a
+        review of every skill declaring that Shape in
+        <tt>shape-in</tt> or <tt>shape-out</tt> before release.</t>
+        <t anchor="SDS-F-044"><strong>SDS-F-044</strong> (MUST, REVIEW)
+        Every revision of this specification <bcp14>MUST</bcp14> add an
+        entry to <xref target="changelog"/>.</t>
+      </section>
+
+      <section anchor="family-governance">
+        <name>Governance</name>
+        <t anchor="SDS-F-050"><strong>SDS-F-050</strong> (MUST, REVIEW)
+        A change to this specification <bcp14>MUST</bcp14> consist of
+        the XML edit, regenerated renderings, and — when a MACHINE rule
+        is added, removed, or changed — the matching linter update in
+        the same change.</t>
+        <t anchor="SDS-F-051"><strong>SDS-F-051</strong> (MUST, REVIEW)
+        Rule identifiers <bcp14>MUST NOT</bcp14> be reused; a withdrawn
+        rule remains in <xref target="rule-index"/> marked
+        withdrawn.</t>
+        <t anchor="SDS-F-052"><strong>SDS-F-052</strong> (MUST, ADVISORY)
+        Kit guides (<xref target="SDS-K-002"/>) are non-normative;
+        where a guide and this specification conflict, the
+        specification governs.</t>
+        <t anchor="SDS-F-053"><strong>SDS-F-053</strong> (SHOULD, REVIEW)
+        Promotion of a skill from <tt>situational</tt> to
+        <tt>pillar</tt> <bcp14>SHOULD</bcp14> require a numeric
+        threshold over real invocations (an error-budget style
+        criterion <xref target="SRE-EB"/>) recorded under
+        <tt>docs/</tt>, not a subjective judgment.</t>
+      </section>
+
+      <section anchor="family-glossary">
+        <name>Glossary</name>
+        <t anchor="SDS-F-060"><strong>SDS-F-060</strong> (MUST, MACHINE)
+        A family <bcp14>MUST</bcp14> maintain exactly one glossary at
+        <tt>kit/shared/glossary.md</tt>, fixing one canonical term per
+        concept.</t>
+        <t anchor="SDS-F-061"><strong>SDS-F-061</strong> (SHOULD, MACHINE)
+        A skill's headings, <tt>@requires</tt> bullets, <tt>@returns</tt>
+        line, and description <bcp14>SHOULD NOT</bcp14> use a term the
+        glossary lists under "do not use instead." The linter applies a
+        conservative single-word heuristic; the reserved words
+        <tt>tier</tt>, <tt>rung</tt>, <tt>gate</tt>, and
+        <tt>checkpoint</tt> require human review.</t>
+      </section>
+    </section>
+
+    <!-- ===================== PART II: KIT ===================== -->
+
+    <section anchor="kit">
+      <name>The Kit</name>
+
+      <section anchor="kit-layout">
+        <name>Layout and Status</name>
+        <t anchor="SDS-K-001"><strong>SDS-K-001</strong> (MUST, MACHINE)
+        <tt>kit/</tt> <bcp14>MUST</bcp14> contain <tt>templates/</tt>,
+        <tt>evals/TEMPLATE.eval.yaml</tt>, <tt>shapes/</tt>,
+        <tt>shared/glossary.md</tt>, <tt>shared/gates/</tt>,
+        <tt>shared/tool-profiles/</tt>, <tt>registry/</tt>, and
+        <tt>scripts/lint-skill.py</tt>.</t>
+        <t anchor="SDS-K-002"><strong>SDS-K-002</strong> (MUST, MACHINE)
+        <tt>kit/HOW-TO-BUILD-A-SKILL.md</tt> and
+        <tt>kit/PRIMITIVES.md</tt> are non-normative guides and
+        <bcp14>MUST</bcp14> open with a banner stating so and naming
+        this specification; their sections cite rule identifiers.</t>
+      </section>
+
+      <section anchor="kit-templates">
+        <name>Templates</name>
+        <t anchor="SDS-K-010"><strong>SDS-K-010</strong> (MUST, MACHINE)
+        The kit ships one Query template and one Command template under
+        <tt>kit/templates/</tt>; their H2 and H3 heading order
+        <bcp14>MUST</bcp14> equal the normative order in
+        <xref target="anatomy-sections"/>.</t>
+      </section>
+
+      <section anchor="kit-shapes">
+        <name>Shapes: Adding One</name>
+        <t anchor="SDS-K-020"><strong>SDS-K-020</strong> (MUST, MACHINE)
+        A registered Shape is a file
+        <tt>kit/shapes/&lt;name&gt;.schema.json</tt> that is JSON Schema
+        draft 2020-12, whose <tt>title</tt> equals <tt>&lt;name&gt;</tt>
+        and whose <tt>$id</tt> is
+        <tt>https://skills.local/shapes/&lt;name&gt;.schema.json</tt>.</t>
+        <t anchor="SDS-K-021"><strong>SDS-K-021</strong> (MUST, REVIEW)
+        A new Shape <bcp14>MUST</bcp14> carry a Standards-First
+        justification in its <tt>description</tt>
+        (<xref target="SDS-C-031"/>) and a zero-entry instance that
+        validates (<xref target="SDS-C-033"/>).</t>
+        <t anchor="SDS-K-022"><strong>SDS-K-022</strong> (SHOULD, REVIEW)
+        A Shape that introduces a term <bcp14>SHOULD</bcp14> add a
+        glossary row.</t>
+      </section>
+
+      <section anchor="kit-gates">
+        <name>Gates: Adding One</name>
+        <t anchor="SDS-K-030"><strong>SDS-K-030</strong> (MUST, MACHINE)
+        A gate is a file <tt>kit/shared/gates/&lt;level&gt;.md</tt>
+        containing the fields <tt>What</tt>, <tt>Why</tt>, and either
+        <tt>Reversible</tt> or <tt>Compensating action</tt>.</t>
+        <t anchor="SDS-K-031"><strong>SDS-K-031</strong> (MUST, REVIEW)
+        Each gate <bcp14>MUST</bcp14> map to exactly one rung and be
+        cited from <xref target="anatomy-act"/>.</t>
+      </section>
+
+      <section anchor="kit-profiles">
+        <name>Tool Profiles: Adding One</name>
+        <t anchor="SDS-K-040"><strong>SDS-K-040</strong> (MUST, MACHINE)
+        A tool profile is a file
+        <tt>kit/shared/tool-profiles/&lt;name&gt;.yaml</tt> with
+        <tt>name</tt>, <tt>effect-tier</tt> (a rung),
+        <tt>allowed-tools</tt> (a list), and <tt>notes</tt>.</t>
+        <t anchor="SDS-K-041"><strong>SDS-K-041</strong> (MUST, MACHINE)
+        No profile entry <bcp14>MUST</bcp14> be a rung-5 or rung-6
+        operation. The family denylist is: <tt>gh pr merge</tt>,
+        <tt>git push</tt>, <tt>git merge</tt>, <tt>git rebase</tt>,
+        <tt>git reset</tt>, <tt>git branch -D</tt> / <tt>-d</tt>,
+        <tt>gh release create</tt>, <tt>gh repo delete</tt>,
+        <tt>gh issue close</tt>, <tt>gh pr close</tt>,
+        <tt>gh api -X POST|PATCH|PUT|DELETE</tt>, <tt>rm -rf</tt>,
+        <tt>git clean</tt> (forbidden always); and <tt>gh pr
+        create</tt>, <tt>gh pr edit</tt>, <tt>gh pr comment</tt>,
+        <tt>gh issue create</tt>, <tt>git commit</tt>, <tt>git add</tt>
+        (forbidden in any profile below rung 5).</t>
+        <t anchor="SDS-K-042"><strong>SDS-K-042</strong> (MUST, MACHINE)
+        No profile entry <bcp14>MUST</bcp14> be a bare interpreter or
+        wildcard: <tt>Bash(*)</tt>, <tt>Bash(python3:*)</tt>,
+        <tt>Bash(sh:*)</tt>, <tt>Bash(bash:*)</tt>,
+        <tt>Bash(node:*)</tt>, or bare <tt>Bash</tt>.</t>
+        <t anchor="SDS-K-043"><strong>SDS-K-043</strong> (SHOULD, MACHINE)
+        Skills <bcp14>SHOULD</bcp14> copy profile entries verbatim;
+        narrowing is allowed, widening is not. A git or gh token in a
+        skill's <tt>allowed-tools</tt> that appears in no profile is
+        reported for review.</t>
+      </section>
+
+      <section anchor="kit-glossary">
+        <name>Glossary Terms: Adding One</name>
+        <t anchor="SDS-K-050"><strong>SDS-K-050</strong> (MUST, MACHINE)
+        Glossary rows are <tt>term | definition | do-not-use</tt>.</t>
+        <t anchor="SDS-K-051"><strong>SDS-K-051</strong> (SHOULD, REVIEW)
+        Each row <bcp14>SHOULD</bcp14> cite the section of this
+        specification that fixes the concept.</t>
+      </section>
+
+      <section anchor="kit-evals">
+        <name>The Eval Template</name>
+        <t anchor="SDS-K-060"><strong>SDS-K-060</strong> (MUST, MACHINE)
+        <tt>kit/evals/TEMPLATE.eval.yaml</tt> defines the row schema
+        every skill's eval file follows: <tt>name</tt>, optional
+        <tt>input</tt>, and <tt>expected</tt> with <tt>kind</tt>
+        (<tt>success</tt>, <tt>failure</tt>, or
+        <tt>not-applicable</tt>), optional <tt>shape</tt>,
+        <tt>failureCode</tt>, <tt>reason</tt>, and
+        <tt>assertions</tt>. Per-skill conformance is checked by
+        <xref target="SDS-S-090"/>.</t>
+      </section>
+
+      <section anchor="kit-linter">
+        <name>The Linter</name>
+        <t anchor="SDS-K-070"><strong>SDS-K-070</strong> (MUST, MACHINE)
+        <tt>kit/scripts/lint-skill.py &lt;skill-dir&gt;</tt> or
+        <tt>--all skills/</tt> <bcp14>MUST</bcp14> exit 0 only when
+        every MUST+MACHINE rule passes, exit 1 on any such failure, and
+        exit 2 on usage or I/O error. It prints one finding per line as
+        <tt>&lt;ID&gt; &lt;LEVEL&gt; &lt;root-relative path&gt;[:line]
+        &lt;message&gt;</tt>, prints REVIEW rules as a trailing
+        checklist, and with <tt>--json</tt> emits a
+        <tt>finding-list</tt> instance validating against
+        <tt>kit/shapes/finding-list.schema.json</tt>.</t>
+        <t anchor="SDS-K-071"><strong>SDS-K-071</strong> (MUST, REVIEW)
+        The linter's MACHINE rule table (<tt>--rules</tt>)
+        <bcp14>MUST</bcp14> equal the MACHINE subset of
+        <xref target="rule-index"/>.</t>
+      </section>
+    </section>
+
+    <!-- ===================== PART III: SKILL ANATOMY ===================== -->
+
+    <section anchor="anatomy">
+      <name>Skill Anatomy</name>
+
+      <section anchor="anatomy-layout">
+        <name>Package Layout</name>
+        <t anchor="SDS-S-001"><strong>SDS-S-001</strong> (MUST, MACHINE)
+        <tt>SKILL.md</tt> <bcp14>MUST</bcp14> exist at the skill
+        root.</t>
+        <t anchor="SDS-S-002"><strong>SDS-S-002</strong> (MUST, MACHINE)
+        Exactly one <tt>evals/&lt;name&gt;.eval.yaml</tt>
+        <bcp14>MUST</bcp14> exist.</t>
+        <t anchor="SDS-S-003"><strong>SDS-S-003</strong> (MUST, MACHINE)
+        The directory name <bcp14>MUST</bcp14> equal the frontmatter
+        <tt>name</tt>.</t>
+        <t anchor="SDS-S-004"><strong>SDS-S-004</strong> (SHOULD, MACHINE)
+        Only <tt>scripts/</tt>, <tt>references/</tt>, <tt>assets/</tt>,
+        and <tt>evals/</tt> <bcp14>SHOULD</bcp14> appear beside
+        <tt>SKILL.md</tt>.</t>
+        <t anchor="SDS-S-005"><strong>SDS-S-005</strong> (MAY, MACHINE)
+        An empty <tt>scripts/</tt>, <tt>references/</tt>, or
+        <tt>assets/</tt> directory is reported.</t>
+      </section>
+
+      <section anchor="anatomy-frontmatter">
+        <name>Frontmatter</name>
+        <t anchor="SDS-S-010"><strong>SDS-S-010</strong> (MUST, MACHINE)
+        Only the Base Spec keys <tt>name</tt>, <tt>description</tt>,
+        <tt>license</tt>, <tt>compatibility</tt>, <tt>metadata</tt>,
+        and <tt>allowed-tools</tt> <bcp14>MUST</bcp14> appear at the
+        frontmatter top level.</t>
+        <t anchor="SDS-S-011"><strong>SDS-S-011</strong> (MUST, MACHINE)
+        <tt>name</tt> <bcp14>MUST</bcp14> match
+        <tt>^[a-z0-9]+(-[a-z0-9]+)*$</tt> and be at most 64
+        characters.</t>
+        <t anchor="SDS-S-012"><strong>SDS-S-012</strong> (MUST, MACHINE)
+        <tt>description</tt> <bcp14>MUST</bcp14> be 1 to 1024
+        characters.</t>
+        <t anchor="SDS-S-013"><strong>SDS-S-013</strong> (SHOULD, MACHINE)
+        <tt>description</tt> <bcp14>SHOULD</bcp14> contain a trigger
+        phrase ("Use when" or equivalent) and the specific keywords a
+        task would contain. Write it last, after the body, so it
+        describes real triggers rather than summarizing the draft.</t>
+        <t anchor="SDS-S-014"><strong>SDS-S-014</strong> (SHOULD, MACHINE)
+        <tt>license</tt> <bcp14>SHOULD</bcp14> be set explicitly; the
+        family default is <tt>Apache-2.0</tt>, and a different value is
+        reported for information.</t>
+        <t anchor="SDS-S-015"><strong>SDS-S-015</strong> (MUST, MACHINE)
+        <tt>compatibility</tt>, when present, <bcp14>MUST</bcp14> be at
+        most 500 characters and name concrete requirements. It
+        <bcp14>MUST</bcp14> be present when <tt>effect-tier</tt> is
+        <tt>external-read-only</tt> or higher, and <bcp14>SHOULD</bcp14>
+        be omitted when the skill needs nothing beyond a host that
+        supports Agent Skills.</t>
+        <t anchor="SDS-S-016"><strong>SDS-S-016</strong> (MUST, MACHINE)
+        <tt>metadata</tt> <bcp14>MUST</bcp14> be a map of string values
+        containing exactly the seven keys <tt>family</tt>,
+        <tt>effect-tier</tt>, <tt>idempotent</tt>, <tt>tier</tt>,
+        <tt>shape-out</tt>, <tt>shape-in</tt>, and
+        <tt>version</tt>.</t>
+        <sourcecode type="yaml"><![CDATA[
+metadata:
+  family: dev-skills-suite
+  effect-tier: external-read-only
+  idempotent: "true"
+  tier: pillar
+  shape-out: finding-list
+  shape-in: freeform
+  version: "0.1.0"
+]]></sourcecode>
+        <t anchor="SDS-S-017"><strong>SDS-S-017</strong> (MUST, MACHINE)
+        <tt>effect-tier</tt> <bcp14>MUST</bcp14> be one of the six rung
+        names in <xref target="effect-ladder"/>.</t>
+        <t anchor="SDS-S-018"><strong>SDS-S-018</strong> (MUST, MACHINE)
+        <tt>idempotent</tt> <bcp14>MUST</bcp14> be the YAML string
+        <tt>"true"</tt> or <tt>"false"</tt> (Base Spec metadata is
+        string-to-string; an unquoted boolean is nonconformant).</t>
+        <t anchor="SDS-S-019"><strong>SDS-S-019</strong> (MUST, MACHINE)
+        <tt>tier</tt> <bcp14>MUST</bcp14> be <tt>pillar</tt> or
+        <tt>situational</tt>.</t>
+        <t anchor="SDS-S-020"><strong>SDS-S-020</strong> (MUST, MACHINE)
+        Any skill whose Procedure reaches rung 2 or above and invokes
+        any tool or bundled script <bcp14>MUST</bcp14> declare
+        <tt>allowed-tools</tt> as a single string.</t>
+        <t anchor="SDS-S-021"><strong>SDS-S-021</strong> (MUST, MACHINE)
+        <tt>allowed-tools</tt> has two sources and only two: entries
+        copied verbatim from a shared profile
+        (<xref target="kit-profiles"/>), and one inline entry per
+        shipped script of the form
+        <tt>Bash(python3 scripts/&lt;file&gt;:*)</tt>. Script entries
+        <bcp14>MUST</bcp14> reference files that exist under
+        <tt>scripts/</tt> and nothing outside it.</t>
+        <t anchor="SDS-S-022"><strong>SDS-S-022</strong> (MUST, MACHINE)
+        <tt>allowed-tools</tt> <bcp14>MUST NOT</bcp14> contain a bare
+        interpreter or wildcard (<xref target="SDS-K-042"/>).</t>
+        <t anchor="SDS-S-023"><strong>SDS-S-023</strong> (MUST, MACHINE)
+        <tt>allowed-tools</tt> <bcp14>MUST NOT</bcp14> contain a
+        forbidden-always operation at any rung, a forbidden-below-5
+        operation below rung 5 (<xref target="SDS-K-041"/>), or, below
+        rung 4, <tt>Write</tt>, <tt>Edit</tt>, <tt>MultiEdit</tt>,
+        <tt>NotebookEdit</tt>, <tt>git checkout -b</tt>, or
+        <tt>git stash</tt>.</t>
+        <t anchor="SDS-S-024"><strong>SDS-S-024</strong> (MUST, REVIEW)
+        <tt>Write</tt> and <tt>Edit</tt> tools <bcp14>MUST</bcp14>
+        appear only in Command Skills, and only for the checkpoint
+        record or the skill's declared output location.</t>
+        <t anchor="SDS-S-025"><strong>SDS-S-025</strong> (MUST, MACHINE)
+        Body sections <bcp14>MUST</bcp14> match the rung's kind: rung 3
+        or lower has no Confirm, Act, or Communicate heading; rung 4 or
+        higher has an Act heading; rung 5 or higher has a Confirm
+        heading that precedes Act.</t>
+        <t anchor="SDS-S-026"><strong>SDS-S-026</strong> (MUST, MACHINE)
+        <tt>shape-out</tt> and each value of <tt>shape-in</tt> (a name
+        or a comma-separated list) <bcp14>MUST</bcp14> be a registered
+        Shape or <tt>freeform</tt>.</t>
+        <t anchor="SDS-S-027"><strong>SDS-S-027</strong> (MUST, MACHINE)
+        <tt>version</tt> <bcp14>MUST</bcp14> be semver
+        (<xref target="SDS-F-040"/>).</t>
+        <t anchor="SDS-S-028"><strong>SDS-S-028</strong> (MUST, MACHINE)
+        <tt>family</tt> <bcp14>MUST</bcp14> equal the registry's
+        <tt>family</tt>.</t>
+      </section>
+
+      <section anchor="anatomy-sections">
+        <name>Section Order</name>
+        <t anchor="SDS-S-030"><strong>SDS-S-030</strong> (MUST, MACHINE)
+        The SKILL.md body <bcp14>MUST</bcp14> contain exactly these H2
+        sections, in this order, none empty: <tt>When to use</tt>,
+        <tt>When not to use</tt>, <tt>@requires</tt>,
+        <tt>Instructions</tt>, <tt>@returns</tt>, <tt>@throws</tt>,
+        <tt>@example</tt>. The only additional H2 sections permitted are
+        <tt>@see</tt> and <tt>@deprecated</tt>, referencing a
+        superseding skill (<xref target="immutability"/>). The tag
+        vocabulary follows established docstring conventions
+        <xref target="JSDOC"/>.</t>
+        <t anchor="SDS-S-043"><strong>SDS-S-043</strong> (SHOULD, MACHINE)
+        The first heading <bcp14>SHOULD</bcp14> be
+        <tt># &lt;name&gt;</tt>.</t>
+        <t anchor="SDS-S-031"><strong>SDS-S-031</strong> (MUST, MACHINE)
+        H3 headings under <tt>Instructions</tt> <bcp14>MUST</bcp14> be
+        stage-vocabulary names (<xref target="tab-stages"/>). A Query
+        Skill <bcp14>MUST</bcp14> have <tt>Gather</tt>,
+        <tt>Analyze</tt>, and <tt>Synthesize</tt>; <tt>Filter</tt> and
+        <tt>Classify</tt> <bcp14>MAY</bcp14> be omitted entirely. A
+        Command Skill <bcp14>MUST</bcp14> have <tt>Gather</tt>,
+        <tt>Analyze</tt>, <tt>Decide</tt>, <tt>Act</tt>,
+        <tt>Communicate</tt>, and <tt>Persist</tt>, plus
+        <tt>Confirm</tt> (optional at rung 4, required at rungs 5 and
+        6). Required stages <bcp14>MUST</bcp14> appear as a subsequence
+        of the canonical order.</t>
+        <t anchor="SDS-S-032"><strong>SDS-S-032</strong> (MUST, MACHINE)
+        A required heading that does not apply <bcp14>MUST</bcp14> be
+        retained with a body whose first line is
+        <tt>N/A — &lt;reason&gt;</tt>; a missing section is
+        indistinguishable from a forgotten one.</t>
+        <t anchor="SDS-S-033"><strong>SDS-S-033</strong> (MUST, MACHINE)
+        No template residue (<tt>[FILL</tt>, <tt>skill-name-here</tt>,
+        <tt>[Write this LAST</tt>) <bcp14>MUST</bcp14> remain.</t>
+        <t anchor="SDS-S-034"><strong>SDS-S-034</strong> (SHOULD, MACHINE)
+        Instructions <bcp14>SHOULD</bcp14> be second-person imperative,
+        one checkable action per sentence, and <bcp14>MUST NOT</bcp14>
+        use marketing language (<tt>powerful</tt>, <tt>seamless</tt>,
+        <tt>comprehensive</tt>, <tt>robust</tt>,
+        <tt>cutting-edge</tt>).</t>
+        <t anchor="SDS-S-035"><strong>SDS-S-035</strong> (MUST, MACHINE)
+        SKILL.md <bcp14>MUST</bcp14> be under 500 lines; 400 or more is
+        a warning. Move depth to <tt>references/</tt> rather than
+        trimming required sections.</t>
+        <t anchor="SDS-S-036"><strong>SDS-S-036</strong> (MUST, MACHINE)
+        Each <tt>@requires</tt> bullet <bcp14>MUST</bcp14> begin
+        <tt>REQUIRED:</tt> or <tt>OPTIONAL:</tt>; an
+        <tt>OPTIONAL:</tt> bullet <bcp14>MUST</bcp14> carry
+        <tt>(default: ...)</tt> unless it is exactly
+        <tt>OPTIONAL: none</tt>.</t>
+        <t anchor="SDS-S-037"><strong>SDS-S-037</strong> (MUST, MACHINE)
+        At least one REQUIRED input <bcp14>MUST</bcp14> be declared;
+        more than five is reported as a warning to split the skill
+        (<xref target="SDS-C-052"/>).</t>
+        <t anchor="SDS-S-038"><strong>SDS-S-038</strong> (MUST, MACHINE)
+        <tt>@returns</tt> <bcp14>MUST</bcp14> contain
+        <tt>Shape: `&lt;shape-out&gt;`</tt> and, for a registered
+        Shape, the literal
+        <tt>kit/shapes/&lt;shape-out&gt;.schema.json</tt>.</t>
+        <t anchor="SDS-S-039"><strong>SDS-S-039</strong> (MUST, MACHINE)
+        <tt>@throws</tt> <bcp14>MUST</bcp14> have at least one bullet
+        of the form <tt>- `kebab-code`: ...</tt>; codes
+        <bcp14>MUST</bcp14> be unique; every <tt>failureCode</tt> in
+        the eval file <bcp14>MUST</bcp14> be a declared code; a skill
+        at rung 5 or higher <bcp14>SHOULD</bcp14> declare a
+        declined-confirmation code.</t>
+        <t anchor="SDS-S-040"><strong>SDS-S-040</strong> (MUST, MACHINE)
+        <tt>@example</tt> <bcp14>MUST</bcp14> contain
+        <tt>**Input:**</tt> and an Output or Result block.</t>
+      </section>
+
+      <section anchor="anatomy-conditional">
+        <name>Conditional Command Skills</name>
+        <t anchor="SDS-S-041"><strong>SDS-S-041</strong> (MUST, MACHINE)
+        A Command Skill <bcp14>MAY</bcp14> declare a conditional Act
+        path. If it does, Decide <bcp14>MUST</bcp14> contain a bold
+        branch of the form <tt>**If &lt;condition&gt;: stop
+        here.**</tt> returning the artifact; the Confirm and Act
+        sections <bcp14>MUST</bcp14> begin <tt>Only reached when
+        &lt;condition&gt;.</tt>; <tt>@returns</tt> <bcp14>MUST</bcp14>
+        describe both paths; and <tt>@throws</tt> <bcp14>MUST</bcp14>
+        include the declined-confirmation code.</t>
+        <t anchor="SDS-S-042"><strong>SDS-S-042</strong> (MUST, REVIEW)
+        The Act-less path <bcp14>MUST NOT</bcp14> mutate anything; on
+        that path the invocation behaves as a Query Skill.</t>
+      </section>
+
+      <section anchor="anatomy-act">
+        <name>Confirm, Act, and Checkpoint</name>
+        <t anchor="SDS-S-050"><strong>SDS-S-050</strong> (MUST, MACHINE)
+        A rung-5 Confirm section <bcp14>MUST</bcp14> cite
+        <tt>kit/shared/gates/medium.md</tt>; a rung-6 Confirm section
+        <bcp14>MUST</bcp14> cite <tt>kit/shared/gates/high.md</tt>;
+        Confirm <bcp14>MUST</bcp14> precede Act.</t>
+        <t anchor="SDS-S-051"><strong>SDS-S-051</strong> (MUST, MACHINE)
+        A rung-5 or rung-6 Act <bcp14>MUST</bcp14> be issued as a
+        direct, unwrapped tool call after Confirm. It <bcp14>MUST
+        NOT</bcp14> be delegated to a bundled script, because
+        pre-approving the script pre-approves the mutation and silently
+        bypasses the gate. A script in a skill at rung 5 or higher
+        <bcp14>MUST NOT</bcp14> invoke a mutating command via a
+        subprocess.</t>
+        <t anchor="SDS-S-052"><strong>SDS-S-052</strong> (MUST, REVIEW)
+        Act <bcp14>MUST</bcp14> state the check-before-act no-op skip
+        explicitly (<xref target="SDS-C-046"/>).</t>
+        <t anchor="SDS-S-053"><strong>SDS-S-053</strong> (MUST, MACHINE)
+        A rung-4-or-higher Act section <bcp14>MUST</bcp14> contain a
+        <tt>**Checkpoint**</tt> label describing the two-phase record
+        of <xref target="anatomy-state"/>: written with
+        <tt>status: pending</tt> before the mutating call, updated to
+        <tt>status: completed</tt> immediately after it succeeds. A
+        resumed invocation reading <tt>pending</tt> <bcp14>MUST</bcp14>
+        treat the step as possibly applied and check-before-act; reading
+        <tt>completed</tt> <bcp14>MUST</bcp14> skip the step. Single-step
+        Command Skills <bcp14>MUST</bcp14> checkpoint: the pending
+        record is what makes the compensating action executable.</t>
+        <t anchor="SDS-S-054"><strong>SDS-S-054</strong> (MUST, MACHINE)
+        A rung-4-or-higher Act section <bcp14>MUST</bcp14> contain a
+        <tt>**Compensating action**</tt> label for each mutating step
+        (<xref target="SDS-C-045"/>).</t>
+        <t anchor="SDS-S-055"><strong>SDS-S-055</strong> (SHOULD, REVIEW)
+        A skill with one mutating step <bcp14>SHOULD</bcp14> write its
+        checkpoint inline; a skill with two or more
+        <bcp14>SHOULD</bcp14> use <tt>scripts/checkpoint.py</tt>.</t>
+      </section>
+
+      <section anchor="anatomy-scripts">
+        <name>scripts/</name>
+        <t anchor="SDS-S-060"><strong>SDS-S-060</strong> (MUST, REVIEW)
+        A sub-step <bcp14>MUST</bcp14> be a script when it is
+        deterministic, mechanical, and requires no interpretation of
+        ambiguous input (the toil test <xref target="SRE-EB"/>):
+        parsing a real grammar, calling an external system and
+        normalizing its response, or translating one format to another
+        (an Adapter).</t>
+        <t anchor="SDS-S-061"><strong>SDS-S-061</strong> (MUST, REVIEW)
+        Analyze, Classify, and Decide <bcp14>MUST NOT</bcp14> live in a
+        script; a script cannot exercise judgment.</t>
+        <t anchor="SDS-S-062"><strong>SDS-S-062</strong> (SHOULD, MACHINE)
+        Files under <tt>scripts/</tt> <bcp14>SHOULD</bcp14> be
+        snake_case verb-noun names (<tt>parse_manifest.py</tt>); an
+        Adapter names both sides (<tt>osv_to_finding.py</tt>). This
+        rule does not apply to fixture generators under
+        <tt>evals/fixtures/</tt>.</t>
+        <t anchor="SDS-S-063"><strong>SDS-S-063</strong> (MUST, MACHINE)
+        Every script <bcp14>MUST</bcp14> begin with a shebang and carry
+        a module docstring (or a leading comment block for shell); it
+        prints JSON to stdout, exits 0 with an empty instance on empty
+        input, and exits 1 with an <tt>ERROR: </tt> line on stderr on
+        failure (the presence of error handling is checked as a
+        warning).</t>
+        <t anchor="SDS-S-064"><strong>SDS-S-064</strong> (MUST, REVIEW)
+        Any dependency beyond the standard library <bcp14>MUST</bcp14>
+        be named in the script's docstring and in
+        <tt>compatibility</tt>.</t>
+        <t anchor="SDS-S-065"><strong>SDS-S-065</strong> (SHOULD, MACHINE)
+        A script that calls an external system <bcp14>SHOULD</bcp14>
+        expose a <tt>--&lt;thing&gt;-file</tt> flag substituting a
+        fixture for the live call, so that evals exercise the same code
+        path offline.</t>
+        <t anchor="SDS-S-066"><strong>SDS-S-066</strong> (SHOULD, MACHINE)
+        Scripts <bcp14>SHOULD</bcp14> carry the owner execute bit.</t>
+        <t anchor="SDS-S-067"><strong>SDS-S-067</strong> (SHOULD, MACHINE)
+        Every file under <tt>scripts/</tt> <bcp14>SHOULD</bcp14> be
+        referenced from SKILL.md.</t>
+      </section>
+
+      <section anchor="anatomy-references">
+        <name>references/</name>
+        <t anchor="SDS-S-070"><strong>SDS-S-070</strong> (MUST, REVIEW)
+        Content needed on every invocation <bcp14>MUST</bcp14> live in
+        SKILL.md; content needed only sometimes <bcp14>MUST</bcp14> live
+        under <tt>references/</tt>, loaded on demand.</t>
+        <t anchor="SDS-S-071"><strong>SDS-S-071</strong> (SHOULD, MACHINE)
+        A file under <tt>references/</tt> <bcp14>SHOULD NOT</bcp14>
+        link to another file under <tt>references/</tt> (one level
+        deep).</t>
+        <t anchor="SDS-S-072"><strong>SDS-S-072</strong> (SHOULD, MACHINE)
+        Each SKILL.md pointer to <tt>references/</tt>
+        <bcp14>SHOULD</bcp14> be phrased as a condition ("If unsure why
+        X, consult ..."), not a blanket instruction.</t>
+        <t anchor="SDS-S-073"><strong>SDS-S-073</strong> (SHOULD, MACHINE)
+        Every file under <tt>references/</tt> <bcp14>SHOULD</bcp14> be
+        linked from SKILL.md.</t>
+      </section>
+
+      <section anchor="anatomy-assets">
+        <name>assets/</name>
+        <t anchor="SDS-S-080"><strong>SDS-S-080</strong> (MUST, MACHINE)
+        <tt>assets/</tt> <bcp14>MUST NOT</bcp14> contain a copy of a
+        family Shape schema; reference <tt>kit/shapes/</tt>
+        directly.</t>
+        <t anchor="SDS-S-081"><strong>SDS-S-081</strong> (MUST, MACHINE)
+        Every <tt>assets/</tt> file the Procedure reads
+        <bcp14>MUST</bcp14> be named in <tt>@requires</tt> or
+        Instructions; it is a declared input for hermeticity
+        (<xref target="SDS-C-003"/>).</t>
+        <t anchor="SDS-S-082"><strong>SDS-S-082</strong> (MUST, REVIEW)
+        Per-installation configuration <bcp14>MUST</bcp14> be injected
+        via <tt>assets/</tt>, never by forking
+        (<xref target="SDS-C-061"/>).</t>
+      </section>
+
+      <section anchor="anatomy-evals">
+        <name>evals/ and Fixtures</name>
+        <t anchor="SDS-S-090"><strong>SDS-S-090</strong> (MUST, MACHINE)
+        The eval file <bcp14>MUST</bcp14> parse; <tt>skill</tt>
+        <bcp14>MUST</bcp14> equal <tt>name</tt>; <tt>rows</tt>
+        <bcp14>MUST</bcp14> be non-empty with unique names; each
+        <tt>expected.kind</tt> <bcp14>MUST</bcp14> be
+        <tt>success</tt>, <tt>failure</tt>, or
+        <tt>not-applicable</tt>; a <tt>not-applicable</tt> row
+        <bcp14>MUST</bcp14> carry a non-empty <tt>reason</tt>; a
+        <tt>failure</tt> row <bcp14>MUST</bcp14> carry
+        <tt>failureCode</tt>; any YAML document after the first
+        <bcp14>MUST</bcp14> be empty (the smoke section is
+        comments).</t>
+        <t anchor="SDS-S-091"><strong>SDS-S-091</strong> (SHOULD, MACHINE)
+        A success row <bcp14>SHOULD</bcp14> carry at least one
+        assertion about content or shape and, for a registered Shape, a
+        <tt>shape</tt> field. "Runs without erroring" is not a passing
+        eval.</t>
+        <t anchor="SDS-S-092"><strong>SDS-S-092</strong> (MUST, MACHINE)
+        For a skill at rung 3 or higher, no required row
+        <bcp14>MUST</bcp14> invoke a live external system
+        (<tt>curl</tt>, <tt>wget</tt>, <tt>http://</tt>,
+        <tt>https://</tt>, <tt>gh api</tt>, <tt>pip install</tt>,
+        <tt>npm install</tt>). Live checks live after the <tt>---</tt>
+        document separator as a non-blocking smoke test asserting shape
+        only, never specific content, because the content of an
+        open-world system changes for reasons unrelated to the skill's
+        correctness.</t>
+        <t anchor="SDS-S-093"><strong>SDS-S-093</strong> (SHOULD, MACHINE)
+        A frozen recording of a real external response
+        <bcp14>SHOULD</bcp14> be named
+        <tt>evals/fixtures/frozen-&lt;source&gt;-&lt;what&gt;.json</tt>,
+        captured once and never refreshed by the evals.</t>
+        <t anchor="SDS-S-094"><strong>SDS-S-094</strong> (MUST, MACHINE)
+        A row named <tt>fixed-point</tt> <bcp14>MUST</bcp14> exist. It
+        is a success row iff <tt>shape-out</tt> equals
+        <tt>shape-in</tt> and both are registered Shapes
+        (<xref target="SDS-C-017"/>); otherwise it is
+        <tt>not-applicable</tt> with the reason stated.</t>
+        <t anchor="SDS-S-095"><strong>SDS-S-095</strong> (MUST, MACHINE)
+        A row named <tt>mutation-fixture</tt> <bcp14>MUST</bcp14>
+        exist. It is a success row referencing an
+        <tt>evals/fixtures/</tt> path with a deliberately planted
+        instance of what the skill detects iff <tt>shape-out</tt> is
+        <tt>finding-list</tt>; otherwise it is <tt>not-applicable</tt>
+        with the reason stated.</t>
+        <t anchor="SDS-S-096"><strong>SDS-S-096</strong> (MUST, MACHINE)
+        Static fixtures live in <tt>evals/fixtures/&lt;case&gt;/</tt>,
+        with <tt>.gitkeep</tt> marking an intentionally empty case.
+        A fixture that is itself a version-control repository
+        <bcp14>MUST NOT</bcp14> be checked in; it <bcp14>MUST</bcp14> be
+        produced by an executable, idempotent
+        <tt>evals/fixtures/build-&lt;name&gt;.sh</tt> whose output
+        directory is listed in <tt>evals/fixtures/.gitignore</tt>. Any
+        nested <tt>.git</tt> under fixtures <bcp14>MUST</bcp14> be
+        ignored. Every fixture path a row references
+        <bcp14>MUST</bcp14> exist or be generated.</t>
+        <t anchor="SDS-S-097"><strong>SDS-S-097</strong> (SHOULD, MACHINE)
+        Every fixture file <bcp14>SHOULD</bcp14> be referenced by a row
+        or by the smoke section.</t>
+        <t anchor="SDS-S-098"><strong>SDS-S-098</strong> (MUST, MACHINE)
+        Rows <bcp14>MUST</bcp14> reference only paths inside the skill
+        directory or under <tt>kit/</tt>; absolute paths and
+        <tt>~</tt> are reported as non-hermetic.</t>
+        <t anchor="SDS-S-099"><strong>SDS-S-099</strong> (MUST, MACHINE)
+        The table <bcp14>MUST</bcp14> contain a success row named
+        <tt>happy-path*</tt>; at least two <tt>boundary-*</tt> rows,
+        one a success on empty/zero/minimal input and one a failure on
+        malformed/invalid/missing input; and a row named
+        <tt>contract-with-*</tt> (<xref target="SDS-C-063"/>), which
+        <bcp14>MAY</bcp14> be <tt>not-applicable</tt> with a reason.
+        Evals follow the table-driven convention
+        <xref target="GOTESTING"/>.</t>
+      </section>
+
+      <section anchor="anatomy-state">
+        <name>Runtime State</name>
+        <t anchor="SDS-S-100"><strong>SDS-S-100</strong> (MUST, MACHINE)
+        A Command Skill's runtime state <bcp14>MUST</bcp14> live at
+        <tt>&lt;family-root&gt;/.skills-state/&lt;name&gt;/&lt;key&gt;.json</tt>,
+        where <tt>&lt;key&gt;</tt> uniquely identifies the invocation
+        (a PR number, a branch, a migration id); the skill's Act section
+        names this path. Referencing another skill's state directory is
+        an error.</t>
+        <t anchor="SDS-S-101"><strong>SDS-S-101</strong> (MUST, REVIEW)
+        The checkpoint record <bcp14>MUST</bcp14> have the following
+        form.</t>
+        <sourcecode type="json"><![CDATA[
+{
+  "key": "<invocation key>",
+  "step": "<mutating step name>",
+  "status": "pending" | "completed",
+  "startedAt": "<ISO-8601>",
+  "preState": { ... },
+  "compensatingAction": "<what undoes this step>",
+  "postState": { ... }   // present only when completed
+}
+]]></sourcecode>
+      </section>
+
+      <section anchor="anatomy-gate">
+        <name>Validation Gate</name>
+        <t anchor="SDS-S-110"><strong>SDS-S-110</strong> (MUST, REVIEW)
+        A skill is done only when: (0) the linter passes with no
+        errors; (1) <tt>metadata</tt> matches what the Procedure
+        actually does; (2) an example artifact validates against its
+        Shape's schema; (3) every eval row passes, including the
+        mutation fixture and fixed-point row where required; and (4)
+        the glossary check passes. If any fails, fix the skill — not the
+        eval, and not the glossary.</t>
+      </section>
+    </section>
+
+    <section anchor="security">
+      <name>Security Considerations</name>
+      <t>This specification is, in large part, a security
+      specification, and <xref target="safety"/> together with
+      <xref target="anatomy-act"/> is its core normative content. The
+      following risks are called out explicitly:</t>
+      <ul>
+        <li>Declared hints (Effect Ladder rung, MCP annotations,
+        <tt>allowed-tools</tt>) are self-reported and
+        <bcp14>MUST</bcp14> be treated as untrusted absent a trusted
+        source (<xref target="trust-model"/>). A mis-declared rung is
+        a directly exploitable path to bypassing confirmation.</li>
+        <li>A pre-approved script that performs a mutation is a
+        bypassed gate (<xref target="SDS-S-051"/>): the host approves
+        "run this script," and the script, not the model's next tool
+        call, performs the effect.</li>
+        <li>Content gathered from an open-world source during a Query
+        stage may later inform a Decide or Act stage. It
+        <bcp14>MUST</bcp14> be treated as data, not instruction; a
+        Procedure <bcp14>MUST NOT</bcp14> follow directives inside
+        gathered content.</li>
+        <li>Fixtures, including frozen recordings of external
+        responses, are untrusted data of the same kind and
+        <bcp14>MUST NOT</bcp14> be executed or followed as
+        instruction.</li>
+        <li>Bundled <tt>scripts/</tt> are executable code with the
+        supply-chain risk of any third-party code; a family
+        <bcp14>SHOULD</bcp14> review and pin them like a dependency.</li>
+        <li>Overly broad <tt>allowed-tools</tt> scoping does not merely
+        fail to add safety; it suppresses the host's own confirmation
+        mechanism from engaging.</li>
+        <li>Compensating actions are themselves effects and
+        <bcp14>MUST</bcp14> meet the same confirmation requirements as
+        the action they undo when they sit at rung 5 or above.</li>
+      </ul>
+    </section>
+
+    <section anchor="registry-considerations">
+      <name>Registry Considerations</name>
+      <t>This specification establishes the following registries,
+      each maintained by a family for itself:</t>
+      <dl newline="true">
+        <dt>Shape Registry (<xref target="shape-registry"/>):</dt>
+        <dd>new entries require a Standards-First check
+        (<xref target="SDS-C-031"/>), a machine-checkable schema
+        (<xref target="SDS-K-020"/>), and a defined zero-entry form
+        (<xref target="SDS-C-033"/>); changes follow
+        <xref target="SDS-F-041"/>.</dd>
+        <dt>Family Registry (<xref target="family-registry"/>):</dt>
+        <dd>one entry per skill, planned or built, validated against
+        its schema; the only source for generated indexes.</dd>
+        <dt>Effect Ladder (<xref target="effect-ladder"/>):</dt>
+        <dd>six fixed rungs. A family <bcp14>MUST NOT</bcp14> reorder
+        them but <bcp14>MAY</bcp14> define sub-tiers within a rung,
+        provided the six-rung classification remains derivable.</dd>
+        <dt>Tool-profile denylist (<xref target="SDS-K-041"/>):</dt>
+        <dd>the list of operations no profile may pre-approve; a family
+        <bcp14>MAY</bcp14> extend it but <bcp14>MUST NOT</bcp14> remove
+        an entry.</dd>
+        <dt>Rule Index (<xref target="rule-index"/>):</dt>
+        <dd>identifiers are permanent (<xref target="SDS-F-051"/>).</dd>
+      </dl>
+    </section>
+
+  </middle>
+
+  <back>
+
+    <references>
+      <name>Normative References</name>
+      <reference anchor="RFC2119" target="https://www.rfc-editor.org/info/rfc2119">
+        <front>
+          <title>Key words for use in RFCs to Indicate Requirement Levels</title>
+          <author initials="S." surname="Bradner" fullname="S. Bradner"/>
+          <date year="1997" month="March"/>
+        </front>
+        <seriesInfo name="BCP" value="14"/>
+        <seriesInfo name="RFC" value="2119"/>
+      </reference>
+      <reference anchor="RFC8174" target="https://www.rfc-editor.org/info/rfc8174">
+        <front>
+          <title>Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words</title>
+          <author initials="B." surname="Leiba" fullname="B. Leiba"/>
+          <date year="2017" month="May"/>
+        </front>
+        <seriesInfo name="BCP" value="14"/>
+        <seriesInfo name="RFC" value="8174"/>
+      </reference>
+      <reference anchor="BASESPEC" target="https://agentskills.io/specification">
+        <front>
+          <title>Agent Skills Specification</title>
+          <author><organization>agentskills.io</organization></author>
+          <date year="2026"/>
+        </front>
+      </reference>
+    </references>
+
+    <references>
+      <name>Informative References</name>
+
+      <reference anchor="MEYER1988">
+        <front>
+          <title>Object-Oriented Software Construction</title>
+          <author initials="B." surname="Meyer" fullname="Bertrand Meyer"/>
+          <date year="1988"/>
+        </front>
+        <refcontent>Prentice Hall. Source of Command-Query Separation.</refcontent>
+      </reference>
+
+      <reference anchor="MEYER1992">
+        <front>
+          <title>Applying Design by Contract</title>
+          <author initials="B." surname="Meyer" fullname="Bertrand Meyer"/>
+          <date year="1992"/>
+        </front>
+        <refcontent>IEEE Computer.</refcontent>
+      </reference>
+
+      <reference anchor="LSP">
+        <front>
+          <title>A Behavioral Notion of Subtyping</title>
+          <author initials="B." surname="Liskov" fullname="Barbara Liskov"/>
+          <author initials="J." surname="Wing" fullname="Jeannette Wing"/>
+          <date year="1994"/>
+        </front>
+        <refcontent>ACM Transactions on Programming Languages and Systems.</refcontent>
+      </reference>
+
+      <reference anchor="WLASCHIN">
+        <front>
+          <title>Railway Oriented Programming</title>
+          <author initials="S." surname="Wlaschin" fullname="Scott Wlaschin"/>
+          <date year="2013"/>
+        </front>
+        <refcontent>fsharpforfunandprofit.com.</refcontent>
+      </reference>
+
+      <reference anchor="BERNHARDT">
+        <front>
+          <title>Functional Core, Imperative Shell</title>
+          <author initials="G." surname="Bernhardt" fullname="Gary Bernhardt"/>
+          <date year="2012"/>
+        </front>
+        <refcontent>Destroy All Software screencasts.</refcontent>
+      </reference>
+
+      <reference anchor="FOWLER-STRANGLER">
+        <front>
+          <title>StranglerFigApplication</title>
+          <author initials="M." surname="Fowler" fullname="Martin Fowler"/>
+          <date year="2004"/>
+        </front>
+        <refcontent>martinfowler.com.</refcontent>
+      </reference>
+
+      <reference anchor="DI">
+        <front>
+          <title>Inversion of Control Containers and the Dependency Injection Pattern</title>
+          <author initials="M." surname="Fowler" fullname="Martin Fowler"/>
+          <date year="2004"/>
+        </front>
+        <refcontent>martinfowler.com.</refcontent>
+      </reference>
+
+      <reference anchor="SAGA">
+        <front>
+          <title>Sagas</title>
+          <author initials="H." surname="Garcia-Molina" fullname="Hector Garcia-Molina"/>
+          <author initials="K." surname="Salem" fullname="Kenneth Salem"/>
+          <date year="1987"/>
+        </front>
+        <refcontent>ACM SIGMOD.</refcontent>
+      </reference>
+
+      <reference anchor="PACT" target="https://pact.io">
+        <front>
+          <title>Pact: Contract Testing</title>
+          <author><organization>Pact Foundation</organization></author>
+          <date year="2026"/>
+        </front>
+      </reference>
+
+      <reference anchor="ERRWRAP" target="https://go.dev/blog/go1.13-errors">
+        <front>
+          <title>Working with Errors in Go 1.13</title>
+          <author><organization>The Go Programming Language</organization></author>
+          <date year="2019"/>
+        </front>
+      </reference>
+
+      <reference anchor="GOTESTING" target="https://go.dev/wiki/TableDrivenTests">
+        <front>
+          <title>Table-Driven Tests</title>
+          <author><organization>The Go Programming Language</organization></author>
+          <date year="2026"/>
+        </front>
+      </reference>
+
+      <reference anchor="JSDOC" target="https://jsdoc.app">
+        <front>
+          <title>JSDoc</title>
+          <author><organization>JSDoc</organization></author>
+          <date year="2026"/>
+        </front>
+        <refcontent>Representative of the broader family of docstring tag
+        conventions including Javadoc and Sphinx/Python docstrings.</refcontent>
+      </reference>
+
+      <reference anchor="SEMVER" target="https://semver.org">
+        <front>
+          <title>Semantic Versioning 2.0.0</title>
+          <author initials="T." surname="Preston-Werner" fullname="Tom Preston-Werner"/>
+          <date year="2013"/>
+        </front>
+      </reference>
+
+      <reference anchor="SRE-EB">
+        <front>
+          <title>Site Reliability Engineering</title>
+          <author initials="B." surname="Beyer" fullname="Betsy Beyer"/>
+          <author><organization>et al., eds.</organization></author>
+          <date year="2016"/>
+        </front>
+        <refcontent>O'Reilly Media. Source of the error-budget and toil concepts.</refcontent>
+      </reference>
+
+      <reference anchor="MCPANNOT" target="https://blog.modelcontextprotocol.io/posts/2026-03-16-tool-annotations/">
+        <front>
+          <title>Tool Annotations as Risk Vocabulary: What Hints Can and Can't Do</title>
+          <author><organization>Model Context Protocol Blog</organization></author>
+          <date year="2026" month="March" day="16"/>
+        </front>
+        <refcontent>See also the Tool Annotations Charter,
+        https://modelcontextprotocol.io/community/interest-groups/tool-annotations.</refcontent>
+      </reference>
+
+      <reference anchor="SARIF" target="https://docs.github.com/en/code-security/concepts/code-scanning/sarif-files">
+        <front>
+          <title>Static Analysis Results Interchange Format (SARIF) Version 2.1.0</title>
+          <author><organization>OASIS</organization></author>
+          <date year="2020"/>
+        </front>
+        <refcontent>OASIS Standard. Reference URL is GitHub's
+        "About SARIF files for code scanning" documentation.</refcontent>
+      </reference>
+
+      <reference anchor="OSV" target="https://ossf.github.io/osv-schema/">
+        <front>
+          <title>OSV Schema</title>
+          <author><organization>Open Source Security Foundation (OpenSSF)</organization></author>
+          <date year="2026"/>
+        </front>
+        <refcontent>See also https://openssf.org/projects/osv-schema/.</refcontent>
+      </reference>
+
+      <reference anchor="SPDX">
+        <front>
+          <title>Information technology — SPDX Specification V2.2.1</title>
+          <author><organization>ISO/IEC JTC 1/SC 27; The Linux Foundation</organization></author>
+          <date year="2021"/>
+        </front>
+        <seriesInfo name="ISO/IEC" value="5962:2021"/>
+      </reference>
+
+      <reference anchor="CYCLONEDX" target="https://cyclonedx.org/">
+        <front>
+          <title>ECMA-424: OWASP CycloneDX</title>
+          <author><organization>OWASP Foundation and Ecma International</organization></author>
+          <date year="2026"/>
+        </front>
+      </reference>
+
+      <reference anchor="JSONSCHEMA" target="https://json-schema.org">
+        <front>
+          <title>JSON Schema</title>
+          <author><organization>JSON Schema Organization</organization></author>
+          <date year="2026"/>
+        </front>
+      </reference>
+
+      <reference anchor="MADR" target="https://adr.github.io/madr/">
+        <front>
+          <title>MADR: Markdown Architectural Decision Records</title>
+          <author><organization>MADR project</organization></author>
+          <date year="2024"/>
+        </front>
+        <refcontent>Version 4.0.0.</refcontent>
+      </reference>
+
+      <reference anchor="DIATAXIS" target="https://diataxis.fr">
+        <front>
+          <title>Diataxis</title>
+          <author initials="D." surname="Procida" fullname="Daniele Procida"/>
+          <date year="2026"/>
+        </front>
+      </reference>
+
+      <reference anchor="C4MODEL" target="https://c4model.com">
+        <front>
+          <title>The C4 Model for Visualising Software Architecture</title>
+          <author initials="S." surname="Brown" fullname="Simon Brown"/>
+          <date year="2026"/>
+        </front>
+      </reference>
+
+      <reference anchor="OTELSEMCONV" target="https://opentelemetry.io">
+        <front>
+          <title>OpenTelemetry Semantic Conventions</title>
+          <author><organization>OpenTelemetry / CNCF</organization></author>
+          <date year="2026"/>
+        </front>
+      </reference>
+
+      <reference anchor="TWELVEFACTOR" target="https://12factor.net">
+        <front>
+          <title>The Twelve-Factor App</title>
+          <author initials="A." surname="Wiggins" fullname="Adam Wiggins"/>
+          <date year="2011"/>
+        </front>
+      </reference>
+
+      <reference anchor="CONVCOMMITS" target="https://www.conventionalcommits.org">
+        <front>
+          <title>Conventional Commits 1.0.0</title>
+          <author><organization>Conventional Commits</organization></author>
+          <date year="2026"/>
+        </front>
+      </reference>
+
+      <reference anchor="KEEPACHANGELOG" target="https://keepachangelog.com">
+        <front>
+          <title>Keep a Changelog</title>
+          <author initials="O." surname="Lacan" fullname="Olivier Lacan"/>
+          <date year="2026"/>
+        </front>
+      </reference>
+
+      <reference anchor="GOF-ADJACENT">
+        <front>
+          <title>Null Object</title>
+          <author initials="B." surname="Woolf" fullname="Bobby Woolf"/>
+          <date year="1998"/>
+        </front>
+        <refcontent>In "Pattern Languages of Program Design 3", Addison-Wesley.</refcontent>
+      </reference>
+
+    </references>
+
+    <section anchor="worked-example" numbered="true">
+      <name>Worked Examples</name>
+      <t>Two skills are maintained as conformance examples and are the
+      primary test subjects of the linter:</t>
+      <ul>
+        <li><tt>skills/dependency-audit/</tt> — a Query Skill at rung
+        <tt>external-read-only</tt> producing <tt>finding-list</tt>;
+        exercises bundled scripts (parser, external query with an
+        injectable fixture flag, Adapter), an on-demand reference file,
+        and a frozen external recording in its evals.</li>
+        <li><tt>skills/pr-description-writer/</tt> — a Command Skill at
+        rung <tt>shared-write</tt> with a conditional Act path;
+        exercises the Confirm gate, the two-phase checkpoint, the
+        compensating action, an unwrapped rung-5 Act, and a generated
+        (not checked-in) version-control fixture.</li>
+      </ul>
+      <t>The software-development catalog described in
+      <tt>docs/superpowers/specs/2026-09-05-dev-skills-suite-design.md</tt>
+      is the first applied instance of this specification; its clusters,
+      shape choices, and rung assignments are one domain's answer to
+      the Standards-First Rule, not part of this specification.</t>
+    </section>
+
+    <section anchor="rule-index" numbered="true">
+      <name>Rule Index</name>
+      <t>Every rule in this document, in identifier order. Levels are
+      MUST, SHOULD, or MAY; tags are MACHINE, REVIEW, or ADVISORY
+      (<xref target="rule-ids"/>). The linter's <tt>--rules</tt> output
+      is diffed against the MACHINE rows of this table.</t>
+      <table anchor="tab-rules">
+        <name>Rule Index</name>
+        <thead>
+          <tr><th>ID</th><th>Slug</th><th>Section</th><th>Level</th><th>Tag</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>SDS-C-001</td><td>five-parts</td><td>2.1</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-002</td><td>cqs</td><td>2.2</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-003</td><td>hermetic-gather</td><td>2.3</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-004</td><td>idempotent-semantics</td><td>2.3</td><td>MAY</td><td>ADVISORY</td></tr>
+          <tr><td>SDS-C-005</td><td>totality</td><td>2.4</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-010</td><td>stage-vocabulary</td><td>3.1</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-011</td><td>query-pipeline</td><td>3.2</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-012</td><td>command-pipeline</td><td>3.2</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-013</td><td>nothing-after-synthesize</td><td>3.2</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-014</td><td>railway</td><td>3.3</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-015</td><td>law-identity</td><td>3.4</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-016</td><td>law-associativity</td><td>3.4</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-017</td><td>law-fixed-point</td><td>3.4</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-018</td><td>law-map-fusion</td><td>3.4</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-019</td><td>fail-fast</td><td>3.5</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-020</td><td>termination</td><td>3.6</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-030</td><td>shape-registered</td><td>4.1</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-031</td><td>standards-first</td><td>4.2</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-033</td><td>null-object</td><td>4.3</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-034</td><td>immutability</td><td>4.4</td><td>SHOULD</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-040</td><td>highest-rung</td><td>5.1</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-041</td><td>rung-kind</td><td>5.1</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-042</td><td>mcp-mapping</td><td>5.2</td><td>SHOULD</td><td>ADVISORY</td></tr>
+          <tr><td>SDS-C-043</td><td>permission-scoping</td><td>5.3</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-044</td><td>confirm-every-time</td><td>5.4</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-045</td><td>compensating-actions</td><td>5.5</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-046</td><td>check-before-act</td><td>5.6</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-047</td><td>checkpoint</td><td>5.6</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-048</td><td>trust-model</td><td>5.7</td><td>MUST</td><td>ADVISORY</td></tr>
+          <tr><td>SDS-C-050</td><td>contracts-present</td><td>6.1</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-051</td><td>required-optional</td><td>6.1</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-052</td><td>long-parameter-list</td><td>6.1</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-053</td><td>causal-chain</td><td>6.2</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-054</td><td>substitutability</td><td>6.3</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-060</td><td>functional-core</td><td>7.1</td><td>SHOULD</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-061</td><td>injection-not-fork</td><td>7.2</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-062</td><td>strangler-fig</td><td>7.3</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-C-063</td><td>contract-tests</td><td>7.4</td><td>SHOULD</td><td>REVIEW</td></tr>
+          <tr><td>SDS-F-001</td><td>family-layout</td><td>8.1</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-F-002</td><td>skills-dir-only-skills</td><td>8.1</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-F-003</td><td>spec-source-of-truth</td><td>8.1</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-F-010</td><td>registry-file</td><td>8.2</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-F-011</td><td>registry-schema</td><td>8.2</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-F-012</td><td>registry-fields</td><td>8.2</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-F-013</td><td>registry-skill-match</td><td>8.2</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-F-014</td><td>index-generated</td><td>8.2</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-F-015</td><td>registry-status</td><td>8.2</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-F-016</td><td>registry-description</td><td>8.2</td><td>SHOULD</td><td>MACHINE</td></tr>
+          <tr><td>SDS-F-020</td><td>root-gitignore</td><td>8.3</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-F-021</td><td>state-not-tracked</td><td>8.3</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-F-030</td><td>root-relative-paths</td><td>8.4</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-F-031</td><td>skill-relative-commands</td><td>8.4</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-F-032</td><td>root-resolution</td><td>8.4</td><td>MAY</td><td>ADVISORY</td></tr>
+          <tr><td>SDS-F-040</td><td>skill-semver</td><td>8.5</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-F-041</td><td>shape-semver</td><td>8.5</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-F-042</td><td>registry-sds-version</td><td>8.5</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-F-043</td><td>major-shape-review</td><td>8.5</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-F-044</td><td>spec-changelog</td><td>8.5</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-F-050</td><td>spec-change-process</td><td>8.6</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-F-051</td><td>ids-permanent</td><td>8.6</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-F-052</td><td>guides-non-normative</td><td>8.6</td><td>MUST</td><td>ADVISORY</td></tr>
+          <tr><td>SDS-F-053</td><td>promotion-threshold</td><td>8.6</td><td>SHOULD</td><td>REVIEW</td></tr>
+          <tr><td>SDS-F-060</td><td>glossary-single</td><td>8.7</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-F-061</td><td>glossary-no-synonyms</td><td>8.7</td><td>SHOULD</td><td>MACHINE</td></tr>
+          <tr><td>SDS-K-001</td><td>kit-layout</td><td>9.1</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-K-002</td><td>guides-banner</td><td>9.1</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-K-010</td><td>template-order</td><td>9.2</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-K-020</td><td>shape-file</td><td>9.3</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-K-021</td><td>shape-registration</td><td>9.3</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-K-022</td><td>shape-glossary</td><td>9.3</td><td>SHOULD</td><td>REVIEW</td></tr>
+          <tr><td>SDS-K-030</td><td>gate-file</td><td>9.4</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-K-031</td><td>gate-rung</td><td>9.4</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-K-040</td><td>profile-file</td><td>9.5</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-K-041</td><td>profile-denylist</td><td>9.5</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-K-042</td><td>profile-no-bare</td><td>9.5</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-K-043</td><td>profile-verbatim</td><td>9.5</td><td>SHOULD</td><td>MACHINE</td></tr>
+          <tr><td>SDS-K-050</td><td>glossary-row</td><td>9.6</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-K-051</td><td>glossary-cites</td><td>9.6</td><td>SHOULD</td><td>REVIEW</td></tr>
+          <tr><td>SDS-K-060</td><td>eval-row-schema</td><td>9.7</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-K-070</td><td>linter-contract</td><td>9.8</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-K-071</td><td>linter-rules-match-spec</td><td>9.8</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-S-001</td><td>skillmd-present</td><td>10.1</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-002</td><td>eval-file-present</td><td>10.1</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-003</td><td>dir-name</td><td>10.1</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-004</td><td>allowed-subdirs</td><td>10.1</td><td>SHOULD</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-005</td><td>empty-subdir</td><td>10.1</td><td>MAY</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-010</td><td>base-spec-keys</td><td>10.2</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-011</td><td>name-format</td><td>10.2</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-012</td><td>description-length</td><td>10.2</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-013</td><td>description-trigger</td><td>10.2</td><td>SHOULD</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-014</td><td>license-explicit</td><td>10.2</td><td>SHOULD</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-015</td><td>compatibility</td><td>10.2</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-016</td><td>metadata-seven-keys</td><td>10.2</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-017</td><td>effect-tier-enum</td><td>10.2</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-018</td><td>idempotent-string</td><td>10.2</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-019</td><td>tier-enum</td><td>10.2</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-020</td><td>allowed-tools-required</td><td>10.2</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-021</td><td>allowed-tools-sources</td><td>10.2</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-022</td><td>allowed-tools-no-bare</td><td>10.2</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-023</td><td>allowed-tools-denylist</td><td>10.2</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-024</td><td>write-scope</td><td>10.2</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-S-025</td><td>rung-kind-sections</td><td>10.2</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-026</td><td>shapes-registered</td><td>10.2</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-027</td><td>version-semver</td><td>10.2</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-028</td><td>family-matches</td><td>10.2</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-030</td><td>h2-order</td><td>10.3</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-031</td><td>stage-headings</td><td>10.3</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-032</td><td>na-form</td><td>10.3</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-033</td><td>no-fill-residue</td><td>10.3</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-034</td><td>voice</td><td>10.3</td><td>SHOULD</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-035</td><td>budget</td><td>10.3</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-036</td><td>requires-form</td><td>10.3</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-037</td><td>requires-count</td><td>10.3</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-038</td><td>returns-shape</td><td>10.3</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-039</td><td>throws-form</td><td>10.3</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-040</td><td>example</td><td>10.3</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-041</td><td>conditional-act</td><td>10.4</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-042</td><td>act-less-no-mutation</td><td>10.4</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-S-043</td><td>h1-title</td><td>10.3</td><td>SHOULD</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-050</td><td>confirm-gate</td><td>10.5</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-051</td><td>act-unwrapped</td><td>10.5</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-052</td><td>check-before-act-stated</td><td>10.5</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-S-053</td><td>two-phase-checkpoint</td><td>10.5</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-054</td><td>compensating-label</td><td>10.5</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-055</td><td>checkpoint-ownership</td><td>10.5</td><td>SHOULD</td><td>REVIEW</td></tr>
+          <tr><td>SDS-S-060</td><td>toil-test</td><td>10.6</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-S-061</td><td>no-judgment-in-scripts</td><td>10.6</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-S-062</td><td>script-naming</td><td>10.6</td><td>SHOULD</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-063</td><td>script-conventions</td><td>10.6</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-064</td><td>script-deps</td><td>10.6</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-S-065</td><td>injectable-fixture</td><td>10.6</td><td>SHOULD</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-066</td><td>script-executable</td><td>10.6</td><td>SHOULD</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-067</td><td>script-referenced</td><td>10.6</td><td>SHOULD</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-070</td><td>references-placement</td><td>10.7</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-S-071</td><td>references-one-level</td><td>10.7</td><td>SHOULD</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-072</td><td>references-conditional</td><td>10.7</td><td>SHOULD</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-073</td><td>references-linked</td><td>10.7</td><td>SHOULD</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-080</td><td>assets-no-shape-copy</td><td>10.8</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-081</td><td>assets-declared</td><td>10.8</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-082</td><td>assets-injection</td><td>10.8</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-S-090</td><td>eval-structure</td><td>10.9</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-091</td><td>eval-assertions</td><td>10.9</td><td>SHOULD</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-092</td><td>eval-open-world</td><td>10.9</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-093</td><td>frozen-fixture-naming</td><td>10.9</td><td>SHOULD</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-094</td><td>eval-fixed-point</td><td>10.9</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-095</td><td>eval-mutation-fixture</td><td>10.9</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-096</td><td>fixtures-layout</td><td>10.9</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-097</td><td>fixtures-referenced</td><td>10.9</td><td>SHOULD</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-098</td><td>eval-paths-inside</td><td>10.9</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-099</td><td>eval-required-rows</td><td>10.9</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-100</td><td>state-path</td><td>10.10</td><td>MUST</td><td>MACHINE</td></tr>
+          <tr><td>SDS-S-101</td><td>state-record</td><td>10.10</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-S-110</td><td>validation-gate</td><td>10.11</td><td>MUST</td><td>REVIEW</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section anchor="changelog" numbered="true">
+      <name>Change Log</name>
+      <t><strong>1.0-draft (2026-09-05):</strong> Restructured top to
+      bottom into Part 0 (core model), Part I (family and repository),
+      Part II (kit), and Part III (skill anatomy); every normative rule
+      now carries a permanent identifier and a MACHINE/REVIEW/ADVISORY
+      tag, indexed in Appendix B; added the conformance linter contract.
+      Resolved nine drift findings against the kit and the two worked
+      skills: (1) the fixed-point law is gated on a registered
+      <tt>shape-out</tt> equal to <tt>shape-in</tt>, not on
+      <tt>idempotent</tt>; (2) checkpointing is two-phase — a
+      <tt>pending</tt> record written before the mutating call, updated
+      to <tt>completed</tt> after — and single-step Command Skills must
+      checkpoint; (3) <tt>metadata</tt> has exactly seven string keys;
+      (4) <tt>allowed-tools</tt> is required by rung, not kind, with two
+      declared sources; (5) tier vocabulary is <tt>pillar</tt> /
+      <tt>situational</tt>; (6) a conditional Act path is a permitted
+      Command form with Confirm/Act headings retained and Communicate/
+      Persist always present; (7) the registry is
+      <tt>kit/registry/marketplace.json</tt> with required
+      <tt>shape-in</tt>/<tt>shape-out</tt>, <tt>status</tt>, and a
+      top-level <tt>sds</tt> version (the former example registry file
+      name is retired); (8) all cross-references are family-root-relative;
+      (9) fixtures have a defined layout with generated repositories,
+      frozen recordings, and a no-live-call rule for open-world stages.
+      Also added: the checkpoint state path, the prohibition on wrapping
+      a rung-5/6 Act in a pre-approved script, script and reference
+      conventions, the long-parameter-list rule, and the validation
+      gate.</t>
+      <t><strong>0.3 (2026-09-05):</strong> Rebuilt in xml2rfc version
+      3 (RFC 7991) vocabulary in place of the plain-text RFC-style
+      draft. No normative changes from 0.2.</t>
+      <t><strong>0.2 (2026-09-05):</strong> Rebuilt as an RFC-structured
+      document: added formal Terminology, Security Considerations, and
+      Registry Considerations sections; added full Normative/
+      Informative References with verified citations for MCP tool
+      annotations, SARIF, OSV, SPDX (ISO/IEC 5962:2021), CycloneDX
+      (ECMA-424), and MADR (v4.0.0); formalized the composition laws,
+      contracts, and effect ladder with MUST/SHOULD/MAY language
+      throughout.</t>
+      <t><strong>0.1 (2026-09-05):</strong> Initial high-level
+      draft.</t>
+    </section>
+
+  </back>
+</rfc>

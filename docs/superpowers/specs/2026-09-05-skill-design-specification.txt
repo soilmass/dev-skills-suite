@@ -1,0 +1,2240 @@
+
+
+
+
+None                                                           E. Steele
+Internet-Draft                                          5 September 2026
+Intended status: Informational                                          
+Expires: 9 March 2027
+
+
+     Skill Design Specification (SDS): A Composability, Safety, and
+                Interoperability Layer for Agent Skills
+                       draft-skill-design-spec-01
+
+Abstract
+
+   The Agent Skills format [BASESPEC] defines how a single skill is
+   packaged (a directory, a SKILL.md file, optional scripts/,
+   references/, and assets/ subdirectories) so that a model can discover
+   and load it.  It is silent on how a family of skills, authored over
+   time by possibly different people, should relate to one another so
+   that the family behaves as one coherent, composable system rather
+   than a directory of unrelated documents that happen to share a
+   container format.  This document specifies that additional layer, top
+   to bottom: a conceptual model of a skill as a typed, effectful
+   function (Part 0); the layout, registry, versioning, and governance
+   of a skill family (Part I); the reference kit every family ships and
+   the rules for extending it (Part II); and the complete anatomy of a
+   single conforming skill package, from frontmatter to fixtures (Part
+   III).  Every normative rule carries a permanent identifier and a
+   conformance tag stating whether a linter checks it, a human reviews
+   it, or it is advisory.  It is written to be domain-independent; a
+   companion document applies it to a software-development skill catalog
+   as a worked example.
+
+Status of This Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF).  Note that other groups may also distribute
+   working documents as Internet-Drafts.  The list of current Internet-
+   Drafts is at https://datatracker.ietf.org/drafts/current/.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   This Internet-Draft will expire on 9 March 2027.
+
+
+
+
+Steele                    Expires 9 March 2027                  [Page 1]
+
+Internet-Draft                     SDS                    September 2026
+
+
+Copyright Notice
+
+   Copyright (c) 2026 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents (https://trustee.ietf.org/
+   license-info) in effect on the date of publication of this document.
+   Please review these documents carefully, as they describe your rights
+   and restrictions with respect to this document.
+
+Table of Contents
+
+   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   3
+     1.1.  Purpose and Scope . . . . . . . . . . . . . . . . . . . .   4
+     1.2.  Relationship to the Base Spec . . . . . . . . . . . . . .   4
+     1.3.  Terminology . . . . . . . . . . . . . . . . . . . . . . .   5
+     1.4.  Notational Conventions  . . . . . . . . . . . . . . . . .   5
+     1.5.  Rule Identifiers and Conformance Tags . . . . . . . . . .   6
+     1.6.  Document Map  . . . . . . . . . . . . . . . . . . . . . .   6
+   2.  Conceptual Model  . . . . . . . . . . . . . . . . . . . . . .   6
+     2.1.  A Skill as a Function . . . . . . . . . . . . . . . . . .   6
+     2.2.  Command-Query Separation  . . . . . . . . . . . . . . . .   7
+     2.3.  Purity, Referential Transparency, and Idempotence . . . .   7
+     2.4.  Totality  . . . . . . . . . . . . . . . . . . . . . . . .   8
+   3.  The Function-Stage Grammar  . . . . . . . . . . . . . . . . .   8
+     3.1.  Stage Vocabulary  . . . . . . . . . . . . . . . . . . . .   8
+     3.2.  Canonical Pipelines . . . . . . . . . . . . . . . . . . .  10
+     3.3.  Composition Semantics . . . . . . . . . . . . . . . . . .  10
+     3.4.  Composition Laws  . . . . . . . . . . . . . . . . . . . .  10
+     3.5.  Fail-Fast Validation  . . . . . . . . . . . . . . . . . .  11
+     3.6.  Termination Requirements  . . . . . . . . . . . . . . . .  11
+   4.  Artifact Shapes and Interchange . . . . . . . . . . . . . . .  11
+     4.1.  The Shape Registry  . . . . . . . . . . . . . . . . . . .  11
+     4.2.  The Standards-First Rule  . . . . . . . . . . . . . . . .  12
+     4.3.  The Null Object Requirement . . . . . . . . . . . . . . .  12
+     4.4.  Immutability and Supersession . . . . . . . . . . . . . .  12
+   5.  Effects, Permissions, and Safety  . . . . . . . . . . . . . .  12
+     5.1.  The Effect Ladder . . . . . . . . . . . . . . . . . . . .  12
+     5.2.  Relationship to MCP Tool Annotations  . . . . . . . . . .  13
+     5.3.  Permission Scoping  . . . . . . . . . . . . . . . . . . .  13
+     5.4.  Confirmation Gates  . . . . . . . . . . . . . . . . . . .  13
+     5.5.  Compensating Actions  . . . . . . . . . . . . . . . . . .  14
+     5.6.  Check-Before-Act and Checkpointing  . . . . . . . . . . .  14
+     5.7.  Trust Model for Declared Hints  . . . . . . . . . . . . .  14
+   6.  Contracts . . . . . . . . . . . . . . . . . . . . . . . . . .  14
+     6.1.  Precondition/Postcondition Notation . . . . . . . . . . .  14
+     6.2.  The Result Type and Failure Modes . . . . . . . . . . . .  15
+
+
+
+Steele                    Expires 9 March 2027                  [Page 2]
+
+Internet-Draft                     SDS                    September 2026
+
+
+     6.3.  Substitutability  . . . . . . . . . . . . . . . . . . . .  15
+   7.  Composition and Reuse Patterns  . . . . . . . . . . . . . . .  15
+     7.1.  Functional Core, Imperative Shell . . . . . . . . . . . .  15
+     7.2.  Specialization via Injection  . . . . . . . . . . . . . .  15
+     7.3.  Migration via the Strangler Fig Pattern . . . . . . . . .  16
+     7.4.  Consumer-Driven Contract Testing  . . . . . . . . . . . .  16
+   8.  Family and Repository . . . . . . . . . . . . . . . . . . . .  16
+     8.1.  Layout  . . . . . . . . . . . . . . . . . . . . . . . . .  16
+     8.2.  The Family Registry File  . . . . . . . . . . . . . . . .  16
+     8.3.  Root Ignore Rules and Runtime State . . . . . . . . . . .  17
+     8.4.  Path Convention . . . . . . . . . . . . . . . . . . . . .  17
+     8.5.  Versioning and Release  . . . . . . . . . . . . . . . . .  17
+     8.6.  Governance  . . . . . . . . . . . . . . . . . . . . . . .  18
+     8.7.  Glossary  . . . . . . . . . . . . . . . . . . . . . . . .  18
+   9.  The Kit . . . . . . . . . . . . . . . . . . . . . . . . . . .  18
+     9.1.  Layout and Status . . . . . . . . . . . . . . . . . . . .  19
+     9.2.  Templates . . . . . . . . . . . . . . . . . . . . . . . .  19
+     9.3.  Shapes: Adding One  . . . . . . . . . . . . . . . . . . .  19
+     9.4.  Gates: Adding One . . . . . . . . . . . . . . . . . . . .  19
+     9.5.  Tool Profiles: Adding One . . . . . . . . . . . . . . . .  19
+     9.6.  Glossary Terms: Adding One  . . . . . . . . . . . . . . .  20
+     9.7.  The Eval Template . . . . . . . . . . . . . . . . . . . .  20
+     9.8.  The Linter  . . . . . . . . . . . . . . . . . . . . . . .  20
+   10. Skill Anatomy . . . . . . . . . . . . . . . . . . . . . . . .  20
+     10.1.  Package Layout . . . . . . . . . . . . . . . . . . . . .  21
+     10.2.  Frontmatter  . . . . . . . . . . . . . . . . . . . . . .  21
+     10.3.  Section Order  . . . . . . . . . . . . . . . . . . . . .  23
+     10.4.  Conditional Command Skills . . . . . . . . . . . . . . .  24
+     10.5.  Confirm, Act, and Checkpoint . . . . . . . . . . . . . .  24
+     10.6.  scripts/ . . . . . . . . . . . . . . . . . . . . . . . .  25
+     10.7.  references/  . . . . . . . . . . . . . . . . . . . . . .  25
+     10.8.  assets/  . . . . . . . . . . . . . . . . . . . . . . . .  26
+     10.9.  evals/ and Fixtures  . . . . . . . . . . . . . . . . . .  26
+     10.10. Runtime State  . . . . . . . . . . . . . . . . . . . . .  27
+     10.11. Validation Gate  . . . . . . . . . . . . . . . . . . . .  28
+   11. Security Considerations . . . . . . . . . . . . . . . . . . .  28
+   12. Registry Considerations . . . . . . . . . . . . . . . . . . .  29
+   13. Normative References  . . . . . . . . . . . . . . . . . . . .  29
+   14. Informative References  . . . . . . . . . . . . . . . . . . .  30
+   Appendix A.  Worked Examples  . . . . . . . . . . . . . . . . . .  32
+   Appendix B.  Rule Index . . . . . . . . . . . . . . . . . . . . .  32
+   Appendix C.  Change Log . . . . . . . . . . . . . . . . . . . . .  39
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  40
+
+1.  Introduction
+
+
+
+
+
+
+Steele                    Expires 9 March 2027                  [Page 3]
+
+Internet-Draft                     SDS                    September 2026
+
+
+1.1.  Purpose and Scope
+
+   This specification governs the design of a Skill Family: two or more
+   skills intended to be authored, versioned, and used together,
+   potentially chained so that one skill's output becomes another's
+   input.  It applies regardless of domain; domain-specific choices made
+   under this specification's rules are recorded in a domain-specific
+   companion document, not here.
+
+   This document does not specify:
+
+   *  the internal reasoning process a model uses to decide whether a
+      skill applies (that is the Base Spec's trigger-matching behavior);
+
+   *  any particular domain's catalog of skills (see Appendix A);
+
+   *  runtime enforcement mechanisms outside the skill author's control
+      (a given host's tool-approval implementation is out of scope,
+      though Section 5 depends on one existing).
+
+1.2.  Relationship to the Base Spec
+
+   The Base Spec [BASESPEC] fixes the physical packaging of a single
+   skill: a directory named identically to the skill's name, containing
+   a required SKILL.md with YAML frontmatter (name, description,
+   optional license, compatibility, metadata, and experimental allowed-
+   tools) followed by Markdown instructions, and optional scripts/,
+   references/, and assets/ directories.  It also fixes progressive
+   disclosure: metadata (~100 tokens) is always resident, the SKILL.md
+   body (recommended under 5,000 tokens and under 500 lines) loads only
+   once a skill is activated, and files under scripts/, references/, or
+   assets/ load only on demand.
+
+   Every requirement in this document is expressed as additional
+   structure inside that envelope: fixed sections within the SKILL.md
+   body, additional key/value pairs inside the Base Spec's free-form
+   metadata map, constraints on the contents of allowed-tools, and one
+   family-level extension directory, evals/, that hosts ignore.  This
+   document defines no new frontmatter keys at the top level.  Shape
+   schemas and the kit live outside any skill package, so a host loading
+   a single skill never sees them; a skill therefore cites a shape by
+   name first and by path second.
+
+
+
+
+
+
+
+
+
+Steele                    Expires 9 March 2027                  [Page 4]
+
+Internet-Draft                     SDS                    September 2026
+
+
+1.3.  Terminology
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+   "OPTIONAL" in this document are to be interpreted as described in
+   BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all
+   capitals, as shown here.
+
+   Skill Family:  a set of skills governed by one instance of this
+      specification, sharing one Shape Registry (Section 4.1), one kit
+      (Section 9), and one Family Registry File (Section 8.2).
+
+   Family root:  the directory that contains kit/, skills/, and docs/.
+      All root-relative paths in this document resolve against the
+      family root.  The family root is not necessarily the version-
+      control toplevel.
+
+   Query Skill:  a skill whose most severe declared effect is "external-
+      read-only" or lower on the Effect Ladder (Section 5.1).  Produces
+      an artifact; performs no effect outside itself.
+
+   Command Skill:  a skill whose most severe declared effect is "local-
+      write" or higher.  Performs an effect in addition to, or instead
+      of, producing an artifact.
+
+   Shape:  a named, versioned, machine-checkable structural type that an
+      artifact conforms to (Section 4).
+
+   Stage:  one unit of a skill's Procedure, drawn from the closed
+      vocabulary in Section 3.1.
+
+   Rung:  one level of the six-level Effect Ladder.
+
+   Tier:  a skill's priority within its family: pillar or situational.
+
+1.4.  Notational Conventions
+
+   Pipeline composition is written left to right with an arrow: A -> B
+   means "the output of A is the input to B."  Optional stages are
+   bracketed: [Confirm]; a conditional pair is parenthesized: (Confirm
+   -> Act).  A skill's overall type is written as shown below.
+
+   (InputShape) -> Result<OutputShape, FailureShape>
+
+
+
+
+
+
+
+
+Steele                    Expires 9 March 2027                  [Page 5]
+
+Internet-Draft                     SDS                    September 2026
+
+
+1.5.  Rule Identifiers and Conformance Tags
+
+   Every normative rule in this document is stated as its own paragraph
+   headed by a permanent identifier of the form SDS-P-NNN, where P is C
+   (core model, Part 0), F (family, Part I), K (kit, Part II), or S
+   (skill anatomy, Part III).  Identifiers are never reused; a withdrawn
+   rule remains listed as withdrawn.  Each rule also carries a
+   requirement level (MUST, SHOULD, or MAY) and exactly one conformance
+   tag:
+
+   MACHINE:  checked by the family's linter (Section 9.8).  A
+      MUST+MACHINE failure is an error; SHOULD+MACHINE is a warning;
+      MAY+MACHINE is informational.
+
+   REVIEW:  requires human judgment; the linter prints these as a
+      checklist, never as failures.
+
+   ADVISORY:  guidance; never a conformance failure.
+
+   Appendix B lists every rule with its identifier, slug, section,
+   level, and tag; the linter's own rule table MUST match it
+   (Section 9.8, Paragraph 2).
+
+1.6.  Document Map
+
+   Part 0 (Section 2 through Section 7) is the conceptual model: what a
+   skill is, how its procedure is structured, how skills exchange
+   artifacts, and how effects are governed.  Part I (Section 8) is the
+   family and repository layer.  Part II (Section 9) is the reference
+   kit every family ships.  Part III (Section 10) is the complete
+   anatomy of one skill package.  Readers building a skill start at Part
+   III and follow its cross-references back into Part 0 for rationale.
+
+2.  Conceptual Model
+
+2.1.  A Skill as a Function
+
+   *SDS-C-001* (MUST, REVIEW) A skill MUST declare five parts:
+
+   Trigger:
+      the condition of activation — the Base Spec's description plus an
+      explicit statement of when the skill does not apply
+      (Section 10.3).
+
+   Inputs:
+      the skill's parameters, each marked REQUIRED or OPTIONAL with a
+      stated default (Section 6.1).
+
+
+
+
+Steele                    Expires 9 March 2027                  [Page 6]
+
+Internet-Draft                     SDS                    September 2026
+
+
+   Procedure:
+      the ordered body, built from the stage grammar (Section 3).
+
+   Permissions:
+      the skill's declared effect contract (Section 5).
+
+   Output:
+      a Result — a conforming success Shape, or one of a finite,
+      declared set of failure shapes (Section 6.2).
+
+   This model lets two independently-authored skills be reasoned about
+   the same way two functions in a typed codebase are: by their
+   signature, not by reading their full implementation.
+
+2.2.  Command-Query Separation
+
+   *SDS-C-002* (MUST, REVIEW) A skill MUST obey Command-Query Separation
+   [MEYER1988]: it is either a Query Skill (produces information, no
+   side effect) or a Command Skill (produces an effect; any information
+   it also returns is a report of that effect, not an independent
+   analytical artifact).  A skill that both performs a mutating effect
+   and produces a materially independent analytical artifact MUST be
+   split into a Query Skill feeding a Command Skill via the pipe
+   composition rule in Section 3.2.
+
+2.3.  Purity, Referential Transparency, and Idempotence
+
+   *SDS-C-003* (MUST, REVIEW) A Query Skill's Procedure is pure with
+   respect to its declared Inputs: given the same Inputs and no
+   undeclared ambient state (the current date, network state not listed
+   as an Input, files not listed as an Input), it MUST produce the same
+   Output.  This is a hermeticity requirement on the Gather stage: a
+   Query Skill's Gather stage MUST read only what its Inputs declaration
+   lists.  A skill satisfying this is _referentially transparent_: any
+   invocation MAY be replaced, anywhere in a pipeline, by its
+   previously-computed Output for the same Inputs.  Referential
+   transparency is the single property that licenses caching, reordering
+   (Section 3.4), and parallel execution.
+
+   *SDS-C-004* (MAY, ADVISORY) metadata.idempotent declares the weaker
+   property "safe to re-call with identical arguments," matching the
+   Model Context Protocol's idempotentHint [MCPANNOT].  It does not
+   declare, and does not trigger, the fixed-point composition law
+   (Section 3.4, Paragraph 4); a Command Skill can be idempotent in this
+   sense (opening an already-open PR is a no-op) without being pure.
+
+
+
+
+
+
+Steele                    Expires 9 March 2027                  [Page 7]
+
+Internet-Draft                     SDS                    September 2026
+
+
+2.4.  Totality
+
+   *SDS-C-005* (MUST, REVIEW) A skill's declared behavior MUST be total
+   over its declared Input domain: for every input satisfying its stated
+   preconditions, including boundary cases (empty input, a single item,
+   the maximum stated size, malformed-but-precondition-satisfying
+   input), the skill MUST have a defined, non-crashing Output — either a
+   success Shape or a declared failure Shape.  Undefined behavior on a
+   precondition-satisfying input is a specification defect, not an
+   implementation gap.
+
+3.  The Function-Stage Grammar
+
+3.1.  Stage Vocabulary
+
+   *SDS-C-010* (MUST, REVIEW) A skill's Procedure MUST be expressed
+   using only the following stage vocabulary, presented as SKILL.md
+   subheadings in the order given (machine check: Section 10.3,
+   Paragraph 3).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Steele                    Expires 9 March 2027                  [Page 8]
+
+Internet-Draft                     SDS                    September 2026
+
+
+      +==============+==============================================+
+      | Stage        | Definition                                   |
+      +==============+==============================================+
+      | Gather       | Collect raw material.  Touches only inputs   |
+      |              | declared in Section 6.1.                     |
+      +--------------+----------------------------------------------+
+      | Filter/      | Narrow gathered material to what is          |
+      | Select       | relevant.                                    |
+      +--------------+----------------------------------------------+
+      | Analyze/     | Interpret gathered material against a        |
+      | Diagnose     | rubric; the primary locus of model judgment. |
+      +--------------+----------------------------------------------+
+      | Classify/    | Assign a label or severity to each analyzed  |
+      | Score        | item.                                        |
+      +--------------+----------------------------------------------+
+      | Decide/      | Choose or propose among options; produces a  |
+      | Recommend    | decision-shaped artifact.                    |
+      +--------------+----------------------------------------------+
+      | Synthesize/  | Combine analyzed material into one artifact. |
+      | Compose      |                                              |
+      +--------------+----------------------------------------------+
+      | Validate/    | Check a claim or artifact against fixed      |
+      | Verify       | criteria.                                    |
+      +--------------+----------------------------------------------+
+      | Transform/   | Produce new content in a target format from  |
+      | Generate     | existing content.                            |
+      +--------------+----------------------------------------------+
+      | Confirm      | A gate; see Section 5.4.                     |
+      +--------------+----------------------------------------------+
+      | Act/Mutate   | Change state outside the skill's own output  |
+      |              | artifact.  Command Skills only.              |
+      +--------------+----------------------------------------------+
+      | Communicate/ | Send information to an audience outside the  |
+      | Notify       | artifact itself.                             |
+      +--------------+----------------------------------------------+
+      | Persist/     | Write the artifact to its declared location. |
+      | Record       |                                              |
+      +--------------+----------------------------------------------+
+      | Delegate/    | Invoke another skill, subagent, or external  |
+      | Dispatch     | tool for a sub-task.                         |
+      +--------------+----------------------------------------------+
+
+                     Table 1: Function-Stage Vocabulary
+
+
+
+
+
+
+
+
+Steele                    Expires 9 March 2027                  [Page 9]
+
+Internet-Draft                     SDS                    September 2026
+
+
+3.2.  Canonical Pipelines
+
+   *SDS-C-011* (MUST, REVIEW) A Query Skill's Procedure MUST reduce to
+   the Query pipeline.  Filter and Classify are optional and MAY be
+   omitted entirely.
+
+   *SDS-C-012* (MUST, REVIEW) A Command Skill's Procedure MUST reduce to
+   the Command pipeline.  The parenthesized Confirm/Act pair is
+   _conditional_: it MAY be skipped on an invocation only by a branch
+   declared in Decide, per Section 10.4; both headings are retained.
+   Communicate and Persist headings are always present (Section 10.3,
+   Paragraph 4).
+
+   Query pipeline (a Query Skill):
+
+      Gather -> [Filter] -> Analyze -> [Classify] -> Synthesize
+
+   Command pipeline (a Command Skill):
+
+      Gather -> Analyze -> Decide -> (Confirm -> Act)
+         -> [Communicate] -> [Persist]
+
+   *SDS-C-013* (MUST, REVIEW) Nothing MAY follow Synthesize in a Query
+   pipeline that touches state outside the produced artifact; a
+   Procedure that does so is, by definition, a Command Skill and MUST be
+   labeled and gated as one.
+
+3.3.  Composition Semantics
+
+   *SDS-C-014* (MUST, REVIEW) Stage composition within a Procedure, and
+   skill composition within a pipeline, follows railway-oriented
+   composition [WLASCHIN]: every stage returns a success value or a
+   failure value.  A failure at any stage MUST short-circuit every
+   subsequent stage and proceed directly to the declared failure Output
+   (Section 6.2).  A Procedure or orchestrator MUST NOT require per-
+   stage bespoke "what if the prior stage failed" logic.
+
+3.4.  Composition Laws
+
+   The following laws hold for a Query Skill's Procedure and are checked
+   by the eval table (Section 10.9).
+
+   *SDS-C-015* (MUST, REVIEW) Identity.  Composing a skill with the
+   identity transform MUST leave its behavior unchanged in either order.
+   An empty-result Output (Section 4.3) is the identity element of its
+   Shape and MUST be handled by downstream consumers via their ordinary
+   code path.
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 10]
+
+Internet-Draft                     SDS                    September 2026
+
+
+   *SDS-C-016* (MUST, REVIEW) Associativity.  For composable stages f,
+   g, h: (f -> g) -> h MUST equal f -> (g -> h).  Lossy reduction ("keep
+   only the top N") MUST occur only once, at the final Synthesize stage;
+   intermediate combination MUST be lossless.
+
+   *SDS-C-017* (MUST, REVIEW) Fixed point.  Where a skill's shape-out
+   equals its shape-in and both name a registered Shape, applying the
+   skill to its own Output a second time MUST produce no further change.
+   freeform paired with freeform does not qualify: freeform is the
+   declared absence of structure, not a structure an output can be fed
+   back into. metadata.idempotent does not trigger this law
+   (Section 2.3, Paragraph 2).  Machine check: Section 10.9, Paragraph
+   5.
+
+   *SDS-C-018* (MUST, REVIEW) Map fusion.  Where a skill is applied
+   across a collection, map(f) -> map(g) MUST equal map(f -> g).  Where
+   it does not, the two stages have a hidden dependency and MUST NOT be
+   fused into a single parallel pass.
+
+3.5.  Fail-Fast Validation
+
+   *SDS-C-019* (MUST, REVIEW) A Procedure MUST validate every stated
+   precondition as its first action, before Gather proceeds.  A
+   violation MUST produce an immediate, specific failure naming the
+   unmet precondition, mapped to a declared @throws code; it MUST NOT be
+   discovered partway through Analyze or later.
+
+3.6.  Termination Requirements
+
+   *SDS-C-020* (MUST, REVIEW) Any stage that iterates internally MUST
+   declare an explicit termination condition: a convergence check or a
+   stated maximum number of iterations.  Open-ended iteration with no
+   declared termination condition is nonconformant.
+
+4.  Artifact Shapes and Interchange
+
+4.1.  The Shape Registry
+
+   Skills compose by agreeing on the structure of what they exchange,
+   never by one skill invoking another directly.  Each family maintains
+   a Shape Registry: the set of kit/shapes/<name>.schema.json files
+   (Section 9.3).
+
+   *SDS-C-030* (MUST, REVIEW) A skill's @returns and @requires MUST name
+   a registered Shape, or explicitly declare freeform where no
+   structural contract is offered.  Machine checks: Section 10.2,
+   Paragraph 18, Section 10.3, Paragraph 10.
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 11]
+
+Internet-Draft                     SDS                    September 2026
+
+
+4.2.  The Standards-First Rule
+
+   *SDS-C-031* (MUST, REVIEW) Before registering a new Shape, the family
+   MUST check whether an established external interchange format already
+   exists for that category of artifact in the family's domain, and
+   adopt or wrap it rather than defining a competing bespoke structure.
+   Illustrative software-development examples: SARIF [SARIF] for
+   finding-style results, the OSV schema [OSV] for vulnerability
+   records, SPDX [SPDX] or CycloneDX [CYCLONEDX] for dependency
+   manifests, MADR [MADR] for decision records, the C4 model [C4MODEL]
+   for architecture diagrams, Diataxis [DIATAXIS] for documentation
+   quadrants, OpenTelemetry semantic conventions [OTELSEMCONV] for
+   observability fields, the Twelve-Factor App [TWELVEFACTOR] rubric for
+   environment checks, and Conventional Commits [CONVCOMMITS] with Keep
+   a Changelog [KEEPACHANGELOG] for release-note generation.  Each
+   registered Shape has a machine-checkable JSON Schema [JSONSCHEMA]
+   (Section 9.3, Paragraph 1).
+
+4.3.  The Null Object Requirement
+
+   *SDS-C-033* (MUST, REVIEW) A skill whose Analyze/Classify stage finds
+   nothing MUST still produce a fully well-formed, schema-valid instance
+   of its declared Shape with zero entries — never null, an empty
+   string, an omitted file, or a distinct "nothing found" format (the
+   Null Object pattern [GOF-ADJACENT]).
+
+4.4.  Immutability and Supersession
+
+   *SDS-C-034* (SHOULD, REVIEW) Once persisted, an artifact instance
+   SHOULD be treated as immutable.  Where a later invocation would
+   otherwise update a decision- or plan-shaped artifact, it MUST persist
+   a new, dated instance referencing the instance it supersedes (the
+   superseded by convention established by MADR [MADR]).
+
+5.  Effects, Permissions, and Safety
+
+5.1.  The Effect Ladder
+
+   *SDS-C-040* (MUST, REVIEW) Each skill MUST declare, in
+   metadata.effect-tier, the single highest rung its Procedure reaches
+   on the following ordered ladder.
+
+   1.  local-read-only (reads only the local filesystem)
+
+   2.  domain-read-only (reads a closed, predictable domain, e.g.
+       version-controlled repository history)
+
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 12]
+
+Internet-Draft                     SDS                    September 2026
+
+
+   3.  external-read-only (reads an open-world external system: a
+       network API, a live service)
+
+   4.  local-write (writes only the skill's own declared output
+       location)
+
+   5.  shared-write (writes to, or notifies, something other skills,
+       people, or systems depend on)
+
+   6.  irreversible (an effect that cannot be undone by a compensating
+       action, or whose undo is itself irreversible)
+
+   *SDS-C-041* (MUST, REVIEW) Rungs 1 through 3 define a Query Skill;
+   rungs 4 through 6 define a Command Skill.  A skill at rung 5 or 6
+   MUST include a Confirm stage.  Machine check: Section 10.2, Paragraph
+   17.
+
+5.2.  Relationship to MCP Tool Annotations
+
+   *SDS-C-042* (SHOULD, ADVISORY) Where a skill is exposed as, or
+   invokes, a Model Context Protocol tool, its rung SHOULD be reflected
+   in that tool's annotations [MCPANNOT]: readOnlyHint for rungs 1-3,
+   destructiveHint for rung 6, idempotentHint for the
+   metadata.idempotent declaration, and openWorldHint for rung 3 or any
+   rung reached via an external system.
+
+5.3.  Permission Scoping
+
+   *SDS-C-043* (MUST, REVIEW) allowed-tools is scoped by rung, not by
+   kind.  Any skill whose Procedure reaches rung 2 or above and invokes
+   any tool or bundled script MUST declare a narrow scope; operations
+   that would place the skill at rung 5 or 6 MUST NOT appear in it under
+   any kind, so that mis-scoping cannot suppress the host's own approval
+   mechanism.  Machine checks: Section 10.2, Paragraph 12 through
+   Section 10.2, Paragraph 15.
+
+5.4.  Confirmation Gates
+
+   *SDS-C-044* (MUST, REVIEW) A Confirm stage functions as middleware in
+   front of Act: it MUST run on every invocation that reaches an Act at
+   rung 5 or above, MUST NOT be skipped because an equivalent
+   confirmation was granted earlier in the session, and MUST state
+   concretely what specific effect is about to occur.
+
+
+
+
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 13]
+
+Internet-Draft                     SDS                    September 2026
+
+
+5.5.  Compensating Actions
+
+   *SDS-C-045* (MUST, REVIEW) Each mutating step of an Act stage MUST
+   have a declared compensating action, to be taken if a later step in
+   the same sequence fails (the saga pattern [SAGA]).  Where none
+   exists, the step MUST say so and be sequenced last.
+
+5.6.  Check-Before-Act and Checkpointing
+
+   *SDS-C-046* (MUST, REVIEW) Every mutating step MUST verify current
+   state before mutating and MUST skip as an explicit no-op when the
+   effect is already applied, so that re-invocation after an
+   interruption is safe rather than duplicative.
+
+   *SDS-C-047* (MUST, REVIEW) A Command Skill MUST persist a two-phase
+   checkpoint for each mutating step, written before the step and
+   updated after it, so that resumption after an interruption is well-
+   defined.  The record format and location are specified in
+   Section 10.10; machine check: Section 10.5, Paragraph 4.
+
+5.7.  Trust Model for Declared Hints
+
+   *SDS-C-048* (MUST, ADVISORY) Effect Ladder rungs, MCP annotations,
+   and allowed-tools scopes are declared hints.  A host MUST NOT treat a
+   skill's own declaration as the sole safety control; declared risk,
+   permission scoping, and host-level approval are independently
+   redundant controls (defense in depth), per the caution that
+   annotation hints are untrusted unless sourced from a trusted party
+   [MCPANNOT].
+
+6.  Contracts
+
+6.1.  Precondition/Postcondition Notation
+
+   *SDS-C-050* (MUST, REVIEW) Following Design by Contract [MEYER1992],
+   every skill MUST state @requires (preconditions as testable
+   assertions), @returns (the guarantee about a successful Output,
+   naming a Shape), and @throws (every declared failure mode, exhaustive
+   with respect to Section 2.4, Paragraph 1).  Machine check:
+   Section 10.3, Paragraph 1.
+
+   *SDS-C-051* (MUST, REVIEW) Each precondition MUST be marked REQUIRED
+   or OPTIONAL with a stated default.  Machine check: Section 10.3,
+   Paragraph 8.
+
+
+
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 14]
+
+Internet-Draft                     SDS                    September 2026
+
+
+   *SDS-C-052* (MUST, REVIEW) A skill declaring more than five REQUIRED
+   inputs MUST be split into narrower skills or take one bundled Shape
+   instead (the long-parameter-list smell).  Machine check:
+   Section 10.3, Paragraph 9.
+
+6.2.  The Result Type and Failure Modes
+
+   A skill's Output is modeled as shown below.
+
+   Result<Success, Failure>
+
+   *SDS-C-053* (MUST, REVIEW) A Failure value MUST preserve the causal
+   chain of what was being attempted at each level, in the style of
+   wrapped errors in idiomatic Go [ERRWRAP] ("could not produce X: could
+   not read Y: reason"), rather than surfacing only the innermost cause
+   or only a generic top-level message.
+
+6.3.  Substitutability
+
+   *SDS-C-054* (MUST, REVIEW) A skill published as a replacement for
+   another MUST satisfy the Liskov Substitution Principle [LSP] against
+   every declared consumer of the original: preconditions no stronger,
+   postconditions no weaker.  A version increment alone does not
+   establish substitutability; it MUST be verified against declared
+   consumers.
+
+7.  Composition and Reuse Patterns
+
+7.1.  Functional Core, Imperative Shell
+
+   *SDS-C-060* (SHOULD, REVIEW) An orchestrating Command Skill SHOULD
+   contain no Analyze, Classify, or Decide logic of its own [BERNHARDT];
+   that reasoning belongs in a Query Skill it invokes via a Delegate
+   stage.  The orchestrator's own Procedure reduces to: delegate for a
+   decision artifact, Confirm, Act.
+
+7.2.  Specialization via Injection
+
+   *SDS-C-061* (MUST, REVIEW) A skill MUST NOT be forked to specialize
+   it for one context.  Context-specific configuration MUST be supplied
+   via assets/ or compatibility as an injected dependency [DI], with the
+   Procedure written against the abstract presence of that dependency.
+
+
+
+
+
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 15]
+
+Internet-Draft                     SDS                    September 2026
+
+
+7.3.  Migration via the Strangler Fig Pattern
+
+   *SDS-C-062* (MUST, REVIEW) Adoption of a new Shape, standard, or
+   convention across an existing family MUST proceed incrementally
+   [FOWLER-STRANGLER]: revised skills adopt it directly; an Adapter (a
+   judgment-free translation script) bridges unmigrated output; the
+   Adapter is retired once no unmigrated skill remains.
+
+7.4.  Consumer-Driven Contract Testing
+
+   *SDS-C-063* (SHOULD, REVIEW) Where two skills are designed to chain,
+   the eval suite SHOULD include a consumer-driven contract test [PACT]:
+   the producer is run for real and its actual Output validated against
+   the consumer's declared @requires schema.  Per-skill evals passing in
+   isolation MUST NOT be treated as evidence that two skills chain
+   correctly.
+
+8.  Family and Repository
+
+8.1.  Layout
+
+   *SDS-F-001* (MUST, MACHINE) The family root MUST contain kit/,
+   skills/, and docs/.
+
+   *SDS-F-002* (MUST, MACHINE) skills/ MUST contain only skill package
+   directories, each holding a SKILL.md.
+
+   *SDS-F-003* (MUST, REVIEW) The XML source of this specification under
+   docs/superpowers/specs/ is authoritative; rendered .txt and .html
+   files are derived and MUST be regenerated with xml2rfc in the same
+   change that edits the XML.
+
+8.2.  The Family Registry File
+
+   *SDS-F-010* (MUST, MACHINE) The canonical registry MUST be
+   kit/registry/marketplace.json.
+
+   *SDS-F-011* (MUST, MACHINE) The registry MUST validate against
+   kit/registry/marketplace.schema.json.
+
+   *SDS-F-012* (MUST, MACHINE) Each entry MUST carry name, description,
+   version, effect-tier, tier, shape-out, and shape-in.
+
+   *SDS-F-013* (MUST, MACHINE) Every skills/<name>/ MUST have exactly
+   one entry, and the entry's version, effect-tier, tier, shape-out, and
+   shape-in MUST equal the skill's frontmatter.
+
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 16]
+
+Internet-Draft                     SDS                    September 2026
+
+
+   *SDS-F-014* (MUST, REVIEW) Any human-facing index of the family's
+   skills MUST be generated from the registry, never hand-maintained in
+   parallel.
+
+   *SDS-F-015* (MUST, MACHINE) An entry's status is planned or built.  A
+   built entry MUST have a corresponding skill directory; a planned
+   entry need not; a skill directory without an entry is an error.
+
+   *SDS-F-016* (SHOULD, MACHINE) An entry's description SHOULD equal the
+   skill's frontmatter description after whitespace collapse.
+
+8.3.  Root Ignore Rules and Runtime State
+
+   *SDS-F-020* (MUST, MACHINE) The family-root .gitignore MUST contain
+   .skills-state/.
+
+   *SDS-F-021* (MUST, MACHINE) No file under .skills-state/ MUST be
+   tracked by version control; it is machine state for one run
+   (Section 10.10).
+
+8.4.  Path Convention
+
+   *SDS-F-030* (MUST, MACHINE) Every cross-reference to a file under
+   kit/, skills/, or docs/ — in SKILL.md, eval files, scripts,
+   templates, and kit guides — MUST be family-root-relative (e.g.
+   kit/shapes/finding-list.schema.json).  Parent-relative references
+   (../) and bare shapes/, shared/, templates/, or registry/ references
+   MUST NOT be used, and every referenced kit/ path MUST exist.
+
+   *SDS-F-031* (MUST, MACHINE) Commands in SKILL.md and eval files run
+   from the skill directory and use skill-relative paths (scripts/x.py,
+   evals/fixtures/y); every such referenced path MUST exist, except
+   generated fixtures (Section 10.9, Paragraph 7).
+
+   *SDS-F-032* (MAY, ADVISORY) Tooling resolves root-relative paths by
+   locating the family root (the parent of kit/), never by asking
+   version control for its toplevel, which may be a different directory.
+
+8.5.  Versioning and Release
+
+   *SDS-F-040* (MUST, MACHINE) metadata.version MUST be Semantic
+   Versioning [SEMVER].
+
+   *SDS-F-041* (MUST, REVIEW) A change to a registered Shape is MAJOR if
+   it removes or narrows a field, MINOR if it adds an optional field,
+   PATCH otherwise.
+
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 17]
+
+Internet-Draft                     SDS                    September 2026
+
+
+   *SDS-F-042* (MUST, MACHINE) The registry's top-level sds string MUST
+   name the specification version the family conforms to (e.g.
+   1.0-draft).  No metadata key is added for this; the seven-key set
+   stays closed.
+
+   *SDS-F-043* (MUST, REVIEW) A MAJOR change to a shared Shape MUST
+   trigger a review of every skill declaring that Shape in shape-in or
+   shape-out before release.
+
+   *SDS-F-044* (MUST, REVIEW) Every revision of this specification MUST
+   add an entry to Appendix C.
+
+8.6.  Governance
+
+   *SDS-F-050* (MUST, REVIEW) A change to this specification MUST
+   consist of the XML edit, regenerated renderings, and — when a MACHINE
+   rule is added, removed, or changed — the matching linter update in
+   the same change.
+
+   *SDS-F-051* (MUST, REVIEW) Rule identifiers MUST NOT be reused; a
+   withdrawn rule remains in Appendix B marked withdrawn.
+
+   *SDS-F-052* (MUST, ADVISORY) Kit guides (Section 9.1, Paragraph 2)
+   are non-normative; where a guide and this specification conflict, the
+   specification governs.
+
+   *SDS-F-053* (SHOULD, REVIEW) Promotion of a skill from situational to
+   pillar SHOULD require a numeric threshold over real invocations (an
+   error-budget style criterion [SRE-EB]) recorded under docs/, not a
+   subjective judgment.
+
+8.7.  Glossary
+
+   *SDS-F-060* (MUST, MACHINE) A family MUST maintain exactly one
+   glossary at kit/shared/glossary.md, fixing one canonical term per
+   concept.
+
+   *SDS-F-061* (SHOULD, MACHINE) A skill's headings, @requires bullets,
+   @returns line, and description SHOULD NOT use a term the glossary
+   lists under "do not use instead."  The linter applies a conservative
+   single-word heuristic; the reserved words tier, rung, gate, and
+   checkpoint require human review.
+
+9.  The Kit
+
+
+
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 18]
+
+Internet-Draft                     SDS                    September 2026
+
+
+9.1.  Layout and Status
+
+   *SDS-K-001* (MUST, MACHINE) kit/ MUST contain templates/, evals/
+   TEMPLATE.eval.yaml, shapes/, shared/glossary.md, shared/gates/,
+   shared/tool-profiles/, registry/, and scripts/lint-skill.py.
+
+   *SDS-K-002* (MUST, MACHINE) kit/HOW-TO-BUILD-A-SKILL.md and kit/
+   PRIMITIVES.md are non-normative guides and MUST open with a banner
+   stating so and naming this specification; their sections cite rule
+   identifiers.
+
+9.2.  Templates
+
+   *SDS-K-010* (MUST, MACHINE) The kit ships one Query template and one
+   Command template under kit/templates/; their H2 and H3 heading order
+   MUST equal the normative order in Section 10.3.
+
+9.3.  Shapes: Adding One
+
+   *SDS-K-020* (MUST, MACHINE) A registered Shape is a file kit/
+   shapes/<name>.schema.json that is JSON Schema draft 2020-12, whose
+   title equals <name> and whose $id is https://skills.local/
+   shapes/<name>.schema.json.
+
+   *SDS-K-021* (MUST, REVIEW) A new Shape MUST carry a Standards-First
+   justification in its description (Section 4.2, Paragraph 1) and a
+   zero-entry instance that validates (Section 4.3, Paragraph 1).
+
+   *SDS-K-022* (SHOULD, REVIEW) A Shape that introduces a term SHOULD
+   add a glossary row.
+
+9.4.  Gates: Adding One
+
+   *SDS-K-030* (MUST, MACHINE) A gate is a file kit/shared/
+   gates/<level>.md containing the fields What, Why, and either
+   Reversible or Compensating action.
+
+   *SDS-K-031* (MUST, REVIEW) Each gate MUST map to exactly one rung and
+   be cited from Section 10.5.
+
+9.5.  Tool Profiles: Adding One
+
+   *SDS-K-040* (MUST, MACHINE) A tool profile is a file kit/shared/tool-
+   profiles/<name>.yaml with name, effect-tier (a rung), allowed-tools
+   (a list), and notes.
+
+
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 19]
+
+Internet-Draft                     SDS                    September 2026
+
+
+   *SDS-K-041* (MUST, MACHINE) No profile entry MUST be a rung-5 or
+   rung-6 operation.  The family denylist is: gh pr merge, git push, git
+   merge, git rebase, git reset, git branch -D / -d, gh release create,
+   gh repo delete, gh issue close, gh pr close, gh api -X
+   POST|PATCH|PUT|DELETE, rm -rf, git clean (forbidden always); and gh
+   pr create, gh pr edit, gh pr comment, gh issue create, git commit,
+   git add (forbidden in any profile below rung 5).
+
+   *SDS-K-042* (MUST, MACHINE) No profile entry MUST be a bare
+   interpreter or wildcard: Bash(*), Bash(python3:*), Bash(sh:*),
+   Bash(bash:*), Bash(node:*), or bare Bash.
+
+   *SDS-K-043* (SHOULD, MACHINE) Skills SHOULD copy profile entries
+   verbatim; narrowing is allowed, widening is not.  A git or gh token
+   in a skill's allowed-tools that appears in no profile is reported for
+   review.
+
+9.6.  Glossary Terms: Adding One
+
+   *SDS-K-050* (MUST, MACHINE) Glossary rows are term | definition | do-
+   not-use.
+
+   *SDS-K-051* (SHOULD, REVIEW) Each row SHOULD cite the section of this
+   specification that fixes the concept.
+
+9.7.  The Eval Template
+
+   *SDS-K-060* (MUST, MACHINE) kit/evals/TEMPLATE.eval.yaml defines the
+   row schema every skill's eval file follows: name, optional input, and
+   expected with kind (success, failure, or not-applicable), optional
+   shape, failureCode, reason, and assertions.  Per-skill conformance is
+   checked by Section 10.9, Paragraph 1.
+
+9.8.  The Linter
+
+   *SDS-K-070* (MUST, MACHINE) kit/scripts/lint-skill.py <skill-dir> or
+   --all skills/ MUST exit 0 only when every MUST+MACHINE rule passes,
+   exit 1 on any such failure, and exit 2 on usage or I/O error.  It
+   prints one finding per line as <ID> <LEVEL> <root-relative
+   path>[:line] <message>, prints REVIEW rules as a trailing checklist,
+   and with --json emits a finding-list instance validating against
+   kit/shapes/finding-list.schema.json.
+
+   *SDS-K-071* (MUST, REVIEW) The linter's MACHINE rule table (--rules)
+   MUST equal the MACHINE subset of Appendix B.
+
+10.  Skill Anatomy
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 20]
+
+Internet-Draft                     SDS                    September 2026
+
+
+10.1.  Package Layout
+
+   *SDS-S-001* (MUST, MACHINE) SKILL.md MUST exist at the skill root.
+
+   *SDS-S-002* (MUST, MACHINE) Exactly one evals/<name>.eval.yaml MUST
+   exist.
+
+   *SDS-S-003* (MUST, MACHINE) The directory name MUST equal the
+   frontmatter name.
+
+   *SDS-S-004* (SHOULD, MACHINE) Only scripts/, references/, assets/,
+   and evals/ SHOULD appear beside SKILL.md.
+
+   *SDS-S-005* (MAY, MACHINE) An empty scripts/, references/, or assets/
+   directory is reported.
+
+10.2.  Frontmatter
+
+   *SDS-S-010* (MUST, MACHINE) Only the Base Spec keys name,
+   description, license, compatibility, metadata, and allowed-tools MUST
+   appear at the frontmatter top level.
+
+   *SDS-S-011* (MUST, MACHINE) name MUST match ^[a-z0-9]+(-[a-z0-9]+)*$
+   and be at most 64 characters.
+
+   *SDS-S-012* (MUST, MACHINE) description MUST be 1 to 1024 characters.
+
+   *SDS-S-013* (SHOULD, MACHINE) description SHOULD contain a trigger
+   phrase ("Use when" or equivalent) and the specific keywords a task
+   would contain.  Write it last, after the body, so it describes real
+   triggers rather than summarizing the draft.
+
+   *SDS-S-014* (SHOULD, MACHINE) license SHOULD be set explicitly; the
+   family default is Apache-2.0, and a different value is reported for
+   information.
+
+   *SDS-S-015* (MUST, MACHINE) compatibility, when present, MUST be at
+   most 500 characters and name concrete requirements.  It MUST be
+   present when effect-tier is external-read-only or higher, and SHOULD
+   be omitted when the skill needs nothing beyond a host that supports
+   Agent Skills.
+
+   *SDS-S-016* (MUST, MACHINE) metadata MUST be a map of string values
+   containing exactly the seven keys family, effect-tier, idempotent,
+   tier, shape-out, shape-in, and version.
+
+
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 21]
+
+Internet-Draft                     SDS                    September 2026
+
+
+   metadata:
+     family: dev-skills-suite
+     effect-tier: external-read-only
+     idempotent: "true"
+     tier: pillar
+     shape-out: finding-list
+     shape-in: freeform
+     version: "0.1.0"
+
+   *SDS-S-017* (MUST, MACHINE) effect-tier MUST be one of the six rung
+   names in Section 5.1.
+
+   *SDS-S-018* (MUST, MACHINE) idempotent MUST be the YAML string "true"
+   or "false" (Base Spec metadata is string-to-string; an unquoted
+   boolean is nonconformant).
+
+   *SDS-S-019* (MUST, MACHINE) tier MUST be pillar or situational.
+
+   *SDS-S-020* (MUST, MACHINE) Any skill whose Procedure reaches rung 2
+   or above and invokes any tool or bundled script MUST declare allowed-
+   tools as a single string.
+
+   *SDS-S-021* (MUST, MACHINE) allowed-tools has two sources and only
+   two: entries copied verbatim from a shared profile (Section 9.5), and
+   one inline entry per shipped script of the form Bash(python3
+   scripts/<file>:*).  Script entries MUST reference files that exist
+   under scripts/ and nothing outside it.
+
+   *SDS-S-022* (MUST, MACHINE) allowed-tools MUST NOT contain a bare
+   interpreter or wildcard (Section 9.5, Paragraph 3).
+
+   *SDS-S-023* (MUST, MACHINE) allowed-tools MUST NOT contain a
+   forbidden-always operation at any rung, a forbidden-below-5 operation
+   below rung 5 (Section 9.5, Paragraph 2), or, below rung 4, Write,
+   Edit, MultiEdit, NotebookEdit, git checkout -b, or git stash.
+
+   *SDS-S-024* (MUST, REVIEW) Write and Edit tools MUST appear only in
+   Command Skills, and only for the checkpoint record or the skill's
+   declared output location.
+
+   *SDS-S-025* (MUST, MACHINE) Body sections MUST match the rung's kind:
+   rung 3 or lower has no Confirm, Act, or Communicate heading; rung 4
+   or higher has an Act heading; rung 5 or higher has a Confirm heading
+   that precedes Act.
+
+   *SDS-S-026* (MUST, MACHINE) shape-out and each value of shape-in (a
+   name or a comma-separated list) MUST be a registered Shape or
+   freeform.
+
+
+
+Steele                    Expires 9 March 2027                 [Page 22]
+
+Internet-Draft                     SDS                    September 2026
+
+
+   *SDS-S-027* (MUST, MACHINE) version MUST be semver (Section 8.5,
+   Paragraph 1).
+
+   *SDS-S-028* (MUST, MACHINE) family MUST equal the registry's family.
+
+10.3.  Section Order
+
+   *SDS-S-030* (MUST, MACHINE) The SKILL.md body MUST contain exactly
+   these H2 sections, in this order, none empty: When to use, When not
+   to use, @requires, Instructions, @returns, @throws, @example.  The
+   only additional H2 sections permitted are @see and @deprecated,
+   referencing a superseding skill (Section 4.4).  The tag vocabulary
+   follows established docstring conventions [JSDOC].
+
+   *SDS-S-043* (SHOULD, MACHINE) The first heading SHOULD be # <name>.
+
+   *SDS-S-031* (MUST, MACHINE) H3 headings under Instructions MUST be
+   stage-vocabulary names (Table 1).  A Query Skill MUST have Gather,
+   Analyze, and Synthesize; Filter and Classify MAY be omitted entirely.
+   A Command Skill MUST have Gather, Analyze, Decide, Act, Communicate,
+   and Persist, plus Confirm (optional at rung 4, required at rungs 5
+   and 6).  Required stages MUST appear as a subsequence of the
+   canonical order.
+
+   *SDS-S-032* (MUST, MACHINE) A required heading that does not apply
+   MUST be retained with a body whose first line is N/A — <reason>; a
+   missing section is indistinguishable from a forgotten one.
+
+   *SDS-S-033* (MUST, MACHINE) No template residue ([FILL, skill-name-
+   here, [Write this LAST) MUST remain.
+
+   *SDS-S-034* (SHOULD, MACHINE) Instructions SHOULD be second-person
+   imperative, one checkable action per sentence, and MUST NOT use
+   marketing language (powerful, seamless, comprehensive, robust,
+   cutting-edge).
+
+   *SDS-S-035* (MUST, MACHINE) SKILL.md MUST be under 500 lines; 400 or
+   more is a warning.  Move depth to references/ rather than trimming
+   required sections.
+
+   *SDS-S-036* (MUST, MACHINE) Each @requires bullet MUST begin
+   REQUIRED: or OPTIONAL:; an OPTIONAL: bullet MUST carry (default: ...)
+   unless it is exactly OPTIONAL: none.
+
+   *SDS-S-037* (MUST, MACHINE) At least one REQUIRED input MUST be
+   declared; more than five is reported as a warning to split the skill
+   (Section 6.1, Paragraph 3).
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 23]
+
+Internet-Draft                     SDS                    September 2026
+
+
+   *SDS-S-038* (MUST, MACHINE) @returns MUST contain Shape: `<shape-
+   out>` and, for a registered Shape, the literal kit/shapes/<shape-
+   out>.schema.json.
+
+   *SDS-S-039* (MUST, MACHINE) @throws MUST have at least one bullet of
+   the form - `kebab-code`: ...; codes MUST be unique; every failureCode
+   in the eval file MUST be a declared code; a skill at rung 5 or higher
+   SHOULD declare a declined-confirmation code.
+
+   *SDS-S-040* (MUST, MACHINE) @example MUST contain **Input:** and an
+   Output or Result block.
+
+10.4.  Conditional Command Skills
+
+   *SDS-S-041* (MUST, MACHINE) A Command Skill MAY declare a conditional
+   Act path.  If it does, Decide MUST contain a bold branch of the form
+   **If <condition>: stop here.** returning the artifact; the Confirm
+   and Act sections MUST begin Only reached when <condition>.; @returns
+   MUST describe both paths; and @throws MUST include the declined-
+   confirmation code.
+
+   *SDS-S-042* (MUST, REVIEW) The Act-less path MUST NOT mutate
+   anything; on that path the invocation behaves as a Query Skill.
+
+10.5.  Confirm, Act, and Checkpoint
+
+   *SDS-S-050* (MUST, MACHINE) A rung-5 Confirm section MUST cite
+   kit/shared/gates/medium.md; a rung-6 Confirm section MUST cite
+   kit/shared/gates/high.md; Confirm MUST precede Act.
+
+   *SDS-S-051* (MUST, MACHINE) A rung-5 or rung-6 Act MUST be issued as
+   a direct, unwrapped tool call after Confirm.  It MUST NOT be
+   delegated to a bundled script, because pre-approving the script pre-
+   approves the mutation and silently bypasses the gate.  A script in a
+   skill at rung 5 or higher MUST NOT invoke a mutating command via a
+   subprocess.
+
+   *SDS-S-052* (MUST, REVIEW) Act MUST state the check-before-act no-op
+   skip explicitly (Section 5.6, Paragraph 1).
+
+   *SDS-S-053* (MUST, MACHINE) A rung-4-or-higher Act section MUST
+   contain a **Checkpoint** label describing the two-phase record of
+   Section 10.10: written with status: pending before the mutating call,
+   updated to status: completed immediately after it succeeds.  A
+   resumed invocation reading pending MUST treat the step as possibly
+   applied and check-before-act; reading completed MUST skip the step.
+   Single-step Command Skills MUST checkpoint: the pending record is
+   what makes the compensating action executable.
+
+
+
+Steele                    Expires 9 March 2027                 [Page 24]
+
+Internet-Draft                     SDS                    September 2026
+
+
+   *SDS-S-054* (MUST, MACHINE) A rung-4-or-higher Act section MUST
+   contain a **Compensating action** label for each mutating step
+   (Section 5.5, Paragraph 1).
+
+   *SDS-S-055* (SHOULD, REVIEW) A skill with one mutating step SHOULD
+   write its checkpoint inline; a skill with two or more SHOULD use
+   scripts/checkpoint.py.
+
+10.6.  scripts/
+
+   *SDS-S-060* (MUST, REVIEW) A sub-step MUST be a script when it is
+   deterministic, mechanical, and requires no interpretation of
+   ambiguous input (the toil test [SRE-EB]): parsing a real grammar,
+   calling an external system and normalizing its response, or
+   translating one format to another (an Adapter).
+
+   *SDS-S-061* (MUST, REVIEW) Analyze, Classify, and Decide MUST NOT
+   live in a script; a script cannot exercise judgment.
+
+   *SDS-S-062* (SHOULD, MACHINE) Files under scripts/ SHOULD be
+   snake_case verb-noun names (parse_manifest.py); an Adapter names both
+   sides (osv_to_finding.py).  This rule does not apply to fixture
+   generators under evals/fixtures/.
+
+   *SDS-S-063* (MUST, MACHINE) Every script MUST begin with a shebang
+   and carry a module docstring (or a leading comment block for shell);
+   it prints JSON to stdout, exits 0 with an empty instance on empty
+   input, and exits 1 with an ERROR: line on stderr on failure (the
+   presence of error handling is checked as a warning).
+
+   *SDS-S-064* (MUST, REVIEW) Any dependency beyond the standard library
+   MUST be named in the script's docstring and in compatibility.
+
+   *SDS-S-065* (SHOULD, MACHINE) A script that calls an external system
+   SHOULD expose a --<thing>-file flag substituting a fixture for the
+   live call, so that evals exercise the same code path offline.
+
+   *SDS-S-066* (SHOULD, MACHINE) Scripts SHOULD carry the owner execute
+   bit.
+
+   *SDS-S-067* (SHOULD, MACHINE) Every file under scripts/ SHOULD be
+   referenced from SKILL.md.
+
+10.7.  references/
+
+   *SDS-S-070* (MUST, REVIEW) Content needed on every invocation MUST
+   live in SKILL.md; content needed only sometimes MUST live under
+   references/, loaded on demand.
+
+
+
+Steele                    Expires 9 March 2027                 [Page 25]
+
+Internet-Draft                     SDS                    September 2026
+
+
+   *SDS-S-071* (SHOULD, MACHINE) A file under references/ SHOULD NOT
+   link to another file under references/ (one level deep).
+
+   *SDS-S-072* (SHOULD, MACHINE) Each SKILL.md pointer to references/
+   SHOULD be phrased as a condition ("If unsure why X, consult ..."),
+   not a blanket instruction.
+
+   *SDS-S-073* (SHOULD, MACHINE) Every file under references/ SHOULD be
+   linked from SKILL.md.
+
+10.8.  assets/
+
+   *SDS-S-080* (MUST, MACHINE) assets/ MUST NOT contain a copy of a
+   family Shape schema; reference kit/shapes/ directly.
+
+   *SDS-S-081* (MUST, MACHINE) Every assets/ file the Procedure reads
+   MUST be named in @requires or Instructions; it is a declared input
+   for hermeticity (Section 2.3, Paragraph 1).
+
+   *SDS-S-082* (MUST, REVIEW) Per-installation configuration MUST be
+   injected via assets/, never by forking (Section 7.2, Paragraph 1).
+
+10.9.  evals/ and Fixtures
+
+   *SDS-S-090* (MUST, MACHINE) The eval file MUST parse; skill MUST
+   equal name; rows MUST be non-empty with unique names; each
+   expected.kind MUST be success, failure, or not-applicable; a not-
+   applicable row MUST carry a non-empty reason; a failure row MUST
+   carry failureCode; any YAML document after the first MUST be empty
+   (the smoke section is comments).
+
+   *SDS-S-091* (SHOULD, MACHINE) A success row SHOULD carry at least one
+   assertion about content or shape and, for a registered Shape, a shape
+   field.  "Runs without erroring" is not a passing eval.
+
+   *SDS-S-092* (MUST, MACHINE) For a skill at rung 3 or higher, no
+   required row MUST invoke a live external system (curl, wget, http://,
+   https://, gh api, pip install, npm install).  Live checks live after
+   the --- document separator as a non-blocking smoke test asserting
+   shape only, never specific content, because the content of an open-
+   world system changes for reasons unrelated to the skill's
+   correctness.
+
+   *SDS-S-093* (SHOULD, MACHINE) A frozen recording of a real external
+   response SHOULD be named evals/fixtures/frozen-<source>-<what>.json,
+   captured once and never refreshed by the evals.
+
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 26]
+
+Internet-Draft                     SDS                    September 2026
+
+
+   *SDS-S-094* (MUST, MACHINE) A row named fixed-point MUST exist.  It
+   is a success row iff shape-out equals shape-in and both are
+   registered Shapes (Section 3.4, Paragraph 4); otherwise it is not-
+   applicable with the reason stated.
+
+   *SDS-S-095* (MUST, MACHINE) A row named mutation-fixture MUST exist.
+   It is a success row referencing an evals/fixtures/ path with a
+   deliberately planted instance of what the skill detects iff shape-out
+   is finding-list; otherwise it is not-applicable with the reason
+   stated.
+
+   *SDS-S-096* (MUST, MACHINE) Static fixtures live in evals/
+   fixtures/<case>/, with .gitkeep marking an intentionally empty case.
+   A fixture that is itself a version-control repository MUST NOT be
+   checked in; it MUST be produced by an executable, idempotent
+   evals/fixtures/build-<name>.sh whose output directory is listed in
+   evals/fixtures/.gitignore.  Any nested .git under fixtures MUST be
+   ignored.  Every fixture path a row references MUST exist or be
+   generated.
+
+   *SDS-S-097* (SHOULD, MACHINE) Every fixture file SHOULD be referenced
+   by a row or by the smoke section.
+
+   *SDS-S-098* (MUST, MACHINE) Rows MUST reference only paths inside the
+   skill directory or under kit/; absolute paths and ~ are reported as
+   non-hermetic.
+
+   *SDS-S-099* (MUST, MACHINE) The table MUST contain a success row
+   named happy-path*; at least two boundary-* rows, one a success on
+   empty/zero/minimal input and one a failure on malformed/invalid/
+   missing input; and a row named contract-with-* (Section 7.4,
+   Paragraph 1), which MAY be not-applicable with a reason.  Evals
+   follow the table-driven convention [GOTESTING].
+
+10.10.  Runtime State
+
+   *SDS-S-100* (MUST, MACHINE) A Command Skill's runtime state MUST live
+   at <family-root>/.skills-state/<name>/<key>.json, where <key>
+   uniquely identifies the invocation (a PR number, a branch, a
+   migration id); the skill's Act section names this path.  Referencing
+   another skill's state directory is an error.
+
+   *SDS-S-101* (MUST, REVIEW) The checkpoint record MUST have the
+   following form.
+
+
+
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 27]
+
+Internet-Draft                     SDS                    September 2026
+
+
+   {
+     "key": "<invocation key>",
+     "step": "<mutating step name>",
+     "status": "pending" | "completed",
+     "startedAt": "<ISO-8601>",
+     "preState": { ... },
+     "compensatingAction": "<what undoes this step>",
+     "postState": { ... }   // present only when completed
+   }
+
+10.11.  Validation Gate
+
+   *SDS-S-110* (MUST, REVIEW) A skill is done only when: (0) the linter
+   passes with no errors; (1) metadata matches what the Procedure
+   actually does; (2) an example artifact validates against its Shape's
+   schema; (3) every eval row passes, including the mutation fixture and
+   fixed-point row where required; and (4) the glossary check passes.
+   If any fails, fix the skill — not the eval, and not the glossary.
+
+11.  Security Considerations
+
+   This specification is, in large part, a security specification, and
+   Section 5 together with Section 10.5 is its core normative content.
+   The following risks are called out explicitly:
+
+   *  Declared hints (Effect Ladder rung, MCP annotations, allowed-
+      tools) are self-reported and MUST be treated as untrusted absent a
+      trusted source (Section 5.7).  A mis-declared rung is a directly
+      exploitable path to bypassing confirmation.
+
+   *  A pre-approved script that performs a mutation is a bypassed gate
+      (Section 10.5, Paragraph 2): the host approves "run this script,"
+      and the script, not the model's next tool call, performs the
+      effect.
+
+   *  Content gathered from an open-world source during a Query stage
+      may later inform a Decide or Act stage.  It MUST be treated as
+      data, not instruction; a Procedure MUST NOT follow directives
+      inside gathered content.
+
+   *  Fixtures, including frozen recordings of external responses, are
+      untrusted data of the same kind and MUST NOT be executed or
+      followed as instruction.
+
+   *  Bundled scripts/ are executable code with the supply-chain risk of
+      any third-party code; a family SHOULD review and pin them like a
+      dependency.
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 28]
+
+Internet-Draft                     SDS                    September 2026
+
+
+   *  Overly broad allowed-tools scoping does not merely fail to add
+      safety; it suppresses the host's own confirmation mechanism from
+      engaging.
+
+   *  Compensating actions are themselves effects and MUST meet the same
+      confirmation requirements as the action they undo when they sit at
+      rung 5 or above.
+
+12.  Registry Considerations
+
+   This specification establishes the following registries, each
+   maintained by a family for itself:
+
+   Shape Registry (Section 4.1):
+      new entries require a Standards-First check (Section 4.2,
+      Paragraph 1), a machine-checkable schema (Section 9.3, Paragraph
+      1), and a defined zero-entry form (Section 4.3, Paragraph 1);
+      changes follow Section 8.5, Paragraph 2.
+
+   Family Registry (Section 8.2):
+      one entry per skill, planned or built, validated against its
+      schema; the only source for generated indexes.
+
+   Effect Ladder (Section 5.1):
+      six fixed rungs.  A family MUST NOT reorder them but MAY define
+      sub-tiers within a rung, provided the six-rung classification
+      remains derivable.
+
+   Tool-profile denylist (Section 9.5, Paragraph 2):
+      the list of operations no profile may pre-approve; a family MAY
+      extend it but MUST NOT remove an entry.
+
+   Rule Index (Appendix B):
+      identifiers are permanent (Section 8.6, Paragraph 2).
+
+13.  Normative References
+
+   [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
+              Requirement Levels", BCP 14, RFC 2119, March 1997,
+              <https://www.rfc-editor.org/info/rfc2119>.
+
+   [RFC8174]  Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
+              2119 Key Words", BCP 14, RFC 8174, May 2017,
+              <https://www.rfc-editor.org/info/rfc8174>.
+
+   [BASESPEC] agentskills.io, "Agent Skills Specification", 2026,
+              <https://agentskills.io/specification>.
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 29]
+
+Internet-Draft                     SDS                    September 2026
+
+
+14.  Informative References
+
+   [MEYER1988]
+              Meyer, B., "Object-Oriented Software Construction",
+              Prentice Hall. Source of Command-Query Separation., 1988.
+
+   [MEYER1992]
+              Meyer, B., "Applying Design by Contract", IEEE Computer.,
+              1992.
+
+   [LSP]      Liskov, B. and J. Wing, "A Behavioral Notion of
+              Subtyping", ACM Transactions on Programming Languages and
+              Systems., 1994.
+
+   [WLASCHIN] Wlaschin, S., "Railway Oriented Programming",
+              fsharpforfunandprofit.com., 2013.
+
+   [BERNHARDT]
+              Bernhardt, G., "Functional Core, Imperative Shell",
+              Destroy All Software screencasts., 2012.
+
+   [FOWLER-STRANGLER]
+              Fowler, M., "StranglerFigApplication", martinfowler.com.,
+              2004.
+
+   [DI]       Fowler, M., "Inversion of Control Containers and the
+              Dependency Injection Pattern", martinfowler.com., 2004.
+
+   [SAGA]     Garcia-Molina, H. and K. Salem, "Sagas", ACM SIGMOD.,
+              1987.
+
+   [PACT]     Pact Foundation, "Pact: Contract Testing", 2026,
+              <https://pact.io>.
+
+   [ERRWRAP]  The Go Programming Language, "Working with Errors in Go
+              1.13", 2019, <https://go.dev/blog/go1.13-errors>.
+
+   [GOTESTING]
+              The Go Programming Language, "Table-Driven Tests", 2026,
+              <https://go.dev/wiki/TableDrivenTests>.
+
+   [JSDOC]    JSDoc, "JSDoc", Representative of the broader family of
+              docstring tag conventions including Javadoc and Sphinx/
+              Python docstrings., 2026, <https://jsdoc.app>.
+
+   [SEMVER]   Preston-Werner, T., "Semantic Versioning 2.0.0", 2013,
+              <https://semver.org>.
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 30]
+
+Internet-Draft                     SDS                    September 2026
+
+
+   [SRE-EB]   Beyer, B. and et al., eds., "Site Reliability
+              Engineering", O'Reilly Media. Source of the error-budget
+              and toil concepts., 2016.
+
+   [MCPANNOT] Model Context Protocol Blog, "Tool Annotations as Risk
+              Vocabulary: What Hints Can and Can't Do", See also the
+              Tool Annotations Charter,
+              https://modelcontextprotocol.io/community/interest-groups/
+              tool-annotations., 16 March 2026,
+              <https://blog.modelcontextprotocol.io/posts/2026-03-16-
+              tool-annotations/>.
+
+   [SARIF]    OASIS, "Static Analysis Results Interchange Format (SARIF)
+              Version 2.1.0", OASIS Standard. Reference URL is GitHub's
+              "About SARIF files for code scanning" documentation.,
+              2020, <https://docs.github.com/en/code-security/concepts/
+              code-scanning/sarif-files>.
+
+   [OSV]      Open Source Security Foundation (OpenSSF), "OSV Schema",
+              See also https://openssf.org/projects/osv-schema/., 2026,
+              <https://ossf.github.io/osv-schema/>.
+
+   [SPDX]     ISO/IEC JTC 1/SC 27; The Linux Foundation, "Information
+              technology — SPDX Specification V2.2.1", ISO/
+              IEC 5962:2021, 2021.
+
+   [CYCLONEDX]
+              OWASP Foundation and Ecma International, "ECMA-424: OWASP
+              CycloneDX", 2026, <https://cyclonedx.org/>.
+
+   [JSONSCHEMA]
+              JSON Schema Organization, "JSON Schema", 2026,
+              <https://json-schema.org>.
+
+   [MADR]     MADR project, "MADR: Markdown Architectural Decision
+              Records", Version 4.0.0., 2024,
+              <https://adr.github.io/madr/>.
+
+   [DIATAXIS] Procida, D., "Diataxis", 2026, <https://diataxis.fr>.
+
+   [C4MODEL]  Brown, S., "The C4 Model for Visualising Software
+              Architecture", 2026, <https://c4model.com>.
+
+   [OTELSEMCONV]
+              OpenTelemetry / CNCF, "OpenTelemetry Semantic
+              Conventions", 2026, <https://opentelemetry.io>.
+
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 31]
+
+Internet-Draft                     SDS                    September 2026
+
+
+   [TWELVEFACTOR]
+              Wiggins, A., "The Twelve-Factor App", 2011,
+              <https://12factor.net>.
+
+   [CONVCOMMITS]
+              Conventional Commits, "Conventional Commits 1.0.0", 2026,
+              <https://www.conventionalcommits.org>.
+
+   [KEEPACHANGELOG]
+              Lacan, O., "Keep a Changelog", 2026,
+              <https://keepachangelog.com>.
+
+   [GOF-ADJACENT]
+              Woolf, B., "Null Object", In "Pattern Languages of Program
+              Design 3", Addison-Wesley., 1998.
+
+Appendix A.  Worked Examples
+
+   Two skills are maintained as conformance examples and are the primary
+   test subjects of the linter:
+
+   *  skills/dependency-audit/ — a Query Skill at rung external-read-
+      only producing finding-list; exercises bundled scripts (parser,
+      external query with an injectable fixture flag, Adapter), an on-
+      demand reference file, and a frozen external recording in its
+      evals.
+
+   *  skills/pr-description-writer/ — a Command Skill at rung shared-
+      write with a conditional Act path; exercises the Confirm gate, the
+      two-phase checkpoint, the compensating action, an unwrapped rung-5
+      Act, and a generated (not checked-in) version-control fixture.
+
+   The software-development catalog described in docs/superpowers/
+   specs/2026-09-05-dev-skills-suite-design.md is the first applied
+   instance of this specification; its clusters, shape choices, and rung
+   assignments are one domain's answer to the Standards-First Rule, not
+   part of this specification.
+
+Appendix B.  Rule Index
+
+   Every rule in this document, in identifier order.  Levels are MUST,
+   SHOULD, or MAY; tags are MACHINE, REVIEW, or ADVISORY (Section 1.5).
+   The linter's --rules output is diffed against the MACHINE rows of
+   this table.
+
+
+
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 32]
+
+Internet-Draft                     SDS                    September 2026
+
+
+   +===========+==========================+=========+======+==========+
+   | ID        | Slug                     | Section |Level | Tag      |
+   +===========+==========================+=========+======+==========+
+   | SDS-C-001 | five-parts               | 2.1     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-002 | cqs                      | 2.2     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-003 | hermetic-gather          | 2.3     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-004 | idempotent-semantics     | 2.3     |MAY   | ADVISORY |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-005 | totality                 | 2.4     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-010 | stage-vocabulary         | 3.1     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-011 | query-pipeline           | 3.2     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-012 | command-pipeline         | 3.2     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-013 | nothing-after-synthesize | 3.2     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-014 | railway                  | 3.3     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-015 | law-identity             | 3.4     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-016 | law-associativity        | 3.4     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-017 | law-fixed-point          | 3.4     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-018 | law-map-fusion           | 3.4     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-019 | fail-fast                | 3.5     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-020 | termination              | 3.6     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-030 | shape-registered         | 4.1     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-031 | standards-first          | 4.2     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-033 | null-object              | 4.3     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-034 | immutability             | 4.4     |SHOULD| REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-040 | highest-rung             | 5.1     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-041 | rung-kind                | 5.1     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-042 | mcp-mapping              | 5.2     |SHOULD| ADVISORY |
+
+
+
+Steele                    Expires 9 March 2027                 [Page 33]
+
+Internet-Draft                     SDS                    September 2026
+
+
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-043 | permission-scoping       | 5.3     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-044 | confirm-every-time       | 5.4     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-045 | compensating-actions     | 5.5     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-046 | check-before-act         | 5.6     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-047 | checkpoint               | 5.6     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-048 | trust-model              | 5.7     |MUST  | ADVISORY |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-050 | contracts-present        | 6.1     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-051 | required-optional        | 6.1     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-052 | long-parameter-list      | 6.1     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-053 | causal-chain             | 6.2     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-054 | substitutability         | 6.3     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-060 | functional-core          | 7.1     |SHOULD| REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-061 | injection-not-fork       | 7.2     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-062 | strangler-fig            | 7.3     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-C-063 | contract-tests           | 7.4     |SHOULD| REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-F-001 | family-layout            | 8.1     |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-F-002 | skills-dir-only-skills   | 8.1     |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-F-003 | spec-source-of-truth     | 8.1     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-F-010 | registry-file            | 8.2     |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-F-011 | registry-schema          | 8.2     |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-F-012 | registry-fields          | 8.2     |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-F-013 | registry-skill-match     | 8.2     |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-F-014 | index-generated          | 8.2     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-F-015 | registry-status          | 8.2     |MUST  | MACHINE  |
+
+
+
+Steele                    Expires 9 March 2027                 [Page 34]
+
+Internet-Draft                     SDS                    September 2026
+
+
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-F-016 | registry-description     | 8.2     |SHOULD| MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-F-020 | root-gitignore           | 8.3     |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-F-021 | state-not-tracked        | 8.3     |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-F-030 | root-relative-paths      | 8.4     |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-F-031 | skill-relative-commands  | 8.4     |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-F-032 | root-resolution          | 8.4     |MAY   | ADVISORY |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-F-040 | skill-semver             | 8.5     |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-F-041 | shape-semver             | 8.5     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-F-042 | registry-sds-version     | 8.5     |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-F-043 | major-shape-review       | 8.5     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-F-044 | spec-changelog           | 8.5     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-F-050 | spec-change-process      | 8.6     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-F-051 | ids-permanent            | 8.6     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-F-052 | guides-non-normative     | 8.6     |MUST  | ADVISORY |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-F-053 | promotion-threshold      | 8.6     |SHOULD| REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-F-060 | glossary-single          | 8.7     |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-F-061 | glossary-no-synonyms     | 8.7     |SHOULD| MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-K-001 | kit-layout               | 9.1     |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-K-002 | guides-banner            | 9.1     |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-K-010 | template-order           | 9.2     |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-K-020 | shape-file               | 9.3     |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-K-021 | shape-registration       | 9.3     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-K-022 | shape-glossary           | 9.3     |SHOULD| REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-K-030 | gate-file                | 9.4     |MUST  | MACHINE  |
+
+
+
+Steele                    Expires 9 March 2027                 [Page 35]
+
+Internet-Draft                     SDS                    September 2026
+
+
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-K-031 | gate-rung                | 9.4     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-K-040 | profile-file             | 9.5     |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-K-041 | profile-denylist         | 9.5     |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-K-042 | profile-no-bare          | 9.5     |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-K-043 | profile-verbatim         | 9.5     |SHOULD| MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-K-050 | glossary-row             | 9.6     |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-K-051 | glossary-cites           | 9.6     |SHOULD| REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-K-060 | eval-row-schema          | 9.7     |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-K-070 | linter-contract          | 9.8     |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-K-071 | linter-rules-match-spec  | 9.8     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-001 | skillmd-present          | 10.1    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-002 | eval-file-present        | 10.1    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-003 | dir-name                 | 10.1    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-004 | allowed-subdirs          | 10.1    |SHOULD| MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-005 | empty-subdir             | 10.1    |MAY   | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-010 | base-spec-keys           | 10.2    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-011 | name-format              | 10.2    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-012 | description-length       | 10.2    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-013 | description-trigger      | 10.2    |SHOULD| MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-014 | license-explicit         | 10.2    |SHOULD| MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-015 | compatibility            | 10.2    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-016 | metadata-seven-keys      | 10.2    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-017 | effect-tier-enum         | 10.2    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-018 | idempotent-string        | 10.2    |MUST  | MACHINE  |
+
+
+
+Steele                    Expires 9 March 2027                 [Page 36]
+
+Internet-Draft                     SDS                    September 2026
+
+
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-019 | tier-enum                | 10.2    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-020 | allowed-tools-required   | 10.2    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-021 | allowed-tools-sources    | 10.2    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-022 | allowed-tools-no-bare    | 10.2    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-023 | allowed-tools-denylist   | 10.2    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-024 | write-scope              | 10.2    |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-025 | rung-kind-sections       | 10.2    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-026 | shapes-registered        | 10.2    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-027 | version-semver           | 10.2    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-028 | family-matches           | 10.2    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-030 | h2-order                 | 10.3    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-031 | stage-headings           | 10.3    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-032 | na-form                  | 10.3    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-033 | no-fill-residue          | 10.3    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-034 | voice                    | 10.3    |SHOULD| MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-035 | budget                   | 10.3    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-036 | requires-form            | 10.3    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-037 | requires-count           | 10.3    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-038 | returns-shape            | 10.3    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-039 | throws-form              | 10.3    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-040 | example                  | 10.3    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-041 | conditional-act          | 10.4    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-042 | act-less-no-mutation     | 10.4    |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-043 | h1-title                 | 10.3    |SHOULD| MACHINE  |
+
+
+
+Steele                    Expires 9 March 2027                 [Page 37]
+
+Internet-Draft                     SDS                    September 2026
+
+
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-050 | confirm-gate             | 10.5    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-051 | act-unwrapped            | 10.5    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-052 | check-before-act-stated  | 10.5    |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-053 | two-phase-checkpoint     | 10.5    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-054 | compensating-label       | 10.5    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-055 | checkpoint-ownership     | 10.5    |SHOULD| REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-060 | toil-test                | 10.6    |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-061 | no-judgment-in-scripts   | 10.6    |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-062 | script-naming            | 10.6    |SHOULD| MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-063 | script-conventions       | 10.6    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-064 | script-deps              | 10.6    |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-065 | injectable-fixture       | 10.6    |SHOULD| MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-066 | script-executable        | 10.6    |SHOULD| MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-067 | script-referenced        | 10.6    |SHOULD| MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-070 | references-placement     | 10.7    |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-071 | references-one-level     | 10.7    |SHOULD| MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-072 | references-conditional   | 10.7    |SHOULD| MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-073 | references-linked        | 10.7    |SHOULD| MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-080 | assets-no-shape-copy     | 10.8    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-081 | assets-declared          | 10.8    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-082 | assets-injection         | 10.8    |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-090 | eval-structure           | 10.9    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-091 | eval-assertions          | 10.9    |SHOULD| MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-092 | eval-open-world          | 10.9    |MUST  | MACHINE  |
+
+
+
+Steele                    Expires 9 March 2027                 [Page 38]
+
+Internet-Draft                     SDS                    September 2026
+
+
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-093 | frozen-fixture-naming    | 10.9    |SHOULD| MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-094 | eval-fixed-point         | 10.9    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-095 | eval-mutation-fixture    | 10.9    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-096 | fixtures-layout          | 10.9    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-097 | fixtures-referenced      | 10.9    |SHOULD| MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-098 | eval-paths-inside        | 10.9    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-099 | eval-required-rows       | 10.9    |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-100 | state-path               | 10.10   |MUST  | MACHINE  |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-101 | state-record             | 10.10   |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-S-110 | validation-gate          | 10.11   |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+
+                           Table 2: Rule Index
+
+Appendix C.  Change Log
+
+   *1.0-draft (2026-09-05):* Restructured top to bottom into Part 0
+   (core model), Part I (family and repository), Part II (kit), and Part
+   III (skill anatomy); every normative rule now carries a permanent
+   identifier and a MACHINE/REVIEW/ADVISORY tag, indexed in Appendix B;
+   added the conformance linter contract.  Resolved nine drift findings
+   against the kit and the two worked skills: (1) the fixed-point law is
+   gated on a registered shape-out equal to shape-in, not on idempotent;
+   (2) checkpointing is two-phase — a pending record written before the
+   mutating call, updated to completed after — and single-step Command
+   Skills must checkpoint; (3) metadata has exactly seven string keys;
+   (4) allowed-tools is required by rung, not kind, with two declared
+   sources; (5) tier vocabulary is pillar / situational; (6) a
+   conditional Act path is a permitted Command form with Confirm/Act
+   headings retained and Communicate/ Persist always present; (7) the
+   registry is kit/registry/marketplace.json with required shape-in/
+   shape-out, status, and a top-level sds version (the former example
+   registry file name is retired); (8) all cross-references are family-
+   root-relative; (9) fixtures have a defined layout with generated
+   repositories, frozen recordings, and a no-live-call rule for open-
+   world stages.  Also added: the checkpoint state path, the prohibition
+   on wrapping a rung-5/6 Act in a pre-approved script, script and
+   reference conventions, the long-parameter-list rule, and the
+
+
+
+Steele                    Expires 9 March 2027                 [Page 39]
+
+Internet-Draft                     SDS                    September 2026
+
+
+   validation gate.
+
+   *0.3 (2026-09-05):* Rebuilt in xml2rfc version 3 (RFC 7991)
+   vocabulary in place of the plain-text RFC-style draft.  No normative
+   changes from 0.2.
+
+   *0.2 (2026-09-05):* Rebuilt as an RFC-structured document: added
+   formal Terminology, Security Considerations, and Registry
+   Considerations sections; added full Normative/ Informative References
+   with verified citations for MCP tool annotations, SARIF, OSV, SPDX
+   (ISO/IEC 5962:2021), CycloneDX (ECMA-424), and MADR (v4.0.0);
+   formalized the composition laws, contracts, and effect ladder with
+   MUST/SHOULD/MAY language throughout.
+
+   *0.1 (2026-09-05):* Initial high-level draft.
+
+Author's Address
+
+   Edison Steele
+   Email: edisonsteele@gmail.com
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 40]
