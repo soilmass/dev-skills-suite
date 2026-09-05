@@ -1,0 +1,111 @@
+# Table-driven eval file for dependency-audit (SDS-S-090).
+#
+# NOTE ON OPEN-WORLD STAGES (SDS-S-092): the Analyze stage calls a live,
+# open-world external system (api.osv.dev). Its *content* changes over
+# time as new CVEs are published — asserting exact vulnerability output
+# against a live call would make this suite flaky by design. So:
+#   - Gather (parse_manifest.py) and Synthesize (osv_to_finding.py) are
+#     tested deterministically against local fixtures and a FROZEN
+#     recording of a real OSV response (SDS-S-093).
+#   - The full pipeline runs offline through osv_batch_query.py's
+#     injectable-fixture flag `--frozen-matches-file` (SDS-S-065).
+#   - The live call itself is exercised only by the non-blocking smoke
+#     check after the `---` separator, asserting response SHAPE only.
+#
+# Fixture layout follows SDS-S-096; every fixture is referenced by a row
+# or the smoke section (SDS-S-097). Paths are skill-relative for
+# commands and family-root-relative for kit/ references (SDS-F-030,
+# SDS-F-031).
+
+skill: dependency-audit
+
+rows:
+  # REQUIRED — happy path (SDS-S-099). Deterministic: local fixture, no network.
+  - name: happy-path-npm-vulnerable
+    input:
+      command: "python3 scripts/parse_manifest.py evals/fixtures/vulnerable-npm"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "output is a JSON array with one entry: {ecosystem: npm, name: lodash, version: 4.17.15, resolved: false, source: package.json}"
+
+  # REQUIRED — happy path, full three-script pipeline, offline via the
+  # injectable-fixture flag (SDS-S-065): parse -> frozen OSV matches -> adapter.
+  - name: happy-path-full-pipeline-offline
+    input:
+      command: "python3 scripts/parse_manifest.py evals/fixtures/vulnerable-npm | python3 scripts/osv_batch_query.py - --frozen-matches-file evals/fixtures/frozen-osv-matches.json | python3 scripts/osv_to_finding.py -"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "no network call is made; exit code 0"
+        - "output validates against kit/shapes/finding-list.schema.json"
+        - "GHSA-29mw-wpgm-hmr9 is present in results"
+
+  # REQUIRED — boundary: empty input (SDS-C-005 totality, SDS-C-033 Null Object).
+  - name: boundary-empty-repo
+    input:
+      command: "python3 scripts/parse_manifest.py evals/fixtures/empty-repo | python3 scripts/osv_batch_query.py - --frozen-matches-file evals/fixtures/frozen-empty-matches.json | python3 scripts/osv_to_finding.py -"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "parse_manifest.py exits 0 and prints []"
+        - "the final output is a well-formed finding-list with results: [] — not null, not an error, not an omitted file"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-manifest
+    input:
+      command: "python3 scripts/parse_manifest.py evals/fixtures/malformed-npm"
+    expected:
+      kind: failure
+      failureCode: manifest-unparseable
+      assertions:
+        - "exit code is 1"
+        - "stderr names the specific file (package.json) and includes the underlying JSON parse error — not a generic failure"
+
+  # REQUIRED for audit/finder-type skills — mutation fixture (SDS-S-095).
+  # Uses a FROZEN recording of a real OSV response, not a live call.
+  - name: mutation-fixture-adapter
+    input:
+      command: "python3 scripts/osv_to_finding.py evals/fixtures/frozen-osv-matches.json"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "output validates against kit/shapes/finding-list.schema.json"
+        - "the planted vulnerability GHSA-29mw-wpgm-hmr9 (frozen fixture: lodash 4.17.15) is present in results"
+        - "its level is 'warning', matching OSV's recorded MODERATE severity"
+
+  # Fixed-point row (SDS-S-094): N/A — shape-out (finding-list) != shape-in (freeform).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: >
+        The fixed-point law (SDS-C-017) applies only when a skill's
+        registered shape-out equals its shape-in. dependency-audit's
+        input (a repository, freeform) and output (finding-list) differ;
+        there is no self-composition to check. `idempotent: "true"` in
+        this skill's metadata means only the weaker claim (SDS-C-004):
+        re-running against an unchanged repository is safe and produces
+        the same result, barring OSV database updates between runs.
+
+  # Contract test (SDS-C-063): N/A until a consumer exists.
+  - name: contract-with-downstream-consumer
+    expected:
+      kind: not-applicable
+      reason: "no consuming skill exists yet in this family"
+
+---
+# Non-blocking live smoke test (SDS-S-092): not a required row; run
+# manually or on a schedule, never as a gate on this skill's correctness.
+#
+#   python3 scripts/osv_batch_query.py evals/fixtures/vulnerable-npm-deps.json \
+#     | python3 scripts/osv_to_finding.py -
+#
+# Assert only: exit code 0, output validates against
+# kit/shapes/finding-list.schema.json, `results` is non-empty. Do NOT
+# assert a specific vulnerability count or ruleId list here — OSV's
+# database changes over time, and a stricter assertion would fail for
+# reasons unrelated to a defect in this skill.

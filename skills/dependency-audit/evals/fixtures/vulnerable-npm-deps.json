@@ -1,0 +1,9 @@
+[
+  {
+    "ecosystem": "npm",
+    "name": "lodash",
+    "version": "4.17.15",
+    "resolved": false,
+    "source": "package.json"
+  }
+]

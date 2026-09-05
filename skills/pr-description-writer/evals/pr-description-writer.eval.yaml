@@ -1,0 +1,102 @@
+# Table-driven eval file for pr-description-writer (SDS-S-090).
+#
+# This is a Command Skill, so only the Gather stage is mechanically
+# testable end-to-end here — the Decide stage (drafting prose) is model
+# judgment, and the Act stage is a real, shared-write mutation this
+# suite must NEVER actually perform (SDS-S-051: Act is never a
+# pre-approved script, and by the same logic never an automated eval
+# action — both would defeat the Confirm gate). Rows below test what's
+# mechanically testable and mark the rest not-applicable with the
+# reason stated (SDS-S-094, SDS-S-095).
+#
+# Before running these rows: evals/fixtures/sample-repo is generated,
+# not checked in (a git repo can't be a static fixture — nested .git
+# becomes a gitlink). Its generator follows SDS-S-096: run it once
+# first, and the output dir is listed in evals/fixtures/.gitignore.
+#   evals/fixtures/build-sample-repo.sh
+#
+# The `--current-body-file` flag is this script's injectable fixture
+# (SDS-S-065); rows reference only paths inside this skill (SDS-S-098).
+
+skill: pr-description-writer
+
+rows:
+  # REQUIRED — happy path (SDS-S-099; Gather stage only).
+  - name: happy-path-gather-no-existing-pr
+    input:
+      command: "python3 scripts/gather_pr_context.py evals/fixtures/sample-repo --base main"
+    expected:
+      kind: success
+      assertions:
+        - "base is 'main', head is 'feature/add-retry-logic'"
+        - "files includes README.md and retry.py"
+        - "commits has 2 entries, in reverse-chronological order"
+        - "currentBody is null (no PR exists yet in this local fixture)"
+
+  # REQUIRED — happy path variant: an existing PR body injected via the
+  # fixture flag (SDS-S-065).
+  - name: happy-path-gather-existing-pr
+    input:
+      command: "python3 scripts/gather_pr_context.py evals/fixtures/sample-repo --base main --current-body-file evals/fixtures/old-body.txt"
+    expected:
+      kind: success
+      assertions:
+        - "currentBody equals the contents of evals/fixtures/old-body.txt"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033). Here,
+  # "empty" means a branch with zero commits ahead of base.
+  - name: boundary-no-commits-ahead
+    input:
+      command: "python3 scripts/gather_pr_context.py evals/fixtures/sample-repo --base feature/add-retry-logic"
+    expected:
+      kind: success
+      assertions:
+        - "commits is an empty array — a valid, complete 'nothing ahead' result, not an error"
+
+  # REQUIRED — boundary: invalid precondition (SDS-C-019 fail-fast).
+  - name: boundary-invalid-base-ref
+    input:
+      command: "python3 scripts/gather_pr_context.py evals/fixtures/sample-repo --base does-not-exist"
+    expected:
+      kind: failure
+      failureCode: base-ref-missing
+      assertions:
+        - "exit code is 1"
+        - "stderr names the specific missing ref, not a generic error"
+
+  - name: boundary-not-a-git-repo
+    input:
+      command: "python3 scripts/gather_pr_context.py evals/fixtures/not-a-repo --base main"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1"
+        - "stderr states the path is not a git repository"
+
+  # N/A (SDS-S-095) — not an audit/finder; there is no "known problem"
+  # to plant and detect.
+  - name: mutation-fixture
+    expected:
+      kind: not-applicable
+      reason: "pr-description-writer drafts text; it does not search for known problems, so no mutation fixture applies."
+
+  # N/A (SDS-S-094) — shape-out and shape-in are both `freeform`, which
+  # is not a registered shape and so is not a self-composability signal.
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out and shape-in are both freeform; per SDS-C-017 this is not a genuine self-composability signal, and this skill does not feed its own output back into itself."
+
+  # N/A (SDS-C-063) — no downstream skill in this family currently
+  # declares this skill's freeform output as its own @requires shape.
+  - name: contract-with-downstream-consumer
+    expected:
+      kind: not-applicable
+      reason: "no consuming skill exists yet in this family; revisit when pr-lifecycle-manager is built."
+
+---
+# Non-executed by design (see header): the Act stage (`gh pr edit`) is
+# never run by this suite, including as a smoke test. Its correctness
+# is verified by direct, human-observed use — consistent with the same
+# principle that keeps it out of `allowed-tools` (SDS-S-051).
