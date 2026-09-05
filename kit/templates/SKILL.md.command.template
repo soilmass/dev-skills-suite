@@ -1,0 +1,140 @@
+---
+name: skill-name-here
+description: >-
+  [Write this LAST, per HOW-TO-BUILD-A-SKILL.md Step 4. State plainly
+  that this skill takes an action, not just produces a report — e.g.
+  "Opens a pull request, requests reviewers, and merges once CI is
+  green and the user confirms. Use when finishing a feature branch or
+  asked to open/merge a PR."]
+metadata:
+  family: [family-identifier]
+  effect-tier: [local-write | shared-write | irreversible]
+  idempotent: "false"             # command skills are usually not idempotent; justify "true" if used
+  tier: situational                # or: pillar
+  shape-out: [status-report | freeform]
+  shape-in: [decision-doc | plan-doc | freeform]   # what feeds this, if anything
+  version: "0.1.0"
+allowed-tools: >-
+  [Paste verbatim from the closest match in kit/shared/tool-profiles/.
+  Never widen it. The rung-5/6 operation itself must NOT appear here —
+  see HOW-TO-BUILD-A-SKILL.md Step 5.]
+---
+
+# [Skill Name]
+
+## When to use
+
+- [Concrete trigger scenario]
+
+## When not to use
+
+- [Neighboring skill this could be confused with, and why this isn't it]
+
+## @requires
+
+- REQUIRED: [precondition]
+- OPTIONAL: [input] (default: [value])
+
+## Instructions
+
+### Gather
+
+[What gets read before deciding anything. Validate every @requires
+precondition here, first — fail fast, name the specific unmet one.]
+
+### Analyze
+
+[Judgment step feeding the decision below.]
+
+### Decide
+
+[Produce a decision artifact — typically a `decision-doc`, see
+`kit/shapes/decision-doc.schema.json` — naming exactly what action is
+being proposed and why.]
+
+[OPTIONAL — conditional Act path (SDS-S-041). If there is a case where
+nothing needs to be mutated, declare it here as a bold branch and
+return the artifact instead:]
+
+**If [condition]: stop here.** [Explain what is returned and why no
+mutation is needed on this path. Do not silently skip Confirm/Act
+without this declared branch.]
+
+### Confirm
+
+[If Decide declared a conditional Act path, this section's first line
+MUST be: `Only reached when [condition].` (SDS-S-041)]
+
+STOP. Copy the base text from `kit/shared/gates/medium.md` (rung 5) or
+`kit/shared/gates/high.md` (rung 6) here and fill in the brackets
+(SDS-S-050). This step MUST run every time this stage is reached — a
+confirmation given earlier in the same session for a similar action
+does not carry over (SDS-C-044). Do not proceed past this point
+without it.
+
+### Act
+
+[If Decide declared a conditional Act path, this section's first line
+MUST be: `Only reached when [condition].` (SDS-S-041)]
+
+[The mutating operation, exactly as confirmed above, issued as a
+direct, unwrapped tool call — never through a bundled script listed
+in `allowed-tools` (SDS-S-051). MUST be check-before-act: verify
+current state before mutating (e.g., "does this PR already exist?")
+and skip as a no-op if already applied, so re-invocation after an
+interruption is safe rather than duplicative (SDS-C-046).]
+
+**Compensating action** (SDS-S-054; what undoes this step if a later
+step in this same sequence fails): [FILL — or "no compensating action —
+this step must be last," and put it last]
+
+**Checkpoint** (SDS-S-053; two-phase, at
+`.skills-state/<skill-name>/<key>.json`, SDS-S-100): **before** the
+mutating call write `{ "key": "[FILL]", "step": "[FILL]", "status":
+"pending", "startedAt": "<ISO-8601>", "preState": { [FILL] },
+"compensatingAction": "[FILL]" }`; **immediately after** it succeeds,
+set `"status": "completed"` and add `"postState"`. A resumed
+invocation reading `pending` treats the step as possibly-applied and
+runs check-before-act before retrying; `completed` means skip it.
+[One mutating step: write this inline with the Write tool. Two or
+more: use a `scripts/checkpoint.py` (SDS-S-055).]
+
+[Repeat Act / Compensating action / Checkpoint per mutating step if
+there is more than one.]
+
+### Communicate
+
+[Only if this skill notifies an audience outside the artifact itself —
+a PR comment, a message. This heading MUST stay (SDS-S-031); if not
+applicable, its body is `N/A — <reason>` (SDS-S-032).]
+
+### Persist
+
+[Where the final status-report or record of what happened is written.
+This heading MUST stay (SDS-S-031); if nothing beyond the checkpoint
+is persisted, say so as `N/A — <reason>`.]
+
+## @returns
+
+Shape: `[shape-out value]` — see `kit/shapes/[shape].schema.json`, or
+`freeform` if none fits.
+
+[One sentence: what will be true once this skill succeeds — including
+what state now exists that didn't before.]
+
+## @throws
+
+- `[failure-code-1]`: [precondition or mid-sequence failure]
+- `[failure-code-2]`: [...]
+
+For any failure occurring after at least one mutating step already
+succeeded, name which compensating action was (or should have been)
+triggered.
+
+## @example
+
+**Input:** [a concrete, realistic example]
+
+**Confirmed action:** [what the Confirm gate showed the user]
+
+**Result:** [the resulting artifact/state change]

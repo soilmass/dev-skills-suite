@@ -1,0 +1,4 @@
+# Runtime state for Command Skills (checkpoints, compensating-action
+# data) — machine state for a specific run, not project content.
+# See kit/PRIMITIVES.md Section 7.
+.skills-state/

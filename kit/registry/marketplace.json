@@ -1,0 +1,106 @@
+{
+  "family": "dev-skills-suite",
+  "sds": "1.0-draft",
+  "skills": [
+    {
+      "name": "tech-debt-inventory",
+      "description": "Scans a codebase for debt markers (TODOs, duplicated logic, god files) and produces a prioritized inventory.",
+      "version": "0.1.0",
+      "status": "planned",
+      "effect-tier": "local-read-only",
+      "tier": "pillar",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
+    },
+    {
+      "name": "flaky-test-triage",
+      "description": "Investigates a flaky test failure and classifies it as a real bug, test bug, or environment issue, with evidence.",
+      "version": "0.1.0",
+      "status": "planned",
+      "effect-tier": "domain-read-only",
+      "tier": "pillar",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
+    },
+    {
+      "name": "adr-writer",
+      "description": "Captures an architecture decision as a MADR-shaped, portable decision record.",
+      "version": "0.1.0",
+      "status": "planned",
+      "effect-tier": "local-write",
+      "tier": "pillar",
+      "shape-out": "decision-doc",
+      "shape-in": "freeform"
+    },
+    {
+      "name": "dependency-audit",
+      "description": "Scans a repository's dependency manifests (npm, PyPI, crates.io) for known vulnerabilities via the OSV database, and flags unresolved version ranges as best-effort. Use when reviewing a dependency bump, auditing supply-chain risk, checking a PR for outdated or vulnerable packages, or when the user mentions CVEs, npm audit, pip-audit, cargo audit, or \"are our dependencies safe.\"",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "external-read-only",
+      "tier": "pillar",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
+    },
+    {
+      "name": "performance-budget-check",
+      "description": "Compares current metrics against a stated performance budget and flags regressions.",
+      "version": "0.1.0",
+      "status": "planned",
+      "effect-tier": "local-read-only",
+      "tier": "pillar",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
+    },
+    {
+      "name": "incident-postmortem",
+      "description": "Blameless postmortem template and facilitation instructions.",
+      "version": "0.1.0",
+      "status": "planned",
+      "effect-tier": "local-write",
+      "tier": "pillar",
+      "shape-out": "status-report",
+      "shape-in": "freeform"
+    },
+    {
+      "name": "pr-description-writer",
+      "description": "Drafts a pull request description (summary, risk, test plan) from a branch's diff and commit history, and applies it to the open PR once confirmed. Use when opening or refreshing a PR description, when a diff has drifted from its original description, or when the user asks to write, update, or clean up a PR description.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "shared-write",
+      "tier": "pillar",
+      "shape-out": "freeform",
+      "shape-in": "freeform"
+    },
+    {
+      "name": "api-doc-writer",
+      "description": "Generates or refreshes API reference docs from code signatures without inventing behavior.",
+      "version": "0.1.0",
+      "status": "planned",
+      "effect-tier": "local-write",
+      "tier": "pillar",
+      "shape-out": "freeform",
+      "shape-in": "freeform"
+    },
+    {
+      "name": "sync-strategy-advisor",
+      "description": "Assesses a branch's state versus remote/upstream and recommends pull/rebase/merge, flagging conflict risk.",
+      "version": "0.1.0",
+      "status": "planned",
+      "effect-tier": "domain-read-only",
+      "tier": "pillar",
+      "shape-out": "decision-doc",
+      "shape-in": "freeform"
+    },
+    {
+      "name": "pr-lifecycle-manager",
+      "description": "Orchestrates a PR end-to-end: opens, requests reviewers, watches CI, and merges once green and confirmed.",
+      "version": "0.1.0",
+      "status": "planned",
+      "effect-tier": "irreversible",
+      "tier": "pillar",
+      "shape-out": "status-report",
+      "shape-in": "decision-doc"
+    }
+  ]
+}

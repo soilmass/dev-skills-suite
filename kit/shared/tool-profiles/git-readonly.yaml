@@ -1,0 +1,12 @@
+name: git-readonly
+effect-tier: domain-read-only
+allowed-tools:
+  - "Bash(git status:*)"
+  - "Bash(git log:*)"
+  - "Bash(git diff:*)"
+  - "Bash(git show:*)"
+  - "Bash(git fetch:*)"
+notes: >
+  Read-only against local and remote git state. Deliberately excludes
+  git push, merge, rebase, reset, and branch -D — those must reach the
+  host's own approval mechanism (SDS-S-023, SDS-K-041), never be pre-approved here.

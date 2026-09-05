@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skills.local/registry/marketplace.schema.json",
+  "title": "Family Registry File",
+  "description": "The single source of truth for a Skill Family (SDS-F-010, SDS-F-014). Any human-facing index or table MUST be generated from this file, never hand-maintained separately.",
+  "type": "object",
+  "required": ["family", "sds", "skills"],
+  "properties": {
+    "family": { "type": "string" },
+    "sds": {
+      "type": "string",
+      "description": "The SDS conformance target this family declares, e.g. \"1.0-draft\" (SDS-F-042)."
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "description", "version", "effect-tier", "tier", "shape-out", "shape-in"],
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "version": { "type": "string" },
+          "status": {
+            "enum": ["planned", "built"],
+            "description": "built requires skills/<name>/ to exist; planned entries may have no directory yet (SDS-F-015)."
+          },
+          "effect-tier": {
+            "enum": [
+              "local-read-only",
+              "domain-read-only",
+              "external-read-only",
+              "local-write",
+              "shared-write",
+              "irreversible"
+            ]
+          },
+          "tier": { "enum": ["pillar", "situational"] },
+          "shape-out": { "type": "string" },
+          "shape-in": { "type": "string" }
+        }
+      }
+    }
+  }
+}

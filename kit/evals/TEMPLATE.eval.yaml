@@ -1,0 +1,76 @@
+# Table-driven eval file (SDS-S-090). One per skill.
+# Copy to <skill-name>/evals/<skill-name>.eval.yaml and fill in.
+# Required rows are marked below; do not delete a required row because
+# it feels redundant for this particular skill — write "N/A: <why>"
+# in its expected block instead, so the omission is visible, not silent.
+#
+# If this skill's Analyze/Gather stage hits an open-world system
+# (effect-tier: external-read-only or above), see SDS-S-092 and kit/PRIMITIVES.md
+# Section 6: test everything else against local fixtures, freeze one
+# real response as a fixture for the mutation-fixture row, and put any
+# live-call check in a separate, non-blocking smoke test outside this
+# table (asserting shape only, never specific content). See
+# skills/dependency-audit/evals/dependency-audit.eval.yaml for
+# the worked example.
+
+skill: <skill-name>
+
+rows:
+  # REQUIRED — every skill (SDS-S-099).
+  - name: happy-path
+    input: { }
+    expected:
+      kind: success
+      shape: <shape-out>
+      assertions:
+        - "<what must be true of a correct output>"
+
+  # REQUIRED — every skill (SDS-C-005 totality, SDS-C-033 Null Object).
+  - name: boundary-empty-input
+    input: { }   # e.g. a repo with zero commits, zero dependencies, zero open PRs
+    expected:
+      kind: success
+      shape: <shape-out>
+      assertions:
+        - "output is a well-formed, zero-entry instance of <shape-out> — not null, not omitted, not a different format"
+
+  # REQUIRED — every skill (SDS-C-019 fail-fast).
+  - name: boundary-malformed-input
+    input: { }   # input that violates a stated @requires precondition
+    expected:
+      kind: failure
+      failureCode: <matches one @throws entry>
+      assertions:
+        - "failure names the specific unmet precondition, not a generic error"
+
+  # REQUIRED only for audit/finder-type skills (SDS-S-095, mutation testing).
+  - name: mutation-fixture
+    input: { }   # a fixture with a deliberately planted, known instance of what this skill detects
+    expected:
+      kind: success
+      assertions:
+        - "the planted issue is present in the returned finding-list"
+
+  # REQUIRED only if shape-out == shape-in AND both are registered shapes (SDS-S-094), i.e. the skill is genuinely
+  # self-composable (typically an editing/refinement skill) — NOT
+  # simply because metadata.idempotent == "true". "idempotent" alone
+  # can mean the weaker MCP-style claim ("safe to call again with the
+  # same arguments") without the output ever being a valid input to
+  # itself. If shape-out != shape-in, mark this row not-applicable
+  # with the reason stated (see SDS-S-094 and kit/PRIMITIVES.md Section 6,
+  # found while building dependency-audit) — never omit it silently.
+  - name: fixed-point
+    input: "<this skill's own prior output, fed back in as input>"
+    expected:
+      kind: success   # or: kind: not-applicable, reason: "<shape-out != shape-in, so no self-composition exists to check>"
+      assertions:
+        - "second-pass output is identical to the input — no further change"
+
+  # REQUIRED only for skills designed to chain after another skill
+  # (SDS-C-063, consumer-driven contract test).
+  - name: contract-with-upstream-producer
+    input: "<the ACTUAL output of the producing skill, not a hand-written stand-in>"
+    expected:
+      kind: success
+      assertions:
+        - "input validates against this skill's declared @requires shape"

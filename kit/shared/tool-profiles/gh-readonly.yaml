@@ -1,0 +1,13 @@
+name: gh-readonly
+effect-tier: external-read-only
+allowed-tools:
+  - "Bash(gh pr view:*)"
+  - "Bash(gh pr list:*)"
+  - "Bash(gh pr checks:*)"
+  - "Bash(gh issue view:*)"
+  - "Bash(gh issue list:*)"
+  - "Bash(gh api -X GET:*)"
+notes: >
+  Read-only GitHub API access. Deliberately excludes gh pr merge, gh pr
+  create, gh issue close, gh release create, and any -X POST/PATCH/
+  DELETE api call — those must reach the host's own approval mechanism (SDS-S-023, SDS-K-041).

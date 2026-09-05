@@ -1,0 +1,102 @@
+---
+name: skill-name-here
+description: >-
+  [Write this LAST, per HOW-TO-BUILD-A-SKILL.md Step 4. One or two
+  sentences: what it does, plus the specific keywords a real task
+  would contain. Example: "Scans package manifests for stale or
+  vulnerable dependencies. Use when reviewing a dependency bump,
+  auditing supply-chain risk, or when the user mentions outdated
+  packages, CVEs, npm audit, or pip-audit."]
+metadata:
+  family: [family-identifier]
+  effect-tier: local-read-only   # or: domain-read-only / external-read-only
+  idempotent: "true"             # "false" only if you have a specific reason
+  tier: situational              # or: pillar
+  shape-out: [finding-list | decision-doc | plan-doc | status-report | freeform]
+  shape-in: freeform              # or a registered shape, if chained after another skill
+  version: "0.1.0"
+---
+
+# [Skill Name]
+
+## When to use
+
+- [Concrete trigger scenario 1]
+- [Concrete trigger scenario 2]
+
+## When not to use
+
+- [The nearest neighboring skill this could be confused with, and why
+  this isn't it — e.g. "not for finding vulnerabilities in first-party
+  code; that's a security-review concern, not a dependency one."]
+
+## @requires
+
+- REQUIRED: [precondition, phrased as a testable assertion, e.g.
+  "at least one dependency manifest file exists in the repository"]
+- OPTIONAL: [input] (default: [stated default])
+
+If more than four or five REQUIRED inputs accumulate here, stop and
+split this skill (SDS-C-052, SDS-S-037).
+
+## Instructions
+
+### Gather
+
+[What gets read. MUST be limited to exactly what @requires lists above
+— nothing ambient (today's date, an unlisted file, network state not
+declared as an input). This is what makes the skill hermetic
+(SDS-C-003).]
+
+Validate every @requires precondition here, first, before anything
+else. If one fails, stop immediately with the specific failure named
+under @throws below — do not discover it later (SDS-C-019, fail-fast).
+
+### Filter
+
+[Only if some gathered material needs narrowing before Analyze. For a
+Query Skill this heading is optional (SDS-S-031): delete it entirely
+if not applicable — no N/A line is needed.]
+
+### Analyze
+
+[The actual judgment step — this is where model reasoning earns its
+keep. Be specific about the rubric being applied.]
+
+### Classify
+
+[Only if each analyzed item gets a label or severity. Optional for a
+Query Skill (SDS-S-031): delete it entirely if not applicable.]
+
+### Synthesize
+
+[Compose the final artifact conforming to the declared shape-out. If
+shape-out is one of the four registered shapes, the output MUST
+validate against `kit/shapes/<shape>.schema.json`.]
+
+If Analyze finds nothing, Synthesize still produces a complete,
+schema-valid, zero-entry instance of the shape — never `null`, an
+empty string, or a distinct "nothing found" format (SDS-C-033, Null
+Object Requirement).
+
+## @returns
+
+Shape: `[shape-out value]` — see `kit/shapes/[shape].schema.json`.
+
+[One sentence stating the guarantee: what will be true of the output
+whenever this skill succeeds.]
+
+## @throws
+
+- `[failure-code-1]`: [the precondition or edge case that triggers this]
+- `[failure-code-2]`: [...]
+
+This list must be exhaustive over the boundary cases you will write
+evals for (empty input, malformed-but-precondition-satisfying input) —
+not just the most likely failure (SDS-C-005, totality; SDS-S-039).
+
+## @example
+
+**Input:** [a concrete, realistic example]
+
+**Output:** [the resulting artifact, or a representative excerpt]

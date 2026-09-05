@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skills.local/shapes/decision-doc.schema.json",
+  "title": "decision-doc",
+  "description": "MADR-shaped decision record (SDS-C-031). Once persisted, an instance is immutable; a changed decision is a NEW instance with status 'superseded' and a supersededBy reference (SDS-C-034), never an in-place edit.",
+  "type": "object",
+  "required": [
+    "status",
+    "contextAndProblemStatement",
+    "consideredOptions",
+    "decisionOutcome"
+  ],
+  "properties": {
+    "status": {
+      "enum": ["proposed", "accepted", "rejected", "deprecated", "superseded"]
+    },
+    "supersededBy": {
+      "type": "string",
+      "description": "REQUIRED when status is 'superseded'. Must reference another decision-doc's id."
+    },
+    "contextAndProblemStatement": { "type": "string" },
+    "decisionDrivers": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "consideredOptions": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    },
+    "decisionOutcome": {
+      "type": "object",
+      "required": ["chosenOption", "justification"],
+      "properties": {
+        "chosenOption": { "type": "string" },
+        "justification": { "type": "string" }
+      }
+    },
+    "consequences": {
+      "type": "object",
+      "properties": {
+        "positive": { "type": "array", "items": { "type": "string" } },
+        "negative": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "confirmation": {
+      "type": "string",
+      "description": "How compliance with this decision will be verified, per the MADR template's Confirmation field."
+    }
+  },
+  "if": {
+    "properties": { "status": { "const": "superseded" } }
+  },
+  "then": {
+    "required": ["supersededBy"]
+  }
+}

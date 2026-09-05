@@ -1,0 +1,15 @@
+name: git-write-guarded
+effect-tier: shared-write
+allowed-tools:
+  - "Bash(git status:*)"
+  - "Bash(git diff:*)"
+  - "Bash(git add:*)"
+  - "Bash(git commit:*)"
+  - "Bash(gh pr create:*)"
+notes: >
+  Permits committing to a local branch and opening a PR — both
+  reversible without external coordination. Deliberately excludes git
+  push --force, git merge, gh pr merge, gh pr edit, and any branch
+  deletion: those sit at rung 5/6 and MUST hit a Confirm gate plus the
+  host's own approval mechanism (SDS-S-023, SDS-K-041), never be
+  pre-scoped into allowed-tools.
