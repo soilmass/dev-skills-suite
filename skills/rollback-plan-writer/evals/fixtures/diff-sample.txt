@@ -1,0 +1,7 @@
+M	src/checkout/service.py
+A	migrations/0007_add_orders_index.sql
+M	config/prod.yaml
+M	terraform/rds.tf
+M	package-lock.json
+A	data/seeds/regions.csv
+D	docs/legacy-checkout.md

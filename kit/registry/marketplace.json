@@ -121,6 +121,16 @@
       "tier": "situational",
       "shape-out": "status-report",
       "shape-in": "status-report"
+    },
+    {
+      "name": "rollback-plan-writer",
+      "description": "Inventories what a change touches — migrations, config, infrastructure, code — and produces a plan-doc in which every step names its rollback, irreversible steps are sequenced last, and the plan is refused if a step with no rollback is followed by one that depends on it. Use before a risky deploy or migration, when asked how a change would be undone, or when a release checklist needs its rollback section.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "domain-read-only",
+      "tier": "situational",
+      "shape-out": "plan-doc",
+      "shape-in": "freeform"
     }
   ]
 }

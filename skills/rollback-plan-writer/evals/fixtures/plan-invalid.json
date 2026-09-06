@@ -1,0 +1,11 @@
+{
+  "goal": "Planted: a step with no rollback field at all",
+  "phases": [
+    {
+      "name": "Deploy",
+      "steps": [
+        { "description": "Deploy the build", "riskIfFails": "medium" }
+      ]
+    }
+  ]
+}

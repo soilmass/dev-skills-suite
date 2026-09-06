@@ -1,0 +1,22 @@
+{
+  "goal": "Planted: an irreversible step that is NOT last in its phase",
+  "phases": [
+    {
+      "name": "Deploy",
+      "steps": [
+        {
+          "description": "Load data/seeds/regions.csv into the regions table",
+          "riskIfFails": "high",
+          "rollback": "none — seed rows cannot be told apart from later inserts",
+          "checkpointAfter": true
+        },
+        {
+          "description": "Run migration 0007_add_orders_index.sql",
+          "riskIfFails": "high",
+          "rollback": "Run the down-migration (DROP INDEX CONCURRENTLY orders_created_at_idx)",
+          "checkpointAfter": true
+        }
+      ]
+    }
+  ]
+}

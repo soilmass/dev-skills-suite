@@ -1,0 +1,51 @@
+{
+  "goal": "Ship the orders index and the checkout service change to production with a verified way back at every step",
+  "phases": [
+    {
+      "name": "Prepare",
+      "steps": [
+        {
+          "description": "Snapshot the orders table and record the current config/prod.yaml values",
+          "riskIfFails": "low",
+          "rollback": "Nothing to undo; delete the snapshot if the deploy is abandoned",
+          "checkpointAfter": true
+        },
+        {
+          "description": "Apply terraform/rds.tf (parameter group change) with the previous definition saved",
+          "riskIfFails": "medium",
+          "rollback": "terraform apply the saved previous definition; confirm state matches",
+          "checkpointAfter": true
+        }
+      ]
+    },
+    {
+      "name": "Deploy",
+      "steps": [
+        {
+          "description": "Deploy the checkout service build with the new package-lock.json",
+          "riskIfFails": "medium",
+          "rollback": "Redeploy the previous build tag; the lockfile revert is part of that build",
+          "checkpointAfter": true
+        },
+        {
+          "description": "Apply config/prod.yaml changes",
+          "riskIfFails": "medium",
+          "rollback": "Restore the recorded previous values and restart the service",
+          "checkpointAfter": true
+        },
+        {
+          "description": "Run migration 0007_add_orders_index.sql",
+          "riskIfFails": "high",
+          "rollback": "Run the down-migration (DROP INDEX CONCURRENTLY orders_created_at_idx)",
+          "checkpointAfter": true
+        },
+        {
+          "description": "Load data/seeds/regions.csv into the regions table",
+          "riskIfFails": "high",
+          "rollback": "none — seed rows cannot be told apart from later inserts; this step is last and runs only after the migration is verified",
+          "checkpointAfter": true
+        }
+      ]
+    }
+  ]
+}

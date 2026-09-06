@@ -1,0 +1,99 @@
+# Table-driven eval file for rollback-plan-writer (SDS-S-090).
+#
+# A rung-2 Query Skill and the family's first producer of plan-doc.
+# The inventory is exercised through --diff-file (SDS-S-065) with a
+# planted name-status listing; the checker through planted plans — one
+# safe, one with an irreversible step out of order, one failing the
+# shape, one malformed. Every row is deterministic and offline.
+
+skill: rollback-plan-writer
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): the planted diff is bucketed as predicted.
+  - name: happy-path-inventory
+    input:
+      command: "python3 scripts/inventory_change.py . --diff-file evals/fixtures/diff-sample.txt"
+    expected:
+      kind: success
+      assertions:
+        - "categories are code 2, migration 1, config 1, infrastructure 1, dependency 1, data 1, deleted 1 (docs/legacy-checkout.md counts as code AND deleted)"
+        - "hints contains one entry per category present, including the migration and data hints"
+
+  # Happy path: the planted safe plan passes the checker with no warnings and renders.
+  - name: happy-path-check-plan
+    input:
+      command: "python3 scripts/check_plan.py evals/fixtures/plan-good.json --render"
+    expected:
+      kind: success
+      shape: plan-doc
+      assertions:
+        - "exit code is 0; irreversible lists exactly the seed-load step; warnings has exactly one entry — the seed load is high-risk with no rollback — which the Synthesize stage must explain rather than silence"
+        - "rendered contains '## Prepare', '## Deploy', six '- [ ]' lines, and the seed step marked '(irreversible — last in phase)'"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): nothing changed -> empty inventory, no hints, no error.
+  - name: boundary-empty-diff
+    input:
+      command: "python3 scripts/inventory_change.py . --diff-file evals/fixtures/diff-empty.txt"
+    expected:
+      kind: success
+      assertions:
+        - "files is an empty array, categories is empty, hints is empty"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-plan
+    input:
+      command: "python3 scripts/check_plan.py evals/fixtures/plan-malformed.json"
+    expected:
+      kind: failure
+      failureCode: plan-unparseable
+      assertions:
+        - "exit code is 1 and stderr says plan-unparseable"
+
+  - name: boundary-invalid-plan-shape
+    input:
+      command: "python3 scripts/check_plan.py evals/fixtures/plan-invalid.json"
+    expected:
+      kind: failure
+      failureCode: plan-invalid
+      assertions:
+        - "exit code is 1 and stderr says plan-invalid, naming the missing 'rollback' property"
+
+  - name: boundary-unsafe-order
+    input:
+      command: "python3 scripts/check_plan.py evals/fixtures/plan-bad-order.json"
+    expected:
+      kind: failure
+      failureCode: plan-unsafe-order
+      assertions:
+        - "exit code is 1 and stderr names the seed-load step as irreversible-but-followed-by-1-more-step"
+
+  - name: boundary-missing-diff-file
+    input:
+      command: "python3 scripts/inventory_change.py . --diff-file evals/fixtures"
+    expected:
+      kind: failure
+      failureCode: diff-unreadable
+      assertions:
+        - "exit code is 1 and stderr says diff-unreadable (a directory cannot be read as a diff file)"
+
+  # N/A — shape-out is plan-doc, not finding-list (SDS-S-095).
+  - name: mutation-fixture
+    expected:
+      kind: not-applicable
+      reason: "rollback-plan-writer does not search for known problems; shape-out is plan-doc, not finding-list."
+
+  # N/A — shape-out plan-doc != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out plan-doc differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): the plan the checker returns validates against the family plan-doc shape.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/check_plan.py evals/fixtures/plan-good.json | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin)['plan']; jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/plan-doc.schema.json'))); print('plan-doc OK', sum(len(p['steps']) for p in d['phases']), 'steps')\""
+    expected:
+      kind: success
+      shape: plan-doc
+      assertions:
+        - "the returned plan validates against kit/shapes/plan-doc.schema.json"
