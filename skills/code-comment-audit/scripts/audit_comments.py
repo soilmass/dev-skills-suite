@@ -50,10 +50,10 @@ SKIP_DIRS = {".git", "node_modules", "dist", "build", "vendor", "target", "__pyc
 PARAM_RE = re.compile(r"^\s*(?::param\s+(\w+)\s*:|(\w+)\s*\([^)]*\)\s*:|(\w+)\s*:\s)", re.M)
 IDENT_RE = re.compile(r"`([A-Za-z_][A-Za-z0-9_.]*)`|\b([a-z]+_[a-z0-9_]+|[A-Z][a-z]+[A-Z][A-Za-z0-9]*)\b|\b([A-Za-z_][A-Za-z0-9_]{3,})\(")
 COMMON_WORDS = {"e_g", "i_e", "to_do", "note_that", "as_is"}
-# Proper nouns that are CamelCase-shaped (matched by IDENT_RE's identifier
-# heuristic) but name a product, protocol, or library rather than a symbol
-# in this tree — found dogfooding this skill on the family repository's
-# own comments (GitHub, PyYAML, OpenAPI all mentioned in prose, none ever
+# Proper nouns shaped like the mixed-case identifiers IDENT_RE looks for,
+# but naming a product, protocol, or library rather than a symbol in this
+# tree — found dogfooding this skill on the family repository's own
+# comments (GitHub, PyYAML, OpenAPI all mentioned in prose, none ever
 # claimed to be defined here).
 COMMON_PROPER_NOUNS = {"github", "pyyaml", "openapi"}
 
