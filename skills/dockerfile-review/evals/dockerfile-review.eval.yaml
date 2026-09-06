@@ -1,0 +1,134 @@
+# Table-driven eval file for dockerfile-review (SDS-S-090).
+#
+# A rung-1 Query Skill over a planted directory of two Dockerfiles —
+# evals/fixtures/planted/Dockerfile (single stage, every rule but
+# docker/unpinned-base, which docker/latest-tag suppresses for its
+# FROM) and evals/fixtures/planted/services/api.dockerfile (a second,
+# mostly clean file so the directory scan is exercised) — a clean
+# multi-stage Dockerfile that must stay silent, and malformed inputs.
+# Every row is deterministic and offline — no engine is contacted.
+
+skill: dockerfile-review
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): every rule but docker/unpinned-base
+  # fires from the planted directory; docker/unpinned-base is exercised
+  # separately by boundary-allow-latest, since docker/latest-tag firing
+  # for the same FROM suppresses it here.
+  - name: happy-path-planted-directory
+    input:
+      command: "python3 scripts/review_dockerfile.py evals/fixtures/planted"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "Dockerfile draws: docker/secret-in-arg-env (ARG NPM_TOKEN) line 2, docker/copy-dot-before-deps (COPY . . before RUN npm ci) line 3, docker/latest-tag (FROM node:latest) line 1, docker/root-user (no USER) line 1, docker/add-instead-of-copy (ADD ./src) line 6, docker/apt-no-cleanup (RUN apt-get install, no cleanup) line 5, docker/multi-stage-missing (RUN npm run build, one stage) line 7, docker/no-healthcheck (EXPOSE 3000, no HEALTHCHECK) line 8"
+        - "services/api.dockerfile draws only docker/no-healthcheck (EXPOSE 8000, no HEALTHCHECK) line 6 — its FROM is digest-pinned and its final USER is app"
+        - "docker/unpinned-base does not appear (docker/latest-tag already fired for the only unpinned FROM)"
+        - "tool.properties: files 2, stages 2, instructions 14, byRule { docker/add-instead-of-copy: 1, docker/apt-no-cleanup: 1, docker/copy-dot-before-deps: 1, docker/latest-tag: 1, docker/multi-stage-missing: 1, docker/no-healthcheck: 2, docker/root-user: 1, docker/secret-in-arg-env: 1 }; results sorted error, then warning, then info"
+
+  # REQUIRED — happy path, single file: the planted Dockerfile given
+  # directly (not through the directory scan).
+  - name: happy-path-single-file
+    input:
+      command: "python3 scripts/review_dockerfile.py evals/fixtures/planted/Dockerfile"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the same 8 findings as the planted directory's Dockerfile entries, located at uri Dockerfile"
+        - "tool.properties: files 1, stages 1, instructions 8, byRule has 8 entries each 1 (docker/unpinned-base absent)"
+
+  # Boundary: --allow-latest silences docker/latest-tag, and
+  # docker/unpinned-base then fires for that same FROM.
+  - name: boundary-allow-latest
+    input:
+      command: "python3 scripts/review_dockerfile.py evals/fixtures/planted/Dockerfile --allow-latest"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "no docker/latest-tag result; a docker/unpinned-base info result appears at line 1 for FROM node:latest"
+        - "the other 7 findings (docker/secret-in-arg-env, docker/copy-dot-before-deps, docker/root-user, docker/add-instead-of-copy, docker/apt-no-cleanup, docker/multi-stage-missing, docker/no-healthcheck) are unchanged"
+        - "tool.properties.byRule has 8 entries each 1, with docker/unpinned-base in place of docker/latest-tag"
+
+  # REQUIRED — boundary: empty/minimal input (SDS-C-005, SDS-C-033): a
+  # clean multi-stage, digest-pinned, non-root, healthcheck'd,
+  # deps-before-COPY Dockerfile draws nothing.
+  - name: boundary-empty-clean
+    input:
+      command: "python3 scripts/review_dockerfile.py evals/fixtures/clean/Dockerfile"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; tool.properties is files 1, stages 2, instructions 12, byRule {} — a well-formed, zero-entry finding-list, not null or omitted"
+
+  # Boundary: a directory with no Dockerfiles at all is not a failure.
+  - name: boundary-no-dockerfiles
+    input:
+      command: "python3 scripts/review_dockerfile.py evals/fixtures/clean/empty-dir"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; tool.properties.files is 0, stages 0, instructions 0"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast). An
+  # explicit path whose name matches the Dockerfile naming convention
+  # but does not exist.
+  - name: boundary-missing-file
+    input:
+      command: "python3 scripts/review_dockerfile.py Dockerfile.missing"
+    expected:
+      kind: failure
+      failureCode: dockerfile-missing
+      assertions:
+        - "exit code is 1 and stderr says dockerfile-missing and names the path; 'Dockerfile.missing' is not under evals/fixtures/ on purpose — this row asserts the path itself never exists (SDS-S-096 forbids a nonexistent evals/fixtures/ reference)"
+
+  - name: boundary-malformed-dockerfile
+    input:
+      command: "python3 scripts/review_dockerfile.py evals/fixtures/broken/Dockerfile"
+    expected:
+      kind: failure
+      failureCode: dockerfile-unparseable
+      assertions:
+        - "exit code is 1 and stderr names evals/fixtures/broken/Dockerfile line 2 and says dockerfile-unparseable (the line 'INSTALL curl' has no recognized instruction keyword)"
+
+  - name: boundary-invalid-path
+    input:
+      command: "python3 scripts/review_dockerfile.py nope"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 and stderr says repo-invalid — the path is neither an existing directory nor an existing file, and its name does not match the Dockerfile naming convention; 'nope' is not under evals/fixtures/ on purpose (SDS-S-096 forbids a nonexistent evals/fixtures/ reference)"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095):
+  # the planted secret is found at its line.
+  - name: mutation-fixture
+    input:
+      command: "python3 scripts/review_dockerfile.py evals/fixtures/planted/Dockerfile"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "a docker/secret-in-arg-env result exists with level error, properties.instruction ARG, properties.name NPM_TOKEN, located at Dockerfile line 2"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any
+  # downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/review_dockerfile.py evals/fixtures/planted | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"

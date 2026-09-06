@@ -682,6 +682,16 @@
       "shape-out": "finding-list",
       "shape-in": "freeform",
       "status": "built"
+    },
+    {
+      "name": "dockerfile-review",
+      "description": "Reviews a Dockerfile, stage by stage, for the build-time and runtime choices that make an image bigger, slower to rebuild, or less safe than it needs to be — an unpinned or `:latest` base image, no digest pin, the final stage running as root, an `apt-get install` with no cache cleanup, a secret in a build argument or environment variable, `ADD` used where `COPY` would do, no `HEALTHCHECK` for an exposed port, a build command with no multi-stage split, and the whole build context copied before the dependency-install layer — as a finding-list. Use before an image build goes to a shared registry, when a rebuild is slower than it should be, or when asked to review a Dockerfile.",
+      "version": "0.1.0",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform",
+      "status": "built"
     }
   ]
 }
