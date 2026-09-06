@@ -1,0 +1,158 @@
+# Table-driven eval file for eval-dataset-audit (SDS-S-090).
+#
+# Fixtures: planted.jsonl / planted.csv (the same ten rows, twice: two
+# exact duplicates at rows 1-2, a near-duplicate pair at rows 3-4
+# scoring 0.905 jaccard, an empty expected at row 5, a leak-suspect
+# row at row 6, and an 8-positive/1-negative/1-empty expected split
+# giving a 0.8 largest-class share — the CSV file carries a header, so
+# every row number there is one higher than the JSONL equivalent),
+# clean.jsonl (five distinct, balanced rows — 3 positive, 2 negative,
+# a 0.6 share — no findings at all), broken.jsonl (a line that is not
+# JSON), missing-field.jsonl (two of four rows lack `expected`), and
+# custom-fields.jsonl (three rows keyed `prompt`/`answer` instead of
+# the defaults, one with an empty answer). Every row is deterministic
+# and offline.
+
+skill: eval-dataset-audit
+
+rows:
+  # REQUIRED — happy path, JSONL (SDS-S-099): every planted rule fires
+  # exactly once, at the hand-verified row and value.
+  - name: happy-path-planted-jsonl
+    input:
+      command: "python3 scripts/audit_eval_dataset.py evals/fixtures/planted.jsonl"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "evals/duplicate-row warning: properties.rows [1, 2], count 2, located at row 1"
+        - "evals/near-duplicate info: properties.rows [3, 4], similarity 0.905 (>= the default 0.9 threshold), located at row 3"
+        - "evals/empty-expected error: properties.row 5, located at row 5"
+        - "evals/leak-suspect warning: properties.row 6, located at row 6 ('negative' appears verbatim in its own input)"
+        - "evals/label-imbalance warning: properties.classes 3, largestClass 'positive', largestClassShare 0.8, located at the file (no region)"
+        - "tool.properties: rows 10, fields [input, expected], classes 3, largestClassShare 0.8, duplicates 1, nearDuplicates 1, missingFieldTruncated false"
+        - "no evals/missing-field finding — every row in planted.jsonl carries both fields"
+
+  # REQUIRED — happy path, CSV: identical rule set to the JSONL
+  # fixture, offset by one line for the header row.
+  - name: happy-path-planted-csv
+    input:
+      command: "python3 scripts/audit_eval_dataset.py evals/fixtures/planted.csv"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "evals/duplicate-row warning: properties.rows [2, 3], count 2, located at row 2"
+        - "evals/near-duplicate info: properties.rows [4, 5], similarity 0.905, located at row 4"
+        - "evals/empty-expected error: properties.row 6, located at row 6 (the CSV cell is empty, not absent)"
+        - "evals/leak-suspect warning: properties.row 7, located at row 7"
+        - "evals/label-imbalance warning: properties.classes 3, largestClass 'positive', largestClassShare 0.8"
+        - "tool.properties: rows 10, fields [input, expected], classes 3, largestClassShare 0.8, duplicates 1, nearDuplicates 1, missingFieldTruncated false — the identical rule set as happy-path-planted-jsonl, one line later throughout"
+
+  # REQUIRED — boundary: empty/minimal input (SDS-C-005, SDS-C-033): a
+  # clean, balanced dataset draws nothing.
+  - name: boundary-empty-clean
+    input:
+      command: "python3 scripts/audit_eval_dataset.py evals/fixtures/clean.jsonl"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; tool.properties is rows 5, fields [input, expected], classes 2, largestClassShare 0.6, duplicates 0, nearDuplicates 0, missingFieldTruncated false — a well-formed, zero-entry finding-list, not null or omitted"
+
+  # Boundary: a higher --near-duplicate-threshold makes the planted
+  # near-duplicate pair disappear while every other rule is unaffected.
+  - name: boundary-threshold
+    input:
+      command: "python3 scripts/audit_eval_dataset.py evals/fixtures/planted.jsonl --near-duplicate-threshold 0.95"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "no evals/near-duplicate finding (0.905 < 0.95); tool.properties.nearDuplicates is 0"
+        - "evals/duplicate-row, evals/empty-expected, evals/leak-suspect, and evals/label-imbalance all still fire exactly as in happy-path-planted-jsonl"
+
+  # Boundary: --input-field / --expected-field resolve to non-default
+  # keys, and an empty answer is still caught under the custom name.
+  - name: boundary-custom-fields
+    input:
+      command: "python3 scripts/audit_eval_dataset.py evals/fixtures/custom-fields.jsonl --input-field prompt --expected-field answer"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "evals/empty-expected error: properties.row 2, located at row 2 (the empty 'answer' cell)"
+        - "tool.properties: rows 3, fields [prompt, answer], classes 3, largestClassShare 0.333, duplicates 0, nearDuplicates 0"
+
+  # REQUIRED for audit/finder-type skills, adjacent to fail-fast: rows
+  # lacking a required field are reported and excluded, not silently
+  # dropped or crashed on.
+  - name: boundary-missing-field
+    input:
+      command: "python3 scripts/audit_eval_dataset.py evals/fixtures/missing-field.jsonl"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "evals/missing-field error at row 2 (properties.row 2, properties.fields ['expected']) and at row 4 (properties.fields ['expected'])"
+        - "tool.properties.rows is 4 (all rows counted, including the two excluded); missingFieldTruncated is false (only 2 missing, well under the 20-row cap)"
+        - "rows 2 and 4 are excluded from every other rule — only rows 1 and 3 (both expected 'positive') feed evals/label-imbalance, giving classes 1, largestClassShare 1.0"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-dataset
+    input:
+      command: "python3 scripts/audit_eval_dataset.py evals/fixtures/broken.jsonl"
+    expected:
+      kind: failure
+      failureCode: dataset-invalid
+      assertions:
+        - "exit code is 1 and stderr names broken.jsonl, line 2, and says dataset-invalid"
+
+  # REQUIRED — boundary: an unreadable path (a directory, not a file).
+  - name: boundary-unreadable
+    input:
+      command: "python3 scripts/audit_eval_dataset.py evals/fixtures"
+    expected:
+      kind: failure
+      failureCode: dataset-unreadable
+      assertions:
+        - "exit code is 1 and stderr says dataset-unreadable — the path is a directory, not a file"
+
+  # Boundary: an empty field name is rejected before the file is read.
+  - name: boundary-invalid-field
+    input:
+      command: "python3 scripts/audit_eval_dataset.py evals/fixtures/clean.jsonl --input-field ''"
+    expected:
+      kind: failure
+      failureCode: field-invalid
+      assertions:
+        - "exit code is 1 and stderr says field-invalid, naming the empty --input-field value"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095):
+  # the planted leak-suspect row is found at exactly the row planted.
+  - name: mutation-fixture
+    input:
+      command: "python3 scripts/audit_eval_dataset.py evals/fixtures/planted.jsonl"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "an evals/leak-suspect result exists with level warning, properties.row exactly 6, located at row 6"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any
+  # downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/audit_eval_dataset.py evals/fixtures/planted.jsonl | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"

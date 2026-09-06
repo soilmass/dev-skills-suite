@@ -1,0 +1,10 @@
+{"input": "The customer said the checkout process was smooth and the delivery arrived earlier than expected which made the whole experience wonderful.", "expected": "positive"}
+{"input": "The customer said the checkout process was smooth and the delivery arrived earlier  than expected which made the whole experience wonderful.", "expected": "positive"}
+{"input": "the support agent walked the caller through each troubleshooting step patiently and confirmed the account settings were finally updated correctly today morning", "expected": "positive"}
+{"input": "the support agent walked the caller through each troubleshooting step patiently and confirmed the account settings were finally updated correctly today afternoon", "expected": "positive"}
+{"input": "The delivery was delayed by three days without any prior notice from the carrier.", "expected": ""}
+{"input": "Overall the reviewer summarized the stay as negative due to slow service and a noisy room.", "expected": "negative"}
+{"input": "The mobile app update fixed the login bug and users reported a much smoother experience overall.", "expected": "positive"}
+{"input": "Customers praised the new packaging design saying it felt more premium and eco-friendly than before.", "expected": "positive"}
+{"input": "The support ticket was resolved within minutes and the customer thanked the team for the quick help.", "expected": "positive"}
+{"input": "Reviewers highlighted the fast shipping and said the product quality exceeded their expectations easily.", "expected": "positive"}

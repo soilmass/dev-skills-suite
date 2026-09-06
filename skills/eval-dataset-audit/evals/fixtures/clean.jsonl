@@ -1,0 +1,5 @@
+{"input": "The onboarding tutorial clearly explained each step and new users found it easy to follow.", "expected": "positive"}
+{"input": "The mobile app crashed twice during checkout and the customer had to restart the payment.", "expected": "negative"}
+{"input": "Support staff answered every question calmly and resolved the billing dispute the same day.", "expected": "positive"}
+{"input": "The product arrived with a cracked screen and the packaging offered no protection at all.", "expected": "negative"}
+{"input": "The new search feature returned relevant results quickly and users praised its accuracy.", "expected": "positive"}

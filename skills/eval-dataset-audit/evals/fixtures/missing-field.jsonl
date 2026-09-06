@@ -1,0 +1,4 @@
+{"input": "The delivery was on time and well packaged.", "expected": "positive"}
+{"input": "The screen cracked upon arrival."}
+{"input": "Customer support replied within an hour.", "expected": "positive"}
+{"input": "The item was never delivered."}

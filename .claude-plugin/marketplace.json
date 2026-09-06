@@ -9,7 +9,7 @@
     {
       "name": "dev-skills-suite",
       "source": "./",
-      "description": "67 SDS-conformant skills for software development; install once, invoke as /dev-skills-suite:<skill>.",
+      "description": "68 SDS-conformant skills for software development; install once, invoke as /dev-skills-suite:<skill>.",
       "version": "1.2.0-draft",
       "author": {
         "name": "soilmass",
