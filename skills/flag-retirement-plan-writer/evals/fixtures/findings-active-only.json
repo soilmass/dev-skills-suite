@@ -1,0 +1,32 @@
+{
+  "version": "sds-finding-list-1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "feature-flag-inventory",
+          "version": "0.1.0"
+        },
+        "properties": {
+          "asOf": "2026-09-06T12:00:00+00:00",
+          "staleDays": 30,
+          "flags": [
+            {
+              "flag": "young-flag",
+              "checks": 1,
+              "files": [
+                "app/cart.py"
+              ],
+              "configured": true,
+              "enabled": true,
+              "rollout": 100,
+              "ageDays": 5,
+              "owner": "@marco"
+            }
+          ]
+        }
+      },
+      "results": []
+    }
+  ]
+}

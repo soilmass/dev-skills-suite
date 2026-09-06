@@ -1,0 +1,221 @@
+{
+  "version": "sds-finding-list-1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "feature-flag-inventory",
+          "version": "0.1.0"
+        },
+        "properties": {
+          "asOf": "2026-09-06T12:00:00+00:00",
+          "staleDays": 30,
+          "flags": [
+            {
+              "flag": "dark-mode",
+              "checks": 1,
+              "files": [
+                "app/checkout.py"
+              ],
+              "configured": true,
+              "enabled": false,
+              "rollout": null,
+              "ageDays": 60,
+              "owner": null
+            },
+            {
+              "flag": "ghost-mode",
+              "checks": 1,
+              "files": [
+                "web/checkout.js"
+              ],
+              "configured": false,
+              "enabled": null,
+              "rollout": null,
+              "ageDays": null,
+              "owner": null
+            },
+            {
+              "flag": "legacy-export",
+              "checks": 0,
+              "files": [],
+              "configured": true,
+              "enabled": true,
+              "rollout": null,
+              "ageDays": 248,
+              "owner": null
+            },
+            {
+              "flag": "new-checkout",
+              "checks": 3,
+              "files": [
+                "app/cart.py",
+                "app/checkout.py",
+                "web/checkout.js"
+              ],
+              "configured": true,
+              "enabled": true,
+              "rollout": null,
+              "ageDays": 97,
+              "owner": "@priya"
+            },
+            {
+              "flag": "partial",
+              "checks": 1,
+              "files": [
+                "web/checkout.js"
+              ],
+              "configured": true,
+              "enabled": true,
+              "rollout": 25,
+              "ageDays": 128,
+              "owner": "@marco"
+            },
+            {
+              "flag": "young-flag",
+              "checks": 1,
+              "files": [
+                "app/cart.py"
+              ],
+              "configured": true,
+              "enabled": true,
+              "rollout": 100,
+              "ageDays": 5,
+              "owner": "@marco"
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "flag/fully-rolled-out",
+          "level": "warning",
+          "message": {
+            "text": "new-checkout has been enabled at 100% for 97 days and is still checked in 3 place(s); the flag is dead code \u2014 remove the checks and the flag"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/cart.py"
+                },
+                "region": {
+                  "startLine": 6
+                }
+              }
+            }
+          ],
+          "properties": {
+            "flag": "new-checkout",
+            "ageDays": 97,
+            "checks": 3
+          }
+        },
+        {
+          "ruleId": "flag/unregistered",
+          "level": "warning",
+          "message": {
+            "text": "ghost-mode is checked in 1 place(s) but not configured; the check always reads the default and nobody can turn it"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "web/checkout.js"
+                },
+                "region": {
+                  "startLine": 3
+                }
+              }
+            }
+          ],
+          "properties": {
+            "flag": "ghost-mode",
+            "checks": 1
+          }
+        },
+        {
+          "ruleId": "flag/permanently-off",
+          "level": "info",
+          "message": {
+            "text": "dark-mode has been off for 60 days and is still checked; the guarded code is dead \u2014 delete it or ship it"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/checkout.py"
+                },
+                "region": {
+                  "startLine": 8
+                }
+              }
+            }
+          ],
+          "properties": {
+            "flag": "dark-mode",
+            "ageDays": 60,
+            "checks": 1
+          }
+        },
+        {
+          "ruleId": "flag/unowned",
+          "level": "info",
+          "message": {
+            "text": "dark-mode has no owner; nobody is on the hook to remove it"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "flags.json"
+                }
+              }
+            }
+          ],
+          "properties": {
+            "flag": "dark-mode"
+          }
+        },
+        {
+          "ruleId": "flag/unowned",
+          "level": "info",
+          "message": {
+            "text": "legacy-export has no owner; nobody is on the hook to remove it"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "flags.json"
+                }
+              }
+            }
+          ],
+          "properties": {
+            "flag": "legacy-export"
+          }
+        },
+        {
+          "ruleId": "flag/unreferenced",
+          "level": "info",
+          "message": {
+            "text": "legacy-export is configured but checked nowhere in the tree; stale, or read by another repository"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "flags.json"
+                }
+              }
+            }
+          ],
+          "properties": {
+            "flag": "legacy-export"
+          }
+        }
+      ]
+    }
+  ]
+}

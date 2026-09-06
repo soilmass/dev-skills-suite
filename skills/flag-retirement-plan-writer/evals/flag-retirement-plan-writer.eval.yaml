@@ -1,0 +1,109 @@
+# Table-driven eval file for flag-retirement-plan-writer (SDS-S-090).
+#
+# A rung-1 Query Skill and the fourth producer of plan-doc. Its input
+# is frozen: evals/fixtures/frozen-feature-flag-inventory-findings.json
+# is feature-flag-inventory's real output on its own planted-repo
+# fixture, captured with
+#   python3 scripts/inventory_flags.py evals/fixtures/planted-repo \
+#     --flags-file evals/fixtures/flags.json --as-of 2026-09-06T12:00:00Z
+# run from skills/feature-flag-inventory (SDS-S-093). Every row here is
+# deterministic and offline.
+
+skill: flag-retirement-plan-writer
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): the frozen inventory's three
+  # retirement candidates produce the predicted step counts.
+  - name: happy-path-frozen-inventory
+    input:
+      command: "python3 scripts/plan_flag_retirement.py evals/fixtures/frozen-feature-flag-inventory-findings.json --as-of 2026-09-06T12:00:00Z"
+    expected:
+      kind: success
+      shape: plan-doc
+      assertions:
+        - "goal names 3 retired flags (new-checkout, dark-mode, legacy-export) and the as-of 2026-09-06T12:00:00+00:00"
+        - "phase 'remove dead branches' has exactly 2 steps (new-checkout, dark-mode); flag/unreferenced legacy-export gets no branch step"
+        - "phase 'delete flag definitions' has exactly 3 steps, one per retired flag including legacy-export"
+        - "phase 'clean the flag provider/config' has exactly 1 step, last, naming all 3 flags"
+        - "flag/unregistered (ghost-mode) and flag/unowned (dark-mode, legacy-export) produce no step of their own"
+
+  # A threshold drawn from the frozen file's real ageDays: dark-mode is
+  # 60 days old, new-checkout 97, legacy-export 248. 90 drops dark-mode
+  # only.
+  - name: boundary-older-than
+    input:
+      command: "python3 scripts/plan_flag_retirement.py evals/fixtures/frozen-feature-flag-inventory-findings.json --as-of 2026-09-06T12:00:00Z --older-than-days 90"
+    expected:
+      kind: success
+      shape: plan-doc
+      assertions:
+        - "goal names 2 retired flags (new-checkout, legacy-export); dark-mode (ageDays 60 < 90) is dropped"
+        - "phase 'remove dead branches' has exactly 1 step (new-checkout); phase 'delete flag definitions' has exactly 2 steps"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): a
+  # well-formed finding-list with an empty results array and only an
+  # active flag in the inventory -> nothing to do, not an error.
+  - name: boundary-empty-active-only
+    input:
+      command: "python3 scripts/plan_flag_retirement.py evals/fixtures/findings-active-only.json --as-of 2026-09-06T12:00:00Z"
+    expected:
+      kind: success
+      shape: plan-doc
+      assertions:
+        - "phases has exactly one phase named 'nothing to do' with exactly one step"
+        - "that step's rollback says none is needed and checkpointAfter is false"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-findings
+    input:
+      command: "python3 scripts/plan_flag_retirement.py evals/fixtures/findings-malformed.json --as-of 2026-09-06T12:00:00Z"
+    expected:
+      kind: failure
+      failureCode: findings-invalid
+      assertions:
+        - "exit code is 1 and stderr says findings-invalid (runs is not an array)"
+
+  - name: boundary-missing-as-of
+    input:
+      command: "python3 scripts/plan_flag_retirement.py evals/fixtures/frozen-feature-flag-inventory-findings.json"
+    expected:
+      kind: failure
+      failureCode: as-of-invalid
+      assertions:
+        - "exit code is 1 and stderr says --as-of is required (as-of-invalid)"
+
+  # N/A — shape-out is plan-doc, not finding-list (SDS-S-095).
+  - name: mutation-fixture
+    expected:
+      kind: not-applicable
+      reason: "flag-retirement-plan-writer does not search for known problems in a repository; shape-out is plan-doc, not finding-list."
+
+  # N/A — shape-out plan-doc != shape-in finding-list (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out plan-doc differs from shape-in finding-list; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): the frozen inventory this skill
+  # requires validates as a finding-list, and the plan it produces
+  # from that same frozen input validates as a plan-doc.
+  - name: contract-with-upstream-producer
+    input:
+      command: "python3 -c \"import json,jsonschema; d=json.load(open('evals/fixtures/frozen-feature-flag-inventory-findings.json')); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the frozen feature-flag-inventory output validates against kit/shapes/finding-list.schema.json"
+
+  # REQUIRED — contract (SDS-C-063): the plan this skill returns
+  # validates against the family plan-doc shape, which issue-triage
+  # and project-board-sync consume.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/plan_flag_retirement.py evals/fixtures/frozen-feature-flag-inventory-findings.json --as-of 2026-09-06T12:00:00Z | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/plan-doc.schema.json'))); print('plan-doc OK', sum(len(p['steps']) for p in d['phases']), 'steps')\""
+    expected:
+      kind: success
+      shape: plan-doc
+      assertions:
+        - "the returned plan validates against kit/shapes/plan-doc.schema.json, which issue-triage and project-board-sync declare as their shape-in"
