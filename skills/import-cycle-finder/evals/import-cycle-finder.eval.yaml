@@ -1,0 +1,131 @@
+# Table-driven eval file for import-cycle-finder (SDS-S-090).
+#
+# A rung-1 Query Skill over four planted trees: planted-py (a Python
+# three-module cycle a -> b -> c -> a, a two-module cycle d <-> e, a
+# module f with an unresolved relative import and a self-import, and a
+# clean module g), planted-js (a two-module TypeScript cycle through
+# `./index`), clean-py (a one-way import, no cycle), and broken-py (a
+# syntax error). Every row is deterministic and offline.
+
+skill: import-cycle-finder
+
+rows:
+  # REQUIRED — happy path, Python (SDS-S-099): every planted Python
+  # rule fires exactly once; the clean module g draws nothing.
+  - name: happy-path-python
+    input:
+      command: "python3 scripts/find_import_cycles.py evals/fixtures/planted-py"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "arch/import-cycle error for the 3-module cycle, properties.modules [a.py, b.py, c.py], size 3, edges 3, located at a.py"
+        - "arch/import-cycle warning for the 2-module cycle, properties.modules [d.py, e.py], size 2, edges 2, located at d.py"
+        - "arch/self-import warning for f.py (properties.modules [f.py], size 1, edges 1); arch/unresolved-import info for f.py line 2 naming '.missing'; g.py draws no finding"
+        - "tool.properties: modules 7, edges 6, cycles 3, largestCycle 3, truncated false; results sorted errors, then warnings (cycle before self-import, uri d.py before f.py), then info"
+
+  # REQUIRED — happy path, JavaScript/TypeScript: a relative-import
+  # cycle closed through the bare specifier './index'.
+  - name: happy-path-javascript
+    input:
+      command: "python3 scripts/find_import_cycles.py evals/fixtures/planted-js --lang js"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "one arch/import-cycle warning: properties.modules [src/index.ts, src/util.ts], size 2, edges 2, located at src/index.ts"
+        - "tool.properties: modules 2, edges 2, cycles 1, largestCycle 2, truncated false"
+
+  # REQUIRED — boundary: empty/minimal input (SDS-C-005, SDS-C-033): a
+  # one-way import draws nothing.
+  - name: boundary-empty-clean
+    input:
+      command: "python3 scripts/find_import_cycles.py evals/fixtures/clean-py"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; tool.properties is modules 2, edges 1, cycles 0, largestCycle 0, truncated false — a well-formed, zero-entry finding-list, not null or omitted"
+
+  # Boundary: --max-cycles truncates the cycle list but never the
+  # unrelated arch/unresolved-import finding.
+  - name: boundary-max-cycles
+    input:
+      command: "python3 scripts/find_import_cycles.py evals/fixtures/planted-py --max-cycles 1"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "only the largest cycle survives: one arch/import-cycle error for [a.py, b.py, c.py]; the d/e cycle and the f.py self-import are cut"
+        - "the f.py arch/unresolved-import info finding is unaffected by the cap (it is not a cycle finding)"
+        - "tool.properties.cycles is 3 (the true total before the cut), tool.properties.truncated is true"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-source
+    input:
+      command: "python3 scripts/find_import_cycles.py evals/fixtures/broken-py"
+    expected:
+      kind: failure
+      failureCode: source-unparseable
+      assertions:
+        - "exit code is 1 and stderr names broken.py and says source-unparseable"
+
+  - name: boundary-invalid-lang
+    input:
+      command: "python3 scripts/find_import_cycles.py evals/fixtures/planted-py --lang go"
+    expected:
+      kind: failure
+      failureCode: lang-invalid
+      assertions:
+        - "exit code is 1 and stderr says lang-invalid and names the rejected value 'go'"
+
+  - name: boundary-invalid-path
+    input:
+      command: "python3 scripts/find_import_cycles.py evals/fixtures/planted-py/a.py"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 and stderr says repo-invalid — the repository path is a file"
+
+  # Not in the required row list, but exercises the fourth @throws
+  # code (SDS-S-039 requires every failureCode used to be declared,
+  # and completeness requires every declared code be exercised).
+  - name: boundary-invalid-exclude
+    input:
+      command: "python3 scripts/find_import_cycles.py evals/fixtures/planted-py --exclude ,,"
+    expected:
+      kind: failure
+      failureCode: exclude-invalid
+      assertions:
+        - "exit code is 1 and stderr says exclude-invalid — an empty entry in the comma-separated list"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095):
+  # the planted 3-cycle is found, in the documented deterministic
+  # order (start at the lexicographically smallest module).
+  - name: mutation-fixture
+    input:
+      command: "python3 scripts/find_import_cycles.py evals/fixtures/planted-py"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "an arch/import-cycle result exists with level error, properties.modules exactly [a.py, b.py, c.py], properties.size 3, located at a.py"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any
+  # downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/find_import_cycles.py evals/fixtures/planted-py | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"
