@@ -692,6 +692,16 @@
       "shape-out": "finding-list",
       "shape-in": "freeform",
       "status": "built"
+    },
+    {
+      "name": "license-header-check",
+      "description": "Compares every source file's leading comment block against a license header template and reports a block that is not a header at all as a missing-header finding, one that names a license but does not match the template as a mismatch, a header whose year is older than the file's recorded year as stale, and a header with no SPDX-License-Identifier line as a separate finding — as a finding-list. Use before a release, when onboarding a new file extension into a repository's header policy, or when asked whether every source file carries the required license header.",
+      "version": "0.1.0",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform",
+      "status": "built"
     }
   ]
 }

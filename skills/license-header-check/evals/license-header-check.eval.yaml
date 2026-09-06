@@ -1,0 +1,122 @@
+# Table-driven eval file for license-header-check (SDS-S-090).
+#
+# A rung-1 Query Skill over a planted tree with one file per rule
+# (ok.py clean, no_header.py missing, mit.js mismatch, old_year.go
+# stale-year, no_spdx.rs spdx-missing), a frozen git-years file, a
+# clean tree, and malformed/invalid inputs. Every row is deterministic
+# and offline.
+
+skill: license-header-check
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): four rules over five planted
+  # files, without the git-years file (stale-year is off by default).
+  - name: happy-path-planted
+    input:
+      command: "python3 scripts/check_license_headers.py evals/fixtures/planted --header evals/fixtures/planted/header.txt"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "one license/header-missing warning on no_header.py, located at no_header.py line 1"
+        - "one license/header-mismatch warning on mit.js, located at mit.js line 1"
+        - "one license/spdx-missing info on no_spdx.rs, located at no_spdx.rs line 1"
+        - "no license/header-stale-year finding anywhere — --git-years-json-file was not given"
+        - "ok.py and old_year.go draw no finding (old_year.go's header matches the template; only its year is old, which is not checked without the years file)"
+        - "tool.properties: files 5, withHeader 3, missing 1, mismatched 1, spdx 3, gitYearsProvided false"
+
+  # REQUIRED — a second happy path exercising the git-years input: the
+  # same planted tree, now with --git-years-json-file, adds exactly
+  # one stale-year finding.
+  - name: happy-path-with-git-years
+    input:
+      command: "python3 scripts/check_license_headers.py evals/fixtures/planted --header evals/fixtures/planted/header.txt --git-years-json-file evals/fixtures/frozen-git-years.json"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "one license/header-stale-year info on old_year.go, located at old_year.go line 1, properties headerYear 2021, recordedYear 2025"
+        - "the missing, mismatch, and spdx-missing findings from happy-path-planted are unchanged"
+        - "tool.properties.gitYearsProvided is true"
+
+  # REQUIRED — boundary: --ext narrows the scan (SDS-C-005). Only the
+  # two .py files are scanned; the .js/.go/.rs findings disappear.
+  - name: boundary-ext-filter
+    input:
+      command: "python3 scripts/check_license_headers.py evals/fixtures/planted --header evals/fixtures/planted/header.txt --ext py"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "tool.properties.files is 2 (ok.py, no_header.py only)"
+        - "the only result is license/header-missing on no_header.py"
+
+  # REQUIRED — boundary: empty/minimal input (SDS-C-005, SDS-C-033): a
+  # tree with two files, both a correct current header and an SPDX
+  # line, draws nothing.
+  - name: boundary-empty-clean
+    input:
+      command: "python3 scripts/check_license_headers.py evals/fixtures/clean --header evals/fixtures/planted/header.txt"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; tool.properties is files 2, withHeader 2, missing 0, mismatched 0, spdx 2, gitYearsProvided false — a well-formed, zero-entry finding-list, not null or omitted"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast). The
+  # years file is a JSON array, not an object of path to integer year.
+  - name: boundary-malformed-years
+    input:
+      command: "python3 scripts/check_license_headers.py evals/fixtures/planted --header evals/fixtures/planted/header.txt --git-years-json-file evals/fixtures/years-malformed.json"
+    expected:
+      kind: failure
+      failureCode: years-unparseable
+      assertions:
+        - "exit code is 1 and stderr says years-unparseable"
+
+  - name: boundary-missing-header-file
+    input:
+      command: "python3 scripts/check_license_headers.py evals/fixtures/planted --header evals/fixtures/planted"
+    expected:
+      kind: failure
+      failureCode: header-unreadable
+      assertions:
+        - "exit code is 1 and stderr says header-unreadable — the given --header path is a directory, not a readable file"
+
+  - name: boundary-invalid-path
+    input:
+      command: "python3 scripts/check_license_headers.py evals/fixtures/planted/ok.py --header evals/fixtures/planted/header.txt"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 and stderr says repo-invalid — the repository path is a file"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095):
+  # the planted mismatch is found with its exact properties.
+  - name: mutation-fixture
+    input:
+      command: "python3 scripts/check_license_headers.py evals/fixtures/planted --header evals/fixtures/planted/header.txt"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "a license/header-mismatch result exists with level warning, properties.file mit.js, located at mit.js line 1"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any
+  # downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/check_license_headers.py evals/fixtures/planted --header evals/fixtures/planted/header.txt | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"
