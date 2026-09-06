@@ -1,0 +1,8 @@
+{
+  "runs": [
+    { "report": "reports/run-1.xml", "commit": "abc1234", "timestamp": "2026-09-01T10:00:00Z" },
+    { "report": "reports/run-2.xml", "commit": "abc1234", "timestamp": "2026-09-01T10:30:00Z" },
+    { "report": "reports/run-3.xml", "commit": "abc1234", "timestamp": "2026-09-01T11:00:00Z" },
+    { "report": "reports/run-4.xml", "commit": "abc1234", "timestamp": "2026-09-01T11:30:00Z" }
+  ]
+}

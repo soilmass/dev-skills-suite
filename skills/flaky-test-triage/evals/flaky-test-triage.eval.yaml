@@ -1,0 +1,101 @@
+# Table-driven eval file for flaky-test-triage (SDS-S-090).
+#
+# A rung-2 Query Skill over static JUnit XML fixtures: four reports of
+# one commit in which one test is planted flaky (passes twice, fails
+# twice with two different network errors), one test is planted as a
+# consistent failure, and one always passes. Every row is deterministic
+# and offline; the optional --git-root hint is not exercised here
+# because it depends on the age of real commits.
+
+skill: flaky-test-triage
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): the planted history yields one intermittent and one consistent failure.
+  - name: happy-path-planted-history
+    input:
+      command: "python3 scripts/analyze_test_history.py evals/fixtures/reports --manifest evals/fixtures/runs-manifest.json"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "exactly one flaky/intermittent finding (test_checkout_completes, level warning, passRate 0.5, 4 runs, 2 failures)"
+        - "exactly one flaky/consistent-failure finding (test_always_fails, level error, passRate 0.0)"
+        - "test_add produces no finding"
+        - "the intermittent finding's hints contain 'timing-like failure message' and 'distinct failure messages'"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted flaky test is detected on commit abc1234.
+  - name: mutation-fixture-planted-flaky-test
+    input:
+      command: "python3 scripts/analyze_test_history.py evals/fixtures/reports --manifest evals/fixtures/runs-manifest.json"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "a flaky/intermittent result exists whose properties.test is 'tests.test_checkout::test_checkout_completes' and properties.commit is 'abc1234'"
+        - "its failureMessages are the two distinct planted messages (TimeoutError..., ConnectionError...)"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # Happy path variant: without a manifest, all reports are treated as one commit (conservative) and the same findings appear.
+  - name: happy-path-no-manifest-same-commit
+    input:
+      command: "python3 scripts/analyze_test_history.py evals/fixtures/reports"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "stderr carries a NOTE about the same-commit assumption"
+        - "the same two findings appear, with properties.commit 'unknown'"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): no reports -> zero-entry finding-list.
+  - name: boundary-empty-reports
+    input:
+      command: "python3 scripts/analyze_test_history.py evals/fixtures/empty-reports"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; the document is otherwise complete and schema-valid"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-report
+    input:
+      command: "python3 scripts/analyze_test_history.py evals/fixtures/reports-malformed"
+    expected:
+      kind: failure
+      failureCode: report-unparseable
+      assertions:
+        - "exit code is 1 and stderr names broken.xml and says report-unparseable"
+
+  - name: boundary-invalid-reports-path
+    input:
+      command: "python3 scripts/analyze_test_history.py evals/fixtures/runs-manifest.json"
+    expected:
+      kind: failure
+      failureCode: reports-missing
+      assertions:
+        - "exit code is 1 — the path is a file, not a directory"
+
+  - name: boundary-malformed-manifest
+    input:
+      command: "python3 scripts/analyze_test_history.py evals/fixtures/reports --manifest evals/fixtures/reports/run-1.xml"
+    expected:
+      kind: failure
+      failureCode: manifest-unparseable
+      assertions:
+        - "exit code is 1 and stderr says manifest-unparseable (an XML report is not a JSON manifest)"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/analyze_test_history.py evals/fixtures/reports --manifest evals/fixtures/runs-manifest.json | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"

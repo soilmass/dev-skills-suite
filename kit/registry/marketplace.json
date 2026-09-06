@@ -14,9 +14,9 @@
     },
     {
       "name": "flaky-test-triage",
-      "description": "Investigates a flaky test failure and classifies it as a real bug, test bug, or environment issue, with evidence.",
+      "description": "Reads a history of JUnit XML test reports, finds tests that both pass and fail on the same commit, and produces a finding-list with the evidence needed to classify each as a real bug, a test bug, or an environment fault — the classification itself is the model's judgment. Use when a CI job is intermittently red, when asked which tests are flaky, or when a failure cannot be reproduced locally.",
       "version": "0.1.0",
-      "status": "planned",
+      "status": "built",
       "effect-tier": "domain-read-only",
       "tier": "pillar",
       "shape-out": "finding-list",

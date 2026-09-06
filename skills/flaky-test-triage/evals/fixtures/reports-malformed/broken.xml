@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="tests" tests="1">
+    <testcase classname="tests.test_x" name="test_unterminated">
+</testsuites>

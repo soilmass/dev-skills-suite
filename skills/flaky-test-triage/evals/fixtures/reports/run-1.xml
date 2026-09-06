@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="tests" tests="3" failures="1" errors="0" skipped="0" time="1.20">
+    <testcase classname="tests.test_checkout" name="test_checkout_completes" time="0.40"/>
+    <testcase classname="tests.test_math" name="test_add" time="0.01"/>
+    <testcase classname="tests.test_broken" name="test_always_fails" time="0.02">
+      <failure message="AssertionError: expected 3, got 2" type="AssertionError">Traceback...</failure>
+    </testcase>
+  </testsuite>
+</testsuites>
