@@ -45,6 +45,19 @@ standalone dev-lifecycle set that assumes nothing about the project it lands in.
 Experimentation, Monorepo Coordination — ~19 more candidate skills, pull from
 here once a cluster above proves thin.
 
+**Second bench (2026-09-06, being built):** with all 38 catalog skills
+built, the exploratory clusters get concrete names — one to three each,
+standards-first and repository-agnostic:
+
+| Cluster | Skills |
+|---|---|
+| Data & Schema | openapi-breaking-change-check, json-schema-compat-check, schema-migration-review |
+| Local Dev & Environment | env-var-inventory, devcontainer-audit |
+| Feature Flags & Experimentation | feature-flag-inventory |
+| Refactoring & Modernization | deprecation-sweep, public-api-change-check |
+| AI Feature Engineering | prompt-template-audit |
+| Monorepo Coordination | affected-packages-finder, cross-package-version-drift |
+
 ## Core Model: a skill is a function
 
 ```

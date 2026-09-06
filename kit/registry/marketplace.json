@@ -382,6 +382,16 @@
       "tier": "situational",
       "shape-out": "finding-list",
       "shape-in": "freeform"
+    },
+    {
+      "name": "openapi-breaking-change-check",
+      "description": "Compares two versions of an OpenAPI 3 description and reports every change that breaks an existing client — removed paths and operations, parameters made required or retyped, request properties newly required, response properties removed or retyped, enum values dropped — as a finding-list located by JSON pointer, with purely additive changes listed as information. Use before merging an API change, when deciding whether a release is a major version, or when asked whether an API change is backwards compatible.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
     }
   ]
 }
