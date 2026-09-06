@@ -1,0 +1,105 @@
+# Table-driven eval file for layer-boundary-check (SDS-S-090).
+#
+# A rung-1 Query Skill over three planted trees: planted-repo (four
+# layers — domain, application, adapters, infrastructure — with one
+# planted layer-violation import, two allowed inward imports, and one
+# unassigned script), clean-repo (two layers, one allowed inward
+# import, nothing unassigned), and broken-repo (a syntax error). Every
+# row is deterministic and offline.
+
+skill: layer-boundary-check
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): the planted violation fires
+  # once, the two allowed imports draw nothing, and the one script
+  # under no layer path draws the unassigned-module info.
+  - name: happy-path-planted-repo
+    input:
+      command: "python3 scripts/check_layers.py evals/fixtures/planted-repo --layers evals/fixtures/planted-repo/layers.json"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "one arch/layer-violation error, located at src/domain/order.py line 2, properties fromLayer domain, toLayer infrastructure, importer src/domain/order.py, imported src/infrastructure/db.py"
+        - "one arch/unassigned-module info, located at src/scripts/tool.py, properties.module src/scripts/tool.py"
+        - "src/application/service.py importing src/domain/order.py (allowed) and src/adapters/api.py importing src/application/service.py (allowed) draw no finding"
+        - "tool.properties: layers [domain, application, adapters, infrastructure], modules 8, unassigned 1, violations 1"
+
+  # REQUIRED — boundary: empty/minimal input (SDS-C-005, SDS-C-033): a
+  # two-layer tree with only inward, allowed imports and every module
+  # assigned to a layer draws nothing.
+  - name: boundary-empty-clean
+    input:
+      command: "python3 scripts/check_layers.py evals/fixtures/clean-repo --layers evals/fixtures/clean-repo/layers.json"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; tool.properties is layers [core, api], modules 4, unassigned 0, violations 0 — a well-formed, zero-entry finding-list, not null or omitted"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast). The
+  # layer map names an unknown layer under 'allowed'.
+  - name: boundary-malformed-layers
+    input:
+      command: "python3 scripts/check_layers.py evals/fixtures/planted-repo --layers evals/fixtures/layers-bad.json"
+    expected:
+      kind: failure
+      failureCode: layers-invalid
+      assertions:
+        - "exit code is 1 and stderr says layers-invalid and names the unknown layer 'presentation'"
+
+  - name: boundary-missing-layers-flag
+    input:
+      command: "python3 scripts/check_layers.py evals/fixtures/planted-repo"
+    expected:
+      kind: failure
+      failureCode: layers-invalid
+      assertions:
+        - "exit code is 1 and stderr says layers-invalid — the required --layers flag was not given"
+
+  - name: boundary-malformed-source
+    input:
+      command: "python3 scripts/check_layers.py evals/fixtures/broken-repo --layers evals/fixtures/broken-repo/layers.json"
+    expected:
+      kind: failure
+      failureCode: source-unparseable
+      assertions:
+        - "exit code is 1 and stderr names src/bad.py and says source-unparseable"
+
+  - name: boundary-invalid-path
+    input:
+      command: "python3 scripts/check_layers.py evals/fixtures/planted-repo/layers.json --layers evals/fixtures/planted-repo/layers.json"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 and stderr says repo-invalid — the repository path is a file"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095):
+  # the planted violation is found with its exact properties.
+  - name: mutation-fixture
+    input:
+      command: "python3 scripts/check_layers.py evals/fixtures/planted-repo --layers evals/fixtures/planted-repo/layers.json"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "an arch/layer-violation result exists with level error, properties fromLayer domain, toLayer infrastructure, importer src/domain/order.py, imported src/infrastructure/db.py, located at src/domain/order.py line 2"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any
+  # downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/check_layers.py evals/fixtures/planted-repo --layers evals/fixtures/planted-repo/layers.json | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"

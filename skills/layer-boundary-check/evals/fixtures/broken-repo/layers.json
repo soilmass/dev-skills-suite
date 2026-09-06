@@ -1,0 +1,7 @@
+{
+  "layers": ["app"],
+  "paths": {
+    "app": ["src"]
+  },
+  "allowed": {}
+}

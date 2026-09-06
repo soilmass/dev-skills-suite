@@ -1,0 +1,10 @@
+{
+  "layers": ["core", "api"],
+  "paths": {
+    "core": ["src/core"],
+    "api": ["src/api"]
+  },
+  "allowed": {
+    "api": ["core"]
+  }
+}
