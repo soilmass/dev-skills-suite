@@ -1,0 +1,6 @@
+============================= test session starts ==============================
+app/legacy.py:3: DeprecationWarning: legacy_api() is deprecated and will be removed in 3.0
+app/http.py:13: DeprecationWarning: get_encodings_from_content is deprecated; it will be removed in 4.0
+/usr/lib/python3/dist-packages/urllib3/util/ssl_.py:10: DeprecationWarning: ssl.PROTOCOL_TLS is deprecated
+app/legacy.py:3: DeprecationWarning: legacy_api() is deprecated and will be removed in 3.0
+======================== 12 passed, 4 warnings in 0.42s ========================

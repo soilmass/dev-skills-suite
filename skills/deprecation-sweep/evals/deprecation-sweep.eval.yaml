@@ -1,0 +1,114 @@
+# Table-driven eval file for deprecation-sweep (SDS-S-090).
+#
+# A rung-1 Query Skill over a planted tree using deprecated symbols
+# through every import shape the sweep resolves, a deprecation list,
+# and a captured warnings log with lines inside and outside the tree.
+# Every row is deterministic and offline.
+
+skill: deprecation-sweep
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): every planted use and warning is reported, rated against the target version.
+  - name: happy-path-list-and-log-with-target
+    input:
+      command: "python3 scripts/sweep_deprecations.py evals/fixtures/planted-repo --deprecations evals/fixtures/deprecations.json --warnings-log evals/fixtures/warnings.log --target-version 3.0.0"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "deprecation/usage for requests.Session.mount at app/http.py line 8 (through s = requests.Session()) rated error (removed in 3.0.0 <= target), at app/upload.py line 6 (through `from requests import Session as S`), and for requests.utils.get_encodings_from_content at app/http.py line 13 rated warning (removed in 4.0.0 > target); no finding for requests.get"
+        - "deprecation/warning-emitted at app/legacy.py line 3 rated error (text says removed in 3.0) and at app/http.py line 13 rated warning; deprecation/warning-external for the site-packages line at level info"
+        - "tool.properties: targetVersion 3.0.0, listedSymbols has 2 entries, blocking 3; errors before warnings before infos"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted one-hop use is found at its line.
+  - name: mutation-fixture-one-hop-use
+    input:
+      command: "python3 scripts/sweep_deprecations.py evals/fixtures/planted-repo --deprecations evals/fixtures/deprecations.json"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "a deprecation/usage result exists at app/http.py line 8 with properties.symbol requests.Session.mount, replacement Session.adapters, imminent false (no target given), level warning"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # Log only: no list, so only warning lines are reported.
+  - name: boundary-log-only
+    input:
+      command: "python3 scripts/sweep_deprecations.py evals/fixtures/planted-repo --warnings-log evals/fixtures/warnings.log"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "no deprecation/usage result; two deprecation/warning-emitted (both warnings without a target) and one deprecation/warning-external; listedSymbols is empty"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): a list whose symbols the tree never uses -> empty results.
+  - name: boundary-empty-unused-list
+    input:
+      command: "python3 scripts/sweep_deprecations.py evals/fixtures/planted-repo --deprecations evals/fixtures/deprecations-unused.json"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; tool.properties.blocking is 0"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-list
+    input:
+      command: "python3 scripts/sweep_deprecations.py evals/fixtures/planted-repo --deprecations evals/fixtures/warnings.log"
+    expected:
+      kind: failure
+      failureCode: deprecations-unparseable
+      assertions:
+        - "exit code is 1 — a log is not a deprecation list — and stderr says deprecations-unparseable"
+
+  - name: boundary-no-source
+    input:
+      command: "python3 scripts/sweep_deprecations.py evals/fixtures/planted-repo"
+    expected:
+      kind: failure
+      failureCode: no-source
+      assertions:
+        - "exit code is 1 and stderr says no-source"
+
+  - name: boundary-unreadable-log
+    input:
+      command: "python3 scripts/sweep_deprecations.py evals/fixtures/planted-repo --warnings-log evals/fixtures/planted-repo"
+    expected:
+      kind: failure
+      failureCode: log-unreadable
+      assertions:
+        - "exit code is 1 — a directory cannot be read as a log — and stderr says log-unreadable"
+
+  - name: boundary-malformed-source
+    input:
+      command: "python3 scripts/sweep_deprecations.py evals/fixtures/broken-repo --deprecations evals/fixtures/deprecations.json"
+    expected:
+      kind: failure
+      failureCode: source-unparseable
+      assertions:
+        - "exit code is 1 and stderr names broken.py and says source-unparseable"
+
+  - name: boundary-invalid-path
+    input:
+      command: "python3 scripts/sweep_deprecations.py evals/fixtures/warnings.log --warnings-log evals/fixtures/warnings.log"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 — the repository path is a file"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/sweep_deprecations.py evals/fixtures/planted-repo --deprecations evals/fixtures/deprecations.json --warnings-log evals/fixtures/warnings.log | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"

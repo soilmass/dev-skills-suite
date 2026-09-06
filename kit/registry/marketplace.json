@@ -442,6 +442,16 @@
       "tier": "situational",
       "shape-out": "finding-list",
       "shape-in": "freeform"
+    },
+    {
+      "name": "deprecation-sweep",
+      "description": "Finds every use of a deprecated symbol in a Python repository — from a maintained deprecation list, resolved through imports, aliases, and one hop of assignment — and every DeprecationWarning a captured test log attributed to the tree, rating each by whether a target version removes it, as a finding-list that becomes the pre-upgrade work list. Use before a major dependency or interpreter upgrade, when a test run is noisy with warnings, or when asked what will break next release.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
     }
   ]
 }

@@ -1,0 +1,6 @@
+{
+  "deprecations": [
+    {"symbol": "requests.Session.mount", "replacement": "Session.adapters", "since": "2.32.0", "removedIn": "3.0.0"},
+    {"symbol": "requests.utils.get_encodings_from_content", "replacement": "charset_normalizer", "since": "2.32.0", "removedIn": "4.0.0"}
+  ]
+}
