@@ -1,0 +1,32 @@
+{
+  "name": "shop",
+  "tagline": "The order-pricing service behind the checkout API.",
+  "install": [
+    {
+      "description": "Editable install into the current environment (no lockfile is committed, so pin your own):",
+      "command": "pip install -e ."
+    }
+  ],
+  "usage": [
+    {
+      "description": "Price a sample order from the command line:",
+      "command": "shop price --order 42",
+      "output": "42: 20.00 USD (tax included)"
+    }
+  ],
+  "develop": [
+    {
+      "description": "Run the tests (the same target CI runs on every push):",
+      "command": "make test"
+    },
+    {
+      "description": "Lint:",
+      "command": "make lint"
+    },
+    {
+      "description": "Deploy:",
+      "command": "make deploy"
+    }
+  ],
+  "license": "MIT"
+}

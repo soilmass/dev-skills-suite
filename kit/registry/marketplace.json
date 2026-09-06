@@ -261,6 +261,16 @@
       "tier": "situational",
       "shape-out": "freeform",
       "shape-in": "freeform"
+    },
+    {
+      "name": "readme-writer",
+      "description": "Writes or rewrites a repository's README in Standard Readme order — name, one-sentence tagline, install, usage, development, license — where every command shown is one the repository's manifests actually declare, checked against the facts repository-orientation collected, and refusing to render a command the tree lacks. Use when a repository has no README, when the README's commands have drifted from the Makefile or package.json, or when asked to write or refresh one.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-write",
+      "tier": "situational",
+      "shape-out": "freeform",
+      "shape-in": "freeform"
     }
   ]
 }

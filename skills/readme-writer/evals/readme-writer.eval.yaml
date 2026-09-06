@@ -1,0 +1,110 @@
+# Table-driven eval file for readme-writer (SDS-S-090).
+#
+# A rung-4 Command Skill whose render script checks a README
+# specification against a frozen repository-orientation facts object
+# (evals/fixtures/frozen-repository-orientation-facts.json, recorded
+# from that skill's own planted repository — a consumer-driven contract,
+# SDS-C-063) and renders the page. Write-mode rows render into the
+# gitignored evals/fixtures/readme-out/, reset by build-readme-out.sh
+# (SDS-S-096). Every row is deterministic and offline.
+
+skill: readme-writer
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): a specification whose commands the facts declare renders with no warnings.
+  - name: happy-path-dry-run
+    input:
+      command: "python3 scripts/render_readme.py evals/fixtures/readme-good.json --out-dir evals/fixtures --facts-file evals/fixtures/frozen-repository-orientation-facts.json --dry-run"
+    expected:
+      kind: success
+      assertions:
+        - "sections is [Install, Usage, Development, License] and warnings is empty (make test is declared; CI is mentioned; a LICENSE file exists)"
+        - "rendered begins with '# shop' followed by the tagline, and every command sits in a ```sh fence"
+        - "nothing was written (dry run)"
+
+  # Happy path: real write.
+  - name: happy-path-write-readme
+    input:
+      command: "evals/fixtures/build-readme-out.sh && python3 scripts/render_readme.py evals/fixtures/readme-good.json --out-dir evals/fixtures/readme-out --facts-file evals/fixtures/frozen-repository-orientation-facts.json"
+    expected:
+      kind: success
+      assertions:
+        - "evals/fixtures/readme-out/README.md exists, begins with '# shop', and ends with the '## License' section"
+
+  # Without facts the render still succeeds but says the commands were unchecked.
+  - name: boundary-no-facts-file
+    input:
+      command: "python3 scripts/render_readme.py evals/fixtures/readme-good.json --out-dir evals/fixtures --dry-run"
+    expected:
+      kind: success
+      assertions:
+        - "warnings contains exactly one entry saying no --facts-file was given and commands were not checked"
+
+  # Boundary: a command the tree does not declare is refused outright (SDS-C-019).
+  - name: boundary-undeclared-command
+    input:
+      command: "python3 scripts/render_readme.py evals/fixtures/readme-undeclared.json --out-dir evals/fixtures --facts-file evals/fixtures/frozen-repository-orientation-facts.json --dry-run"
+    expected:
+      kind: failure
+      failureCode: command-undeclared
+      assertions:
+        - "exit code is 1 and stderr names 'make deploy', lists the declared targets (lint, test), and says command-undeclared"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-spec
+    input:
+      command: "python3 scripts/render_readme.py evals/fixtures/readme-malformed.json --out-dir evals/fixtures --dry-run"
+    expected:
+      kind: failure
+      failureCode: readme-unparseable
+      assertions:
+        - "exit code is 1 and stderr says readme-unparseable"
+
+  # REQUIRED — boundary: empty/minimal input (SDS-C-005): a specification with no install section fails the shape.
+  - name: boundary-empty-install
+    input:
+      command: "python3 scripts/render_readme.py evals/fixtures/readme-invalid.json --out-dir evals/fixtures --dry-run"
+    expected:
+      kind: failure
+      failureCode: readme-invalid
+      assertions:
+        - "exit code is 1 and stderr names install and says readme-invalid"
+
+  - name: boundary-missing-out-dir
+    input:
+      command: "python3 scripts/render_readme.py evals/fixtures/readme-good.json --out-dir evals/fixtures/readme-good.json --dry-run"
+    expected:
+      kind: failure
+      failureCode: out-dir-missing
+      assertions:
+        - "exit code is 1 — the --out-dir argument is a file, not a directory"
+
+  - name: boundary-malformed-facts
+    input:
+      command: "python3 scripts/render_readme.py evals/fixtures/readme-good.json --out-dir evals/fixtures --facts-file evals/fixtures/readme-malformed.json --dry-run"
+    expected:
+      kind: failure
+      failureCode: facts-unparseable
+      assertions:
+        - "exit code is 1 and stderr says facts-unparseable"
+
+  # N/A — shape-out is freeform, not finding-list (SDS-S-095).
+  - name: mutation-fixture
+    expected:
+      kind: not-applicable
+      reason: "readme-writer does not search for known problems; shape-out is freeform."
+
+  # N/A — freeform/freeform is not a self-composability signal (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out and shape-in are both freeform; per SDS-S-094 that is not self-composability, and a rendered README is not an input to this skill."
+
+  # REQUIRED — contract (SDS-C-063): the frozen facts file is real repository-orientation output and validates against that skill's schema; this skill consumes it unchanged.
+  - name: contract-with-repository-orientation
+    input:
+      command: "python3 -c \"import json,jsonschema; jsonschema.validate(json.load(open('evals/fixtures/frozen-repository-orientation-facts.json')), json.load(open('$(git rev-parse --show-toplevel)/skills/repository-orientation/assets/orientation.schema.json'))); print('facts OK')\" && python3 scripts/render_readme.py evals/fixtures/readme-good.json --out-dir evals/fixtures --facts-file evals/fixtures/frozen-repository-orientation-facts.json --dry-run"
+    expected:
+      kind: success
+      assertions:
+        - "the frozen facts validate against skills/repository-orientation/assets/orientation.schema.json and the render accepts them with no warnings"

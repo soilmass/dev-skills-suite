@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev-skills-suite/skills/readme-writer/readme.schema.json",
+  "title": "readme",
+  "description": "The specification readme-writer composes in Decide and hands to scripts/render_readme.py (SDS-S-080, a skill-local shape). Section order follows the Standard Readme convention (name, tagline, background, install, usage, maintainers/contributing, license): the reader's questions in the order a reader asks them. Commands are structured, not prose, so the script can check each against the repository's declared commands.",
+  "type": "object",
+  "required": ["name", "tagline", "install", "usage", "license"],
+  "properties": {
+    "name": { "type": "string", "minLength": 1 },
+    "tagline": { "type": "string", "minLength": 1, "maxLength": 160, "description": "One sentence: what it is and who it is for." },
+    "background": { "type": "string", "description": "Why it exists; omitted when the tagline is enough." },
+    "install": {
+      "type": "array", "minItems": 1,
+      "items": { "$ref": "#/$defs/command" }
+    },
+    "usage": {
+      "type": "array", "minItems": 1,
+      "items": { "$ref": "#/$defs/command" }
+    },
+    "develop": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/command" },
+      "description": "How to run the tests and the linter; omitted for a repository with no declared development commands."
+    },
+    "maintainers": { "type": "array", "items": { "type": "string" } },
+    "contributing": { "type": "string" },
+    "license": { "type": "string", "minLength": 1, "description": "An SPDX identifier where one applies (e.g. MIT, Apache-2.0)." }
+  },
+  "$defs": {
+    "command": {
+      "type": "object",
+      "required": ["description", "command"],
+      "properties": {
+        "description": { "type": "string", "minLength": 1 },
+        "command": { "type": "string", "minLength": 1 },
+        "output": { "type": "string", "description": "What the reader should see, when it helps." }
+      }
+    }
+  }
+}
