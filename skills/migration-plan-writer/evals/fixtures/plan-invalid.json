@@ -1,0 +1,6 @@
+{
+  "goal": "Planted: a step with no riskIfFails field",
+  "phases": [
+    { "name": "Expand", "steps": [ { "description": "Add the new client", "rollback": "Delete it" } ] }
+  ]
+}

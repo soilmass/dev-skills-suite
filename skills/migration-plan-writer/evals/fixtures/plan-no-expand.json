@@ -1,0 +1,18 @@
+{
+  "goal": "Planted: migrate from legacy_fetch to OrdersClient with no Expand phase (a big-bang cutover)",
+  "phases": [
+    {
+      "name": "Migrate everything",
+      "steps": [
+        { "description": "Replace every legacy_fetch call with OrdersClient in one PR", "riskIfFails": "high", "rollback": "Revert the PR", "checkpointAfter": true }
+      ]
+    },
+    {
+      "name": "Contract",
+      "steps": [
+        { "description": "Verify no legacy_fetch remains", "riskIfFails": "low", "rollback": "Nothing to undo", "checkpointAfter": true },
+        { "description": "Delete the legacy module", "riskIfFails": "high", "rollback": "none — gone from the build", "checkpointAfter": true }
+      ]
+    }
+  ]
+}

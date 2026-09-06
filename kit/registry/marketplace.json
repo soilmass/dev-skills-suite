@@ -161,6 +161,16 @@
       "tier": "situational",
       "shape-out": "finding-list",
       "shape-in": "freeform"
+    },
+    {
+      "name": "migration-plan-writer",
+      "description": "Maps every call site a migration from X to Y touches and produces a plan-doc in expand, migrate, contract order — the new path added beside the old, usage moved in shippable slices, the old path removed last and only after a verification step — refusing a plan that skips the coexistence phase or contracts before migrating. Use when replacing a library, API, schema, or service, when asked how to migrate off something, or before a large refactor.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "plan-doc",
+      "shape-in": "freeform"
     }
   ]
 }

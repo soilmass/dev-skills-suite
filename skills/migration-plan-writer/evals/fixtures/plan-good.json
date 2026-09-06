@@ -1,0 +1,73 @@
+{
+  "goal": "Migrate order and report loading from legacy_fetch to the typed OrdersClient without a big-bang cutover",
+  "phases": [
+    {
+      "name": "Expand — add the new path beside the old",
+      "steps": [
+        {
+          "description": "Add OrdersClient with the same return shapes as legacy_fetch, behind no callers",
+          "riskIfFails": "low",
+          "rollback": "Delete the new module; nothing depends on it yet",
+          "checkpointAfter": true
+        },
+        {
+          "description": "Add characterization tests capturing legacy_fetch's current responses for /orders and /reports",
+          "riskIfFails": "low",
+          "rollback": "Remove the tests; they change no behavior",
+          "checkpointAfter": true
+        }
+      ]
+    },
+    {
+      "name": "Migrate slice 1 — app/orders.py",
+      "steps": [
+        {
+          "description": "Switch load_order and load_orders to OrdersClient behind the orders_client feature flag",
+          "riskIfFails": "medium",
+          "rollback": "Turn the orders_client flag off; the legacy path is still wired",
+          "checkpointAfter": true
+        },
+        {
+          "description": "Switch refresh to OrdersClient under the same flag and enable the flag for 10% of traffic",
+          "riskIfFails": "medium",
+          "rollback": "Set the flag to 0%; both paths remain deployed",
+          "checkpointAfter": true
+        }
+      ]
+    },
+    {
+      "name": "Migrate slice 2 — app/reports.py and tests",
+      "steps": [
+        {
+          "description": "Switch monthly_report to OrdersClient and raise the flag to 100%",
+          "riskIfFails": "medium",
+          "rollback": "Set the flag back to 0%",
+          "checkpointAfter": true
+        },
+        {
+          "description": "Point test_orders.py at OrdersClient and delete the legacy_fetch mock",
+          "riskIfFails": "low",
+          "rollback": "Restore the previous test file from version control",
+          "checkpointAfter": true
+        }
+      ]
+    },
+    {
+      "name": "Contract — remove the old path",
+      "steps": [
+        {
+          "description": "Verify no call sites of legacy_fetch remain (map_migration_scope.py reports totalSites 0) and the flag has been 100% for two weeks",
+          "riskIfFails": "low",
+          "rollback": "Nothing to undo; a non-zero count stops the phase",
+          "checkpointAfter": true
+        },
+        {
+          "description": "Remove the feature flag and the legacy module",
+          "riskIfFails": "high",
+          "rollback": "none — the legacy module is gone from the build; this step is last and follows the verification",
+          "checkpointAfter": true
+        }
+      ]
+    }
+  ]
+}

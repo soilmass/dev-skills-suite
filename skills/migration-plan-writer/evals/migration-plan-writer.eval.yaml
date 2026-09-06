@@ -1,0 +1,101 @@
+# Table-driven eval file for migration-plan-writer (SDS-S-090).
+#
+# A rung-1 Query Skill and the second producer of plan-doc. The scope
+# map is exercised against a planted source tree (three production
+# sites in one file, one in another, one test, one clean file); the
+# checker against a correct four-phase plan, a big-bang plan with no
+# Expand phase, a shape-invalid plan, and a malformed file. Every row is
+# deterministic and offline.
+
+skill: migration-plan-writer
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): the planted tree maps as predicted.
+  - name: happy-path-scope-map
+    input:
+      command: "python3 scripts/map_migration_scope.py evals/fixtures/sample-src --pattern legacy_fetch"
+    expected:
+      kind: success
+      assertions:
+        - "totalSites is 8: app/orders.py 4 (import + 3 calls), app/reports.py 2 (import + 1 call), tests/test_orders.py 2 (the test's name and its patch() target both mention the old path)"
+        - "files lists app/orders.py and app/reports.py only; testFiles lists tests/test_orders.py; app/clean.py appears nowhere"
+        - "hints says 2 production file(s) and 1 test file(s) reference the old path"
+
+  # Happy path: the four-phase plan passes the checker and renders.
+  - name: happy-path-check-plan
+    input:
+      command: "python3 scripts/check_migration_plan.py evals/fixtures/plan-good.json --render"
+    expected:
+      kind: success
+      shape: plan-doc
+      assertions:
+        - "phases counts are expand 1, migrate 2, contract 1; warnings is empty"
+        - "rendered has four '## ' phase headings and marks only the final removal step irreversible"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): no sites -> totalSites 0 and the nothing-to-migrate hint.
+  - name: boundary-empty-scope
+    input:
+      command: "python3 scripts/map_migration_scope.py evals/fixtures/empty-src --pattern legacy_fetch"
+    expected:
+      kind: success
+      assertions:
+        - "totalSites is 0, files and testFiles are empty, hints contains 'nothing to migrate'"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-plan
+    input:
+      command: "python3 scripts/check_migration_plan.py evals/fixtures/plan-malformed.json"
+    expected:
+      kind: failure
+      failureCode: plan-unparseable
+      assertions:
+        - "exit code is 1 and stderr says plan-unparseable"
+
+  - name: boundary-invalid-plan-shape
+    input:
+      command: "python3 scripts/check_migration_plan.py evals/fixtures/plan-invalid.json"
+    expected:
+      kind: failure
+      failureCode: plan-invalid
+      assertions:
+        - "exit code is 1 and stderr says plan-invalid, naming the missing 'riskIfFails' property"
+
+  - name: boundary-not-parallel-change
+    input:
+      command: "python3 scripts/check_migration_plan.py evals/fixtures/plan-no-expand.json"
+    expected:
+      kind: failure
+      failureCode: plan-not-parallel-change
+      assertions:
+        - "exit code is 1 and stderr says plan-not-parallel-change (no Expand phase: a big-bang cutover)"
+
+  - name: boundary-bad-pattern
+    input:
+      command: "python3 scripts/map_migration_scope.py evals/fixtures/sample-src --pattern '('"
+    expected:
+      kind: failure
+      failureCode: bad-argument
+      assertions:
+        - "exit code is 1 and stderr says bad-argument"
+
+  # N/A — shape-out is plan-doc, not finding-list (SDS-S-095).
+  - name: mutation-fixture
+    expected:
+      kind: not-applicable
+      reason: "migration-plan-writer does not search for known problems; shape-out is plan-doc, not finding-list."
+
+  # N/A — shape-out plan-doc != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out plan-doc differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): the plan the checker returns validates against the family plan-doc shape.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/check_migration_plan.py evals/fixtures/plan-good.json | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin)['plan']; jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/plan-doc.schema.json'))); print('plan-doc OK', len(d['phases']), 'phases')\""
+    expected:
+      kind: success
+      shape: plan-doc
+      assertions:
+        - "the returned plan validates against kit/shapes/plan-doc.schema.json"
