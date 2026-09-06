@@ -1,0 +1,4 @@
+# Generated scratch directory for the checkpoint round-trip eval rows
+# (created/reset by build-state-scratch.sh; SDS-S-096). Runtime state is
+# never checked in (SDS-F-021).
+state-scratch/

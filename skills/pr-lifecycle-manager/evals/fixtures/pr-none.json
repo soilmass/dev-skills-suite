@@ -1,0 +1,9 @@
+{
+  "pr": null,
+  "repo": {
+    "mergeCommitAllowed": true,
+    "squashMergeAllowed": true,
+    "rebaseMergeAllowed": false,
+    "deleteBranchOnMerge": true
+  }
+}

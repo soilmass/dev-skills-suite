@@ -1,0 +1,21 @@
+{
+  "pr": {
+    "number": 7,
+    "state": "OPEN",
+    "isDraft": false,
+    "mergeable": "MERGEABLE",
+    "mergeStateStatus": "BLOCKED",
+    "reviewDecision": "",
+    "statusCheckRollup": [],
+    "baseRefName": "main",
+    "headRefName": "feature/empty-checks",
+    "title": "chore: no checks, no reviews yet",
+    "url": "https://github.com/example/repo/pull/7"
+  },
+  "repo": {
+    "mergeCommitAllowed": true,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": true,
+    "deleteBranchOnMerge": false
+  }
+}

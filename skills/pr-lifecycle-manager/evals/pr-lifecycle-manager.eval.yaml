@@ -1,0 +1,143 @@
+# Table-driven eval file for pr-lifecycle-manager (SDS-S-090).
+#
+# This is a rung-6 Command Skill. Its mutations (gh pr create / edit /
+# merge) are never executed by this suite (SDS-S-051, SDS-S-092) — the
+# rows below cover what is mechanically testable: the readiness policy
+# (scripts/assess_pr_readiness.py) via injected PR-state fixtures
+# (SDS-S-065), the checkpoint store (scripts/checkpoint.py) against a
+# gitignored scratch dir, and the artifact shapes this skill consumes
+# and produces.
+#
+# Before running: evals/fixtures/state-scratch is generated, not
+# checked in — reset it first (SDS-S-096):
+#   evals/fixtures/build-state-scratch.sh
+
+skill: pr-lifecycle-manager
+
+rows:
+  # REQUIRED — happy path: everything green -> merge (SDS-S-099).
+  - name: happy-path-mergeable
+    input:
+      command: "python3 scripts/assess_pr_readiness.py . --pr-json-file evals/fixtures/pr-mergeable.json"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "decisionOutcome.chosenOption is 'merge'"
+        - "facts.mergeStrategy is 'squash' (repo allows squash)"
+        - "facts.prNumber is 42"
+
+  # REQUIRED — happy path variant: no PR yet -> open-pr (the delegate-to-pr-description-writer path).
+  - name: happy-path-no-pr
+    input:
+      command: "python3 scripts/assess_pr_readiness.py . --pr-json-file evals/fixtures/pr-none.json"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "decisionOutcome.chosenOption is 'open-pr'"
+        - "facts.prNumber is null"
+
+  # Happy path: the checkpoint store round-trips pending -> completed -> show.
+  - name: happy-path-checkpoint-round-trip
+    input:
+      command: >-
+        evals/fixtures/build-state-scratch.sh &&
+        python3 scripts/checkpoint.py pr-lifecycle-manager 42 --step open-pr --status pending
+          --compensating-action "gh pr close 42" --state-dir evals/fixtures/state-scratch &&
+        python3 scripts/checkpoint.py pr-lifecycle-manager 42 --step open-pr --status completed
+          --state-dir evals/fixtures/state-scratch &&
+        python3 scripts/checkpoint.py pr-lifecycle-manager 42 --show --state-dir evals/fixtures/state-scratch
+    expected:
+      kind: success
+      assertions:
+        - "the record path is evals/fixtures/state-scratch/pr-lifecycle-manager/42.json"
+        - "steps[0] has step 'open-pr', status 'completed', startedAt and completedAt set, compensatingAction 'gh pr close 42'"
+
+  # Happy path: the skill's own shape-out example validates.
+  - name: happy-path-status-report-shape
+    input:
+      command: "python3 -c \"import json,jsonschema; jsonschema.validate(json.load(open('evals/fixtures/example-status-report.json')), json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/status-report.schema.json')))\""
+    expected:
+      kind: success
+      shape: status-report
+      assertions:
+        - "evals/fixtures/example-status-report.json validates against kit/shapes/status-report.schema.json"
+
+  # REQUIRED — boundary: empty input — no checks reported and no review yet (SDS-C-005, SDS-C-033).
+  - name: boundary-no-checks-no-reviews
+    input:
+      command: "python3 scripts/assess_pr_readiness.py . --pr-json-file evals/fixtures/pr-no-checks-no-reviews.json"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "decisionOutcome.chosenOption is 'request-review' — an empty check list does not block, a missing approval does"
+        - "decisionDrivers records 'checks=0'"
+
+  # REQUIRED — boundary: malformed PR state (SDS-C-019 fail-fast).
+  - name: boundary-malformed-pr-state
+    input:
+      command: "python3 scripts/assess_pr_readiness.py . --pr-json-file evals/fixtures/pr-malformed.json"
+    expected:
+      kind: failure
+      failureCode: pr-state-unparseable
+      assertions:
+        - "exit code is 1"
+        - "stderr names the fixture file and says pr-state-unparseable"
+
+  # Boundary: invalid repository path (a file, not a directory).
+  - name: boundary-invalid-repo-path
+    input:
+      command: "python3 scripts/assess_pr_readiness.py evals/fixtures/pr-mergeable.json --pr-json-file evals/fixtures/pr-mergeable.json"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1"
+        - "stderr says repo-invalid and names the path"
+
+  # Boundary: completing a step that was never marked pending is refused.
+  - name: boundary-invalid-checkpoint-completion
+    input:
+      command: >-
+        evals/fixtures/build-state-scratch.sh &&
+        python3 scripts/checkpoint.py pr-lifecycle-manager 99 --step merge --status completed
+          --state-dir evals/fixtures/state-scratch
+    expected:
+      kind: failure
+      failureCode: step-failed-compensated
+      assertions:
+        - "exit code is 1"
+        - "stderr says there is no pending record for step 'merge' — a completed record can never appear without a prior pending one"
+
+  # N/A — shape-out is status-report, not finding-list (SDS-S-095).
+  - name: mutation-fixture
+    expected:
+      kind: not-applicable
+      reason: "pr-lifecycle-manager does not search for known problems; shape-out is status-report, not finding-list."
+
+  # N/A — shape-out (status-report) != shape-in (decision-doc) (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out status-report differs from shape-in decision-doc; the skill is not self-composable."
+
+  # REQUIRED — consumer-driven contract with the upstream producer of
+  # this skill's shape-in (SDS-C-063): the real decision-doc produced by
+  # the readiness script validates against the registered shape.
+  - name: contract-with-upstream-producer
+    input:
+      command: "python3 scripts/assess_pr_readiness.py . --pr-json-file evals/fixtures/pr-mergeable.json | python3 -c \"import json,sys,jsonschema; jsonschema.validate(json.load(sys.stdin), json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/decision-doc.schema.json'))); print('decision-doc OK')\""
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "the actual producer output validates against kit/shapes/decision-doc.schema.json"
+
+---
+# Non-executed by design: gh pr create / gh pr edit --add-reviewer /
+# gh pr merge are never run by this suite in any capacity (SDS-S-092).
+# A live, read-only smoke check of the assessment (asserting SHAPE only):
+#   python3 scripts/assess_pr_readiness.py . | python3 -c "import json,sys,jsonschema; jsonschema.validate(json.load(sys.stdin), json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/decision-doc.schema.json')))"
+# requires gh auth against a real repository and is not a gate.

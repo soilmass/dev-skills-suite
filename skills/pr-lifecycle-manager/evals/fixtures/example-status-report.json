@@ -1,0 +1,10 @@
+{
+  "summary": "PR #42 merged into main by squash after CI passed and review was approved; branch feature/add-retry-logic deleted by repository policy.",
+  "sections": [
+    { "heading": "open-pr", "body": "Skipped: PR #42 already existed (check-before-act)." },
+    { "heading": "request-reviewers", "body": "Skipped: reviewDecision was already APPROVED." },
+    { "heading": "verify-readiness", "body": "Re-assessed immediately before merge: chosenOption unchanged (merge), checks SUCCESS x2." },
+    { "heading": "merge", "body": "gh pr merge 42 --squash — confirmed via the high-risk gate; checkpoint step 'merge' pending -> completed." }
+  ],
+  "generatedFrom": "pull request #42 (feature/add-retry-logic -> main), checkpoint .skills-state/pr-lifecycle-manager/42.json"
+}

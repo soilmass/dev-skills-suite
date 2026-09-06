@@ -1,0 +1,24 @@
+{
+  "pr": {
+    "number": 42,
+    "state": "OPEN",
+    "isDraft": false,
+    "mergeable": "MERGEABLE",
+    "mergeStateStatus": "CLEAN",
+    "reviewDecision": "APPROVED",
+    "statusCheckRollup": [
+      { "__typename": "CheckRun", "name": "ci", "status": "COMPLETED", "conclusion": "SUCCESS" },
+      { "__typename": "StatusContext", "context": "lint", "state": "SUCCESS" }
+    ],
+    "baseRefName": "main",
+    "headRefName": "feature/add-retry-logic",
+    "title": "feat: add retry helper with exponential backoff",
+    "url": "https://github.com/example/repo/pull/42"
+  },
+  "repo": {
+    "mergeCommitAllowed": true,
+    "squashMergeAllowed": true,
+    "rebaseMergeAllowed": false,
+    "deleteBranchOnMerge": true
+  }
+}
