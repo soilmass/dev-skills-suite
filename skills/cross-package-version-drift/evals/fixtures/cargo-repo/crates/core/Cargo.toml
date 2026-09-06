@@ -1,0 +1,6 @@
+[package]
+name = "shop-core"
+version = "1.4.0"
+
+[dependencies]
+serde = "1.0.190"

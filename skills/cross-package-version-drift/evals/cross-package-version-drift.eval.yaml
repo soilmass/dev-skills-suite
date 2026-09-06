@@ -1,0 +1,98 @@
+# Table-driven eval file for cross-package-version-drift (SDS-S-090).
+#
+# A rung-1 Query Skill over a planted pnpm workspace carrying one
+# instance of each drift, a planted Cargo workspace with a bare-major
+# range that admits the sibling, and a consistent workspace that must
+# stay silent. Every row is deterministic and offline — no registry is
+# contacted.
+
+skill: cross-package-version-drift
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): every planted disagreement is reported with its ranges and users.
+  - name: happy-path-planted-drift
+    input:
+      command: "python3 scripts/find_version_drift.py evals/fixtures/pnpm-repo"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "drift/version-mismatch for react with ranges ^18.2.0 [@shop/app, @shop/ui] and ^17.0.2 [@shop/tools], mostCommon ^18.2.0; no mismatch for typescript (one range) or lodash (one user)"
+        - "drift/internal-mismatch for @shop/app requiring @shop/ui at ^0.9.0 while ui is 1.0.0, level error, located at apps/app/package.json; @shop/ui requiring @shop/core at workspace:* draws no mismatch"
+        - "drift/internal-unpinned for @shop/core: ui uses workspace:*, tools pins ^1.2.0 (which admits 1.2.0, so no mismatch) — mixed strategies"
+        - "tool.properties: members has 4 entries with versions; external.react has two ranges; drifting 1; errors before warnings before infos"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted sibling mismatch is found at its manifest.
+  - name: mutation-fixture-internal-mismatch
+    input:
+      command: "python3 scripts/find_version_drift.py evals/fixtures/pnpm-repo"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "a drift/internal-mismatch result exists at apps/app/package.json with properties.dependency @shop/ui, range ^0.9.0, siblingVersion 1.0.0, level error"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # Cargo: a bare \"1\" range means ^1 and admits the sibling at 1.4.0; a path dependency is a reference; serde at two ranges drifts.
+  - name: boundary-cargo-workspace
+    input:
+      command: "python3 scripts/find_version_drift.py evals/fixtures/cargo-repo"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "exactly two results: drift/version-mismatch for serde (1.0.190 vs 1) and drift/internal-unpinned for shop-core (cli uses path, api pins \"1\"); no drift/internal-mismatch"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): a consistent workspace -> empty results with the inventory.
+  - name: boundary-empty-consistent-workspace
+    input:
+      command: "python3 scripts/find_version_drift.py evals/fixtures/consistent-repo"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; tool.properties.drifting is 0; external.react has exactly one range"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-manifest
+    input:
+      command: "python3 scripts/find_version_drift.py evals/fixtures/broken-repo"
+    expected:
+      kind: failure
+      failureCode: manifest-malformed
+      assertions:
+        - "exit code is 1 and stderr names the member package.json and says manifest-malformed"
+
+  - name: boundary-no-workspace
+    input:
+      command: "python3 scripts/find_version_drift.py evals/fixtures/no-workspace-repo"
+    expected:
+      kind: failure
+      failureCode: workspace-not-found
+      assertions:
+        - "exit code is 1 and stderr says workspace-not-found"
+
+  - name: boundary-invalid-path
+    input:
+      command: "python3 scripts/find_version_drift.py evals/fixtures/pnpm-repo/package.json"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 — the path is a file, not a directory"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/find_version_drift.py evals/fixtures/pnpm-repo | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"

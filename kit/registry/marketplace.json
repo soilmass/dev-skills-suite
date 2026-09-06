@@ -482,6 +482,16 @@
       "tier": "situational",
       "shape-out": "finding-list",
       "shape-in": "freeform"
+    },
+    {
+      "name": "cross-package-version-drift",
+      "description": "Finds the dependencies a monorepo's packages disagree about — one external library required at two or more different ranges across workspace members, a sibling package depended on at a range its current version does not satisfy so the build resolves a published copy instead, and siblings referenced by workspace protocol in some members but pinned by range in others — as a finding-list with the full range inventory attached. Use when a monorepo ships two copies of one library, when a sibling change does not show up in a dependent, or when asked to align versions across packages.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
     }
   ]
 }
