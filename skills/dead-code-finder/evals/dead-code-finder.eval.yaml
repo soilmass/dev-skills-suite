@@ -18,8 +18,24 @@ rows:
       shape: finding-list
       assertions:
         - "exactly three findings: orphan (function, unused.py), Abandoned (class, unused.py), private_leftover (function, exported.py)"
-        - "helper, UsedByHelper, plugin_hook, public_api, test_helper_shape, and main are NOT reported"
+        - "helper, UsedByHelper, plugin_hook, public_api, test_helper_shape, main, decorator_registered_check, and DiscoveredByRunner are NOT reported"
         - "every finding has properties.confidence 'static' and a message naming the scan's blind spots"
+
+  # REQUIRED — boundary: false positives found dogfooding this skill on the
+  # family repository itself (kit/scripts/lint-skill.py registers ~90 check
+  # functions via a `@check("SDS-S-NNN")` decorator; kit/tests/test_lint_negative.py
+  # has a `class Broken(unittest.TestCase)`). Neither pattern leaves a name
+  # reference a static scan can see, so both must be treated the same as the
+  # string-registry case, not reported.
+  - name: boundary-framework-registered-definitions
+    input:
+      command: "python3 scripts/find_dead_code.py evals/fixtures/planted-src"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "no result names decorator_registered_check (a top-level function decorated with @register(...), framework_registered.py) even though nothing calls it by name"
+        - "no result names DiscoveredByRunner (a top-level class subclassing unittest.TestCase, framework_registered.py) even though nothing instantiates it by name"
 
   # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted orphan is found at its line.
   - name: mutation-fixture-planted-orphan

@@ -19,6 +19,14 @@ the reference (SDS-C-048 — say what you cannot know):
     - names that appear inside any string literal (getattr, plugin
       registries, CLI dispatch tables);
     - dunder names, `main`, and names starting with `test_`;
+    - a top-level def/class carrying at least one decorator (a
+      decorator hands the function/class object itself to code that
+      may register it elsewhere — a route table, a check registry, a
+      pytest fixture — with no name reference for this scan to find,
+      exactly like the string-registry case above);
+    - a top-level class whose base list names anything ending in
+      `TestCase` (unittest-style test classes are found by the test
+      runner's discovery, not by a name reference anywhere in source);
     - anything under directories named in --exclude or the usual
       vendored/build directories.
 Every finding carries properties.confidence "static" and the reminder
@@ -40,6 +48,27 @@ SKIP_DIRS = {".git", "node_modules", "dist", "build", "vendor", "target", "__pyc
 IGNORE_NAMES = {"main"}
 
 
+def _base_name(base):
+    if isinstance(base, ast.Name):
+        return base.id
+    if isinstance(base, ast.Attribute):
+        return base.attr
+    return ""
+
+
+def _framework_registered(node):
+    """A top-level def/class a static name-count cannot see used: a
+    decorator hands the function/class object to code elsewhere (a
+    route table, a check registry, a pytest fixture) with no name
+    reference to find; a TestCase subclass is found by the test
+    runner's own discovery, never referenced by name in source."""
+    if node.decorator_list:
+        return True
+    if isinstance(node, ast.ClassDef):
+        return any(_base_name(b).endswith("TestCase") for b in node.bases)
+    return False
+
+
 def collect(root, exclude):
     defs, refs, strings, exported = [], set(), set(), set()
     for p in sorted(root.rglob("*.py")):
@@ -52,6 +81,8 @@ def collect(root, exclude):
             sys.exit(f"ERROR: {rel} does not parse (source-unparseable): {e}")
         for node in tree.body:
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                if _framework_registered(node):
+                    continue
                 defs.append((node.name, str(rel), node.lineno, type(node).__name__))
             if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "__all__" for t in node.targets):
                 if isinstance(node.value, (ast.List, ast.Tuple)):
