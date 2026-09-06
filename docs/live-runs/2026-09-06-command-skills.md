@@ -90,3 +90,39 @@ run (see Left as is).
 - The testbed now carries issues #2–#10, PR #6 (open, unmerged), one
   code scanning analysis on the family repository, and one PR comment
   on #6.
+
+## The family's own release (v1.3.0-draft)
+
+Task 20: the family released itself, on itself — `changelog-writer` →
+`release-notes-writer` → `ci-status-gate` → `release-publisher`
+against `soilmass/dev-skills-suite` at `HEAD` (`3522623`). Dispatched
+in two phases: Phase 1 ran every non-mutating stage and handed back
+the high gate; the user answered "Proceed, marked pre-release";
+Phase 2 ran Act.
+
+| Skill / stage | What happened |
+|---|---|
+| changelog-writer — Gather | `collect_commits.py . --since v1.2.0-draft` (from `skills/changelog-writer`) → 48 commits since `v1.2.0-draft`: 15 Added, 18 Fixed, no Uncategorized, 15 chore/docs/test/ci/build/style omitted by default. No `CHANGELOG.md` exists in this repo, so only Gather ran (`render_changelog.py`, the Act stage, is out of scope for a release-notes pipeline that never touches the working tree). |
+| release-notes-writer — Gather/Analyze/Synthesize | `prepare_notes.py --product dev-skills-suite --version 1.3.0-draft` → same two sections, hashes stripped, `needsReview: []` — nothing withheld. |
+| ci-status-gate — Gather/Analyze/Synthesize | `evaluate_checks.py /home/edox1/Public/claude --ref HEAD` (live) → `chosenOption: pass` — "all 2 required check(s) concluded successfully"; drivers `conformance: success`, `hermetic: success`. Passed on the first read; no polling needed. |
+| release-publisher — Gather/Analyze/Decide | `assess_release_readiness.py … --version v1.3.0-draft --notes-file … --ci-decision-file …` → `chosenOption: publish` — "no release for v1.3.0-draft exists, the notes are complete and name 1.3.0, and CI passed". Run twice more before Act (check-before-act each time): both returned `publish` unchanged. |
+| release-publisher — Confirm | High-risk gate (`kit/shared/gates/high.md`) shown, filled with the tag, repo, commit, notes summary, and CI line. User answered "Proceed, marked pre-release". |
+| release-publisher — Act | `checkpoint.py release-publisher v1.3.0-draft --step publish --status pending` → `gh release create v1.3.0-draft -R soilmass/dev-skills-suite --target 3522623d99e1ac67fa29d669378c91bab447e1a8 --title "dev-skills-suite v1.3.0-draft" --prerelease --notes-file …/v1.3.0-draft-notes.md` → succeeded → `gh release view … --json url,tagName,targetCommitish,isPrerelease` captured to `v1.3.0-draft-post.json` → `checkpoint.py … --step publish --status completed --post-state-file …-post.json`. Release: **https://github.com/soilmass/dev-skills-suite/releases/tag/v1.3.0-draft** (`isPrerelease: true`, `targetCommitish: 3522623d99e1ac67fa29d669378c91bab447e1a8`). |
+| release-publisher — Persist | Status-report at `.skills-state/release-publisher/v1.3.0-draft-report.json`, validated against `status-report`. |
+| release-publisher — Idempotency | A third `assess_release_readiness.py` run → `chosenOption: already-published` — "v1.3.0-draft was published at 2026-09-06T19:20:42Z; nothing to do" — `idempotent: "true"` holds. |
+
+`git fetch --tags origin` afterward confirmed `v1.3.0-draft` locally
+(the release call creates the tag server-side; nothing was tagged by
+hand). The registry `version` field is left at `1.2.0-draft` — bumping
+it is Task 26's job, deliberately not done here.
+
+### What the skills' text got wrong
+
+- `release-publisher/SKILL.md`'s Act paragraph gave the completion
+  call as a bare `--status completed`, with no way to attach the
+  release's actual URL and commit as `postState` — the same gap Task
+  19 found and fixed in `findings-to-code-scanning/SKILL.md` (see
+  above), present here too because the two Act paragraphs were
+  written independently. Fixed in this commit: save the `gh release
+  view` response to a file and pass it with `--post-state-file <path>`
+  on the same `--status completed` call.

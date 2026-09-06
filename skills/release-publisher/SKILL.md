@@ -148,8 +148,15 @@ record to a `cd` between the calls):
 python3 scripts/checkpoint.py release-publisher <tag> --step publish --status pending \
   --compensating-action "none — this step must be last"
 gh release create <tag> -R <owner/repo> --title <tag> --notes-file <family-root>/.skills-state/release-publisher/<tag>-notes.md [--prerelease] [--target <head>]
-python3 scripts/checkpoint.py release-publisher <tag> --step publish --status completed
+gh release view <tag> -R <owner/repo> --json url,tagName,targetCommitish,isPrerelease > <family-root>/.skills-state/release-publisher/<tag>-post.json
+python3 scripts/checkpoint.py release-publisher <tag> --step publish --status completed --post-state-file <family-root>/.skills-state/release-publisher/<tag>-post.json
 ```
+
+Save the `gh release view` response to a file and pass it with
+`--post-state-file <path>` on the `--status completed` call — the
+`completed` record needs the release's actual URL and commit, not
+just the fact that the call returned zero, and re-typing that JSON
+inline invites the same drift a `cd` once caused here (SDS-S-053).
 
 For `finalize-draft` the call is `gh release edit <tag> -R <owner/repo>
 --draft=false` under the same record. A `gh release create` failure after the
