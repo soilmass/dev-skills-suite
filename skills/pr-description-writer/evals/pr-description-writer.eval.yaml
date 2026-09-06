@@ -93,7 +93,7 @@ rows:
   - name: contract-with-downstream-consumer
     expected:
       kind: not-applicable
-      reason: "no consuming skill exists yet in this family; revisit when pr-lifecycle-manager is built."
+      reason: "pr-lifecycle-manager consumes the drafted body as freeform markdown through gh pr create --body-file; no registered shape crosses that boundary, so SDS-C-063 has nothing machine-checkable to pin (the body's section order is asserted by this skill's own happy-path row)."
 
 ---
 # Non-executed by design (see header): the Act stage (`gh pr edit`) is

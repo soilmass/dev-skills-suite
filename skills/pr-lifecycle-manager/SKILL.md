@@ -148,12 +148,15 @@ retrying (SDS-C-046).
 **Step 1 — open the PR** (only when `chosenOption` is `open-pr`).
 Check-before-act: `gh pr view` must still report no PR for the branch.
 Write the pending record, then issue the mutation directly (never via
-a script referenced by `allowed-tools`, SDS-S-051):
+a script referenced by `allowed-tools`, SDS-S-051) — from the skill
+directory, addressing the repository with `-R` and naming the head
+branch, never by changing directory (a `cd` between the calls loses
+the relative path to `checkpoint.py`, observed in the second live run):
 
 ```
 python3 scripts/checkpoint.py pr-lifecycle-manager <branch> --step open-pr --status pending \
-  --compensating-action "gh pr close <number> --delete-branch=false"
-gh pr create --base <facts.defaultBranch> --title "<title>" --body-file <drafted-body>
+  --compensating-action "gh pr close <number> -R <owner/repo> --delete-branch=false"
+gh pr create -R <owner/repo> --head <branch> --base <facts.defaultBranch> --title "<title>" --body-file <drafted-body>
 python3 scripts/checkpoint.py pr-lifecycle-manager <branch> --step open-pr --status completed \
   --post-state-file <json with the new PR number and url>
 ```
@@ -164,18 +167,18 @@ read it there, the create fails after the pending record is written,
 and the next invocation must recover via check-before-act (observed
 in the first live run).
 
-**Compensating action** (SDS-S-054): `gh pr close <number>` — closing
+**Compensating action** (SDS-S-054): `gh pr close <number> -R <owner/repo>` — closing
 is reversible (the PR can be reopened), so opening is safe to undo.
 
 **Step 2 — request reviewers** (when `reviewers` is non-empty).
 Check-before-act: skip any login already in `reviewRequests`. Pending
-record, then `gh pr edit <number> --add-reviewer <logins>`, then
-completed.
+record, then `gh pr edit <number> -R <owner/repo> --add-reviewer <logins>`,
+then completed.
 
-**Compensating action**: `gh pr edit <number> --remove-reviewer <logins>`.
+**Compensating action**: `gh pr edit <number> -R <owner/repo> --remove-reviewer <logins>`.
 
 **Step 3 — verify readiness again.** Re-run
-`scripts/assess_pr_readiness.py . --pr <number>`. Continue to Step 4
+`scripts/assess_pr_readiness.py <repo> --pr <number>`. Continue to Step 4
 only if `chosenOption` is still `merge`; otherwise stop and report
 (the decision-doc's `confirmation` field requires exactly this).
 
@@ -187,7 +190,7 @@ must be `OPEN`. Pending record, then the direct call:
 ```
 python3 scripts/checkpoint.py pr-lifecycle-manager <branch> --step merge --status pending \
   --compensating-action "none — this step must be last"
-gh pr merge <number> --<facts.mergeStrategy>
+gh pr merge <number> -R <owner/repo> --<facts.mergeStrategy>
 python3 scripts/checkpoint.py pr-lifecycle-manager <branch> --step merge --status completed
 ```
 

@@ -119,7 +119,7 @@ the Write tool, not a bundled script (single mutating step; SDS-S-055)
   "status": "pending",
   "startedAt": "<ISO-8601>",
   "preState": { "previousBody": "<verbatim currentBody>" },
-  "compensatingAction": "gh pr edit <pr-number> --body-file <previousBody>"
+  "compensatingAction": "gh pr edit <pr-number> -R <owner/repo> --body-file <previousBody>"
 }
 ```
 
@@ -137,8 +137,12 @@ pre-approve the very mutation this Confirm gate exists to guard
 (SDS-S-051):
 
 ```
-gh pr edit <pr-number> --body-file <path-to-new-body>
+gh pr edit <pr-number> -R <owner/repo> --body-file <path-to-new-body>
 ```
+
+Run it from the skill directory, addressing the repository with `-R`
+rather than changing into it; write `<path-to-new-body>` inside the
+repository or under `$HOME`, where a sandboxed `gh` can read it.
 
 Immediately after it succeeds, update the same file: set `status` to
 `completed` and add `"postState": { "appliedBody": "<new body>" }`.
@@ -146,7 +150,7 @@ Immediately after it succeeds, update the same file: set `status` to
 **Compensating action** (SDS-S-054) if the result turns out wrong
 after the fact — there is only this one mutating step, so this is also
 the recovery path: re-run
-`gh pr edit <pr-number> --body-file <path-to-checkpoint's previousBody>`.
+`gh pr edit <pr-number> -R <owner/repo> --body-file <path-to-checkpoint's previousBody>`.
 
 **Checkpoint** (SDS-S-053): the two-phase record above — `pending`
 written before the edit, `completed` after — at

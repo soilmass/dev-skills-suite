@@ -95,7 +95,7 @@ rows:
   - name: contract-with-downstream-consumer
     expected:
       kind: not-applicable
-      reason: "no consuming skill exists yet in this family"
+      reason: "no skill in this family consumes dependency-audit's finding-list (sbom-generator and license-compliance-check read manifests, not findings); the SARIF-compatible shape is pinned by the schema validation in the happy-path row, which is what any external consumer relies on."
 
 ---
 # Non-blocking live smoke test (SDS-S-092): not a required row; run
