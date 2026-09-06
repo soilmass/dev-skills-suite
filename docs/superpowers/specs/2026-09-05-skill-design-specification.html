@@ -3549,7 +3549,14 @@ metadata:
         where <code>&lt;key&gt;</code> uniquely identifies the invocation
         (a PR number, a branch, a migration id); the skill's Act section
         names this path. Referencing another skill's state directory is
-        an error.<a href="#section-10.10-1" class="pilcrow">¶</a></p>
+        an error. The family root is the root of the skill family's own
+        checkout, not of the repository the skill is operating on: when
+        a skill runs inside some other repository (the normal case for
+        a GitHub-operating skill), its state still lives under the
+        family's <code>.skills-state/</code>, and a bundled checkpoint
+        script <span class="bcp14">MUST</span> accept an explicit state directory
+        for exactly that situation rather than assuming the working
+        directory is inside the family.<a href="#section-10.10-1" class="pilcrow">¶</a></p>
 </div>
 <div id="SDS-S-101">
 <p id="section-10.10-2"><strong>SDS-S-101</strong> (MUST, REVIEW)
@@ -3823,22 +3830,75 @@ metadata:
       <h2 id="name-worked-examples">
 <a href="#appendix-A" class="section-number selfRef">Appendix A. </a><a href="#name-worked-examples" class="section-name selfRef">Worked Examples</a>
       </h2>
-<p id="appendix-A-1">Two skills are maintained as conformance examples and are the
-      primary test subjects of the linter:<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+<p id="appendix-A-1">Ten skills are maintained as conformance examples and are the
+      standing test subjects of the linter; the registry
+      (<code>kit/registry/marketplace.json</code>) and the generated index
+      (<code>README.md</code>) list them. Each was chosen to exercise a
+      part of this specification the others do not:<a href="#appendix-A-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="appendix-A-2.1">
-          <code>skills/dependency-audit/</code> — a Query Skill at rung
-        <code>external-read-only</code> producing <code>finding-list</code>;
-        exercises bundled scripts (parser, external query with an
-        injectable fixture flag, Adapter), an on-demand reference file,
-        and a frozen external recording in its evals.<a href="#appendix-A-2.1" class="pilcrow">¶</a>
+          <code>skills/dependency-audit/</code> — Query, rung 3,
+        <code>finding-list</code>: bundled scripts (parser, external query
+        with an injectable fixture flag, Adapter), an on-demand
+        reference file, a frozen external recording in its evals.<a href="#appendix-A-2.1" class="pilcrow">¶</a>
 </li>
         <li class="normal" id="appendix-A-2.2">
-          <code>skills/pr-description-writer/</code> — a Command Skill at
-        rung <code>shared-write</code> with a conditional Act path;
-        exercises the Confirm gate, the two-phase checkpoint, the
-        compensating action, an unwrapped rung-5 Act, and a generated
-        (not checked-in) version-control fixture.<a href="#appendix-A-2.2" class="pilcrow">¶</a>
+          <code>skills/pr-description-writer/</code> — Command, rung 5,
+        <code>freeform</code>: the Confirm gate, the two-phase checkpoint,
+        a compensating action, an unwrapped rung-5 Act, a conditional
+        Act path, a generated (not checked-in) version-control
+        fixture.<a href="#appendix-A-2.2" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="appendix-A-2.3">
+          <code>skills/pr-lifecycle-manager/</code> — Command, rung 6,
+        <code>decision-doc</code> in, <code>status-report</code> out: an
+        orchestrator with no Analyze logic of its own (SDS-C-060), a
+        multi-step Act with a compensating action per step, the high
+        gate re-shown before the irreversible step, and
+        <code>scripts/checkpoint.py</code>; validated by a live
+        open-verify-merge run against a real repository.<a href="#appendix-A-2.3" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="appendix-A-2.4">
+          <code>skills/sync-strategy-advisor/</code> — Query, rung 2,
+        <code>decision-doc</code>: a fully offline git-state assessment
+        over a generated bare-origin-plus-clone fixture, with the one
+        judgment a script cannot make (is the branch shared) left to
+        Analyze.<a href="#appendix-A-2.4" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="appendix-A-2.5">
+          <code>skills/adr-writer/</code> — Command, rung 4,
+        <code>decision-doc</code>: an Act without a mandatory gate, MADR
+        rendering, and immutability with supersession (SDS-C-034).<a href="#appendix-A-2.5" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="appendix-A-2.6">
+          <code>skills/tech-debt-inventory/</code> — Query, rung 1,
+        <code>finding-list</code>: a local scanner with the mandatory
+        mutation-fixture row and a reference loaded only on
+        demand.<a href="#appendix-A-2.6" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="appendix-A-2.7">
+          <code>skills/flaky-test-triage/</code> — Query, rung 2,
+        <code>finding-list</code>: JUnit XML as the interchange standard,
+        mechanical evidence separated from a three-way classification
+        that may answer "undetermined".<a href="#appendix-A-2.7" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="appendix-A-2.8">
+          <code>skills/incident-postmortem/</code> — Command, rung 4,
+        <code>status-report</code>: a judgment-heavy skill whose script
+        checks completeness and flags blaming language as warnings,
+        never failures; two on-demand references.<a href="#appendix-A-2.8" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="appendix-A-2.9">
+          <code>skills/performance-budget-check/</code> — Query, rung 1,
+        <code>finding-list</code>: Lighthouse CI <code>budget.json</code> as
+        the standard input, regressions reported even within
+        budget.<a href="#appendix-A-2.9" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="appendix-A-2.10">
+          <code>skills/api-doc-writer/</code> — Command, rung 4,
+        <code>freeform</code>: the first use of <code>assets/</code> (a
+        per-skill intermediate schema, SDS-S-080) and an explicit
+        undocumented marker in place of invented behavior.<a href="#appendix-A-2.10" class="pilcrow">¶</a>
 </li>
       </ul>
 <p id="appendix-A-3">The software-development catalog described in
@@ -4954,7 +5014,14 @@ metadata:
       <h2 id="name-change-log">
 <a href="#appendix-C" class="section-number selfRef">Appendix C. </a><a href="#name-change-log" class="section-name selfRef">Change Log</a>
       </h2>
-<p id="appendix-C-1"><strong>1.0-draft (2026-09-05):</strong> Restructured top to
+<p id="appendix-C-1"><strong>1.0-draft, editorial (2026-09-06):</strong> SDS-S-100
+      now states that the family root is the skill family's own
+      checkout, not the repository a skill operates on, and that a
+      bundled checkpoint script must accept an explicit state directory
+      — observed while driving <code>pr-lifecycle-manager</code> against a
+      separate repository. No rule was added, removed, or re-tagged;
+      Appendix B is unchanged.<a href="#appendix-C-1" class="pilcrow">¶</a></p>
+<p id="appendix-C-2"><strong>1.0-draft (2026-09-05):</strong> Restructured top to
       bottom into Part 0 (core model), Part I (family and repository),
       Part II (kit), and Part III (skill anatomy); every normative rule
       now carries a permanent identifier and a MACHINE/REVIEW/ADVISORY
@@ -4980,20 +5047,20 @@ metadata:
       Also added: the checkpoint state path, the prohibition on wrapping
       a rung-5/6 Act in a pre-approved script, script and reference
       conventions, the long-parameter-list rule, and the validation
-      gate.<a href="#appendix-C-1" class="pilcrow">¶</a></p>
-<p id="appendix-C-2"><strong>0.3 (2026-09-05):</strong> Rebuilt in xml2rfc version
+      gate.<a href="#appendix-C-2" class="pilcrow">¶</a></p>
+<p id="appendix-C-3"><strong>0.3 (2026-09-05):</strong> Rebuilt in xml2rfc version
       3 (RFC 7991) vocabulary in place of the plain-text RFC-style
-      draft. No normative changes from 0.2.<a href="#appendix-C-2" class="pilcrow">¶</a></p>
-<p id="appendix-C-3"><strong>0.2 (2026-09-05):</strong> Rebuilt as an RFC-structured
+      draft. No normative changes from 0.2.<a href="#appendix-C-3" class="pilcrow">¶</a></p>
+<p id="appendix-C-4"><strong>0.2 (2026-09-05):</strong> Rebuilt as an RFC-structured
       document: added formal Terminology, Security Considerations, and
       Registry Considerations sections; added full Normative/
       Informative References with verified citations for MCP tool
       annotations, SARIF, OSV, SPDX (ISO/IEC 5962:2021), CycloneDX
       (ECMA-424), and MADR (v4.0.0); formalized the composition laws,
       contracts, and effect ladder with MUST/SHOULD/MAY language
-      throughout.<a href="#appendix-C-3" class="pilcrow">¶</a></p>
-<p id="appendix-C-4"><strong>0.1 (2026-09-05):</strong> Initial high-level
-      draft.<a href="#appendix-C-4" class="pilcrow">¶</a></p>
+      throughout.<a href="#appendix-C-4" class="pilcrow">¶</a></p>
+<p id="appendix-C-5"><strong>0.1 (2026-09-05):</strong> Initial high-level
+      draft.<a href="#appendix-C-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="authors-addresses">

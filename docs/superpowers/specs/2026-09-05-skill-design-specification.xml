@@ -1404,7 +1404,14 @@ metadata:
         where <tt>&lt;key&gt;</tt> uniquely identifies the invocation
         (a PR number, a branch, a migration id); the skill's Act section
         names this path. Referencing another skill's state directory is
-        an error.</t>
+        an error. The family root is the root of the skill family's own
+        checkout, not of the repository the skill is operating on: when
+        a skill runs inside some other repository (the normal case for
+        a GitHub-operating skill), its state still lives under the
+        family's <tt>.skills-state/</tt>, and a bundled checkpoint
+        script <bcp14>MUST</bcp14> accept an explicit state directory
+        for exactly that situation rather than assuming the working
+        directory is inside the family.</t>
         <t anchor="SDS-S-101"><strong>SDS-S-101</strong> (MUST, REVIEW)
         The checkpoint record <bcp14>MUST</bcp14> have the following
         form.</t>
@@ -1784,19 +1791,56 @@ metadata:
 
     <section anchor="worked-example" numbered="true">
       <name>Worked Examples</name>
-      <t>Two skills are maintained as conformance examples and are the
-      primary test subjects of the linter:</t>
+      <t>Ten skills are maintained as conformance examples and are the
+      standing test subjects of the linter; the registry
+      (<tt>kit/registry/marketplace.json</tt>) and the generated index
+      (<tt>README.md</tt>) list them. Each was chosen to exercise a
+      part of this specification the others do not:</t>
       <ul>
-        <li><tt>skills/dependency-audit/</tt> — a Query Skill at rung
-        <tt>external-read-only</tt> producing <tt>finding-list</tt>;
-        exercises bundled scripts (parser, external query with an
-        injectable fixture flag, Adapter), an on-demand reference file,
-        and a frozen external recording in its evals.</li>
-        <li><tt>skills/pr-description-writer/</tt> — a Command Skill at
-        rung <tt>shared-write</tt> with a conditional Act path;
-        exercises the Confirm gate, the two-phase checkpoint, the
-        compensating action, an unwrapped rung-5 Act, and a generated
-        (not checked-in) version-control fixture.</li>
+        <li><tt>skills/dependency-audit/</tt> — Query, rung 3,
+        <tt>finding-list</tt>: bundled scripts (parser, external query
+        with an injectable fixture flag, Adapter), an on-demand
+        reference file, a frozen external recording in its evals.</li>
+        <li><tt>skills/pr-description-writer/</tt> — Command, rung 5,
+        <tt>freeform</tt>: the Confirm gate, the two-phase checkpoint,
+        a compensating action, an unwrapped rung-5 Act, a conditional
+        Act path, a generated (not checked-in) version-control
+        fixture.</li>
+        <li><tt>skills/pr-lifecycle-manager/</tt> — Command, rung 6,
+        <tt>decision-doc</tt> in, <tt>status-report</tt> out: an
+        orchestrator with no Analyze logic of its own (SDS-C-060), a
+        multi-step Act with a compensating action per step, the high
+        gate re-shown before the irreversible step, and
+        <tt>scripts/checkpoint.py</tt>; validated by a live
+        open-verify-merge run against a real repository.</li>
+        <li><tt>skills/sync-strategy-advisor/</tt> — Query, rung 2,
+        <tt>decision-doc</tt>: a fully offline git-state assessment
+        over a generated bare-origin-plus-clone fixture, with the one
+        judgment a script cannot make (is the branch shared) left to
+        Analyze.</li>
+        <li><tt>skills/adr-writer/</tt> — Command, rung 4,
+        <tt>decision-doc</tt>: an Act without a mandatory gate, MADR
+        rendering, and immutability with supersession (SDS-C-034).</li>
+        <li><tt>skills/tech-debt-inventory/</tt> — Query, rung 1,
+        <tt>finding-list</tt>: a local scanner with the mandatory
+        mutation-fixture row and a reference loaded only on
+        demand.</li>
+        <li><tt>skills/flaky-test-triage/</tt> — Query, rung 2,
+        <tt>finding-list</tt>: JUnit XML as the interchange standard,
+        mechanical evidence separated from a three-way classification
+        that may answer "undetermined".</li>
+        <li><tt>skills/incident-postmortem/</tt> — Command, rung 4,
+        <tt>status-report</tt>: a judgment-heavy skill whose script
+        checks completeness and flags blaming language as warnings,
+        never failures; two on-demand references.</li>
+        <li><tt>skills/performance-budget-check/</tt> — Query, rung 1,
+        <tt>finding-list</tt>: Lighthouse CI <tt>budget.json</tt> as
+        the standard input, regressions reported even within
+        budget.</li>
+        <li><tt>skills/api-doc-writer/</tt> — Command, rung 4,
+        <tt>freeform</tt>: the first use of <tt>assets/</tt> (a
+        per-skill intermediate schema, SDS-S-080) and an explicit
+        undocumented marker in place of invented behavior.</li>
       </ul>
       <t>The software-development catalog described in
       <tt>docs/superpowers/specs/2026-09-05-dev-skills-suite-design.md</tt>
@@ -1976,6 +2020,13 @@ metadata:
 
     <section anchor="changelog" numbered="true">
       <name>Change Log</name>
+      <t><strong>1.0-draft, editorial (2026-09-06):</strong> SDS-S-100
+      now states that the family root is the skill family's own
+      checkout, not the repository a skill operates on, and that a
+      bundled checkpoint script must accept an explicit state directory
+      — observed while driving <tt>pr-lifecycle-manager</tt> against a
+      separate repository. No rule was added, removed, or re-tagged;
+      Appendix B is unchanged.</t>
       <t><strong>1.0-draft (2026-09-05):</strong> Restructured top to
       bottom into Part 0 (core model), Part I (family and repository),
       Part II (kit), and Part III (skill anatomy); every normative rule

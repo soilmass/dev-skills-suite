@@ -154,9 +154,9 @@ Internet-Draft                     SDS                    September 2026
    13. Normative References  . . . . . . . . . . . . . . . . . . . .  29
    14. Informative References  . . . . . . . . . . . . . . . . . . .  30
    Appendix A.  Worked Examples  . . . . . . . . . . . . . . . . . .  32
-   Appendix B.  Rule Index . . . . . . . . . . . . . . . . . . . . .  32
-   Appendix C.  Change Log . . . . . . . . . . . . . . . . . . . . .  39
-   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  40
+   Appendix B.  Rule Index . . . . . . . . . . . . . . . . . . . . .  33
+   Appendix C.  Change Log . . . . . . . . . . . . . . . . . . . . .  40
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  41
 
 1.  Introduction
 
@@ -1498,13 +1498,13 @@ Internet-Draft                     SDS                    September 2026
    at <family-root>/.skills-state/<name>/<key>.json, where <key>
    uniquely identifies the invocation (a PR number, a branch, a
    migration id); the skill's Act section names this path.  Referencing
-   another skill's state directory is an error.
-
-   *SDS-S-101* (MUST, REVIEW) The checkpoint record MUST have the
-   following form.
-
-
-
+   another skill's state directory is an error.  The family root is the
+   root of the skill family's own checkout, not of the repository the
+   skill is operating on: when a skill runs inside some other repository
+   (the normal case for a GitHub-operating skill), its state still lives
+   under the family's .skills-state/, and a bundled checkpoint script
+   MUST accept an explicit state directory for exactly that situation
+   rather than assuming the working directory is inside the family.
 
 
 
@@ -1513,6 +1513,9 @@ Steele                    Expires 9 March 2027                 [Page 27]
 
 Internet-Draft                     SDS                    September 2026
 
+
+   *SDS-S-101* (MUST, REVIEW) The checkpoint record MUST have the
+   following form.
 
    {
      "key": "<invocation key>",
@@ -1558,9 +1561,6 @@ Internet-Draft                     SDS                    September 2026
       untrusted data of the same kind and MUST NOT be executed or
       followed as instruction.
 
-   *  Bundled scripts/ are executable code with the supply-chain risk of
-      any third-party code; a family SHOULD review and pin them like a
-      dependency.
 
 
 
@@ -1569,6 +1569,10 @@ Steele                    Expires 9 March 2027                 [Page 28]
 
 Internet-Draft                     SDS                    September 2026
 
+
+   *  Bundled scripts/ are executable code with the supply-chain risk of
+      any third-party code; a family SHOULD review and pin them like a
+      dependency.
 
    *  Overly broad allowed-tools scoping does not merely fail to add
       safety; it suppresses the host's own confirmation mechanism from
@@ -1615,16 +1619,15 @@ Internet-Draft                     SDS                    September 2026
               2119 Key Words", BCP 14, RFC 8174, May 2017,
               <https://www.rfc-editor.org/info/rfc8174>.
 
-   [BASESPEC] agentskills.io, "Agent Skills Specification", 2026,
-              <https://agentskills.io/specification>.
-
-
 
 
 Steele                    Expires 9 March 2027                 [Page 29]
 
 Internet-Draft                     SDS                    September 2026
 
+
+   [BASESPEC] agentskills.io, "Agent Skills Specification", 2026,
+              <https://agentskills.io/specification>.
 
 14.  Informative References
 
@@ -1671,9 +1674,6 @@ Internet-Draft                     SDS                    September 2026
               docstring tag conventions including Javadoc and Sphinx/
               Python docstrings., 2026, <https://jsdoc.app>.
 
-   [SEMVER]   Preston-Werner, T., "Semantic Versioning 2.0.0", 2013,
-              <https://semver.org>.
-
 
 
 
@@ -1681,6 +1681,9 @@ Steele                    Expires 9 March 2027                 [Page 30]
 
 Internet-Draft                     SDS                    September 2026
 
+
+   [SEMVER]   Preston-Werner, T., "Semantic Versioning 2.0.0", 2013,
+              <https://semver.org>.
 
    [SRE-EB]   Beyer, B. and et al., eds., "Site Reliability
               Engineering", O'Reilly Media. Source of the error-budget
@@ -1725,9 +1728,6 @@ Internet-Draft                     SDS                    September 2026
    [C4MODEL]  Brown, S., "The C4 Model for Visualising Software
               Architecture", 2026, <https://c4model.com>.
 
-   [OTELSEMCONV]
-              OpenTelemetry / CNCF, "OpenTelemetry Semantic
-              Conventions", 2026, <https://opentelemetry.io>.
 
 
 
@@ -1737,6 +1737,10 @@ Steele                    Expires 9 March 2027                 [Page 31]
 
 Internet-Draft                     SDS                    September 2026
 
+
+   [OTELSEMCONV]
+              OpenTelemetry / CNCF, "OpenTelemetry Semantic
+              Conventions", 2026, <https://opentelemetry.io>.
 
    [TWELVEFACTOR]
               Wiggins, A., "The Twelve-Factor App", 2011,
@@ -1756,19 +1760,69 @@ Internet-Draft                     SDS                    September 2026
 
 Appendix A.  Worked Examples
 
-   Two skills are maintained as conformance examples and are the primary
-   test subjects of the linter:
+   Ten skills are maintained as conformance examples and are the
+   standing test subjects of the linter; the registry (kit/registry/
+   marketplace.json) and the generated index (README.md) list them.
+   Each was chosen to exercise a part of this specification the others
+   do not:
 
-   *  skills/dependency-audit/ — a Query Skill at rung external-read-
-      only producing finding-list; exercises bundled scripts (parser,
-      external query with an injectable fixture flag, Adapter), an on-
-      demand reference file, and a frozen external recording in its
-      evals.
+   *  skills/dependency-audit/ — Query, rung 3, finding-list: bundled
+      scripts (parser, external query with an injectable fixture flag,
+      Adapter), an on-demand reference file, a frozen external recording
+      in its evals.
 
-   *  skills/pr-description-writer/ — a Command Skill at rung shared-
-      write with a conditional Act path; exercises the Confirm gate, the
-      two-phase checkpoint, the compensating action, an unwrapped rung-5
-      Act, and a generated (not checked-in) version-control fixture.
+   *  skills/pr-description-writer/ — Command, rung 5, freeform: the
+      Confirm gate, the two-phase checkpoint, a compensating action, an
+      unwrapped rung-5 Act, a conditional Act path, a generated (not
+      checked-in) version-control fixture.
+
+   *  skills/pr-lifecycle-manager/ — Command, rung 6, decision-doc in,
+      status-report out: an orchestrator with no Analyze logic of its
+      own (SDS-C-060), a multi-step Act with a compensating action per
+      step, the high gate re-shown before the irreversible step, and
+      scripts/checkpoint.py; validated by a live open-verify-merge run
+      against a real repository.
+
+
+
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 32]
+
+Internet-Draft                     SDS                    September 2026
+
+
+   *  skills/sync-strategy-advisor/ — Query, rung 2, decision-doc: a
+      fully offline git-state assessment over a generated bare-origin-
+      plus-clone fixture, with the one judgment a script cannot make (is
+      the branch shared) left to Analyze.
+
+   *  skills/adr-writer/ — Command, rung 4, decision-doc: an Act without
+      a mandatory gate, MADR rendering, and immutability with
+      supersession (SDS-C-034).
+
+   *  skills/tech-debt-inventory/ — Query, rung 1, finding-list: a local
+      scanner with the mandatory mutation-fixture row and a reference
+      loaded only on demand.
+
+   *  skills/flaky-test-triage/ — Query, rung 2, finding-list: JUnit XML
+      as the interchange standard, mechanical evidence separated from a
+      three-way classification that may answer "undetermined".
+
+   *  skills/incident-postmortem/ — Command, rung 4, status-report: a
+      judgment-heavy skill whose script checks completeness and flags
+      blaming language as warnings, never failures; two on-demand
+      references.
+
+   *  skills/performance-budget-check/ — Query, rung 1, finding-list:
+      Lighthouse CI budget.json as the standard input, regressions
+      reported even within budget.
+
+   *  skills/api-doc-writer/ — Command, rung 4, freeform: the first use
+      of assets/ (a per-skill intermediate schema, SDS-S-080) and an
+      explicit undocumented marker in place of invented behavior.
 
    The software-development catalog described in docs/superpowers/
    specs/2026-09-05-dev-skills-suite-design.md is the first applied
@@ -1789,7 +1843,9 @@ Appendix B.  Rule Index
 
 
 
-Steele                    Expires 9 March 2027                 [Page 32]
+
+
+Steele                    Expires 9 March 2027                 [Page 33]
 
 Internet-Draft                     SDS                    September 2026
 
@@ -1845,7 +1901,7 @@ Internet-Draft                     SDS                    September 2026
 
 
 
-Steele                    Expires 9 March 2027                 [Page 33]
+Steele                    Expires 9 March 2027                 [Page 34]
 
 Internet-Draft                     SDS                    September 2026
 
@@ -1901,7 +1957,7 @@ Internet-Draft                     SDS                    September 2026
 
 
 
-Steele                    Expires 9 March 2027                 [Page 34]
+Steele                    Expires 9 March 2027                 [Page 35]
 
 Internet-Draft                     SDS                    September 2026
 
@@ -1957,7 +2013,7 @@ Internet-Draft                     SDS                    September 2026
 
 
 
-Steele                    Expires 9 March 2027                 [Page 35]
+Steele                    Expires 9 March 2027                 [Page 36]
 
 Internet-Draft                     SDS                    September 2026
 
@@ -2013,7 +2069,7 @@ Internet-Draft                     SDS                    September 2026
 
 
 
-Steele                    Expires 9 March 2027                 [Page 36]
+Steele                    Expires 9 March 2027                 [Page 37]
 
 Internet-Draft                     SDS                    September 2026
 
@@ -2069,7 +2125,7 @@ Internet-Draft                     SDS                    September 2026
 
 
 
-Steele                    Expires 9 March 2027                 [Page 37]
+Steele                    Expires 9 March 2027                 [Page 38]
 
 Internet-Draft                     SDS                    September 2026
 
@@ -2125,7 +2181,7 @@ Internet-Draft                     SDS                    September 2026
 
 
 
-Steele                    Expires 9 March 2027                 [Page 38]
+Steele                    Expires 9 March 2027                 [Page 39]
 
 Internet-Draft                     SDS                    September 2026
 
@@ -2156,6 +2212,13 @@ Internet-Draft                     SDS                    September 2026
 
 Appendix C.  Change Log
 
+   *1.0-draft, editorial (2026-09-06):* SDS-S-100 now states that the
+   family root is the skill family's own checkout, not the repository a
+   skill operates on, and that a bundled checkpoint script must accept
+   an explicit state directory — observed while driving pr-lifecycle-
+   manager against a separate repository.  No rule was added, removed,
+   or re-tagged; Appendix B is unchanged.
+
    *1.0-draft (2026-09-05):* Restructured top to bottom into Part 0
    (core model), Part I (family and repository), Part II (kit), and Part
    III (skill anatomy); every normative rule now carries a permanent
@@ -2171,6 +2234,14 @@ Appendix C.  Change Log
    conditional Act path is a permitted Command form with Confirm/Act
    headings retained and Communicate/ Persist always present; (7) the
    registry is kit/registry/marketplace.json with required shape-in/
+
+
+
+Steele                    Expires 9 March 2027                 [Page 40]
+
+Internet-Draft                     SDS                    September 2026
+
+
    shape-out, status, and a top-level sds version (the former example
    registry file name is retired); (8) all cross-references are family-
    root-relative; (9) fixtures have a defined layout with generated
@@ -2178,14 +2249,6 @@ Appendix C.  Change Log
    world stages.  Also added: the checkpoint state path, the prohibition
    on wrapping a rung-5/6 Act in a pre-approved script, script and
    reference conventions, the long-parameter-list rule, and the
-
-
-
-Steele                    Expires 9 March 2027                 [Page 39]
-
-Internet-Draft                     SDS                    September 2026
-
-
    validation gate.
 
    *0.3 (2026-09-05):* Rebuilt in xml2rfc version 3 (RFC 7991)
@@ -2230,11 +2293,4 @@ Author's Address
 
 
 
-
-
-
-
-
-
-
-Steele                    Expires 9 March 2027                 [Page 40]
+Steele                    Expires 9 March 2027                 [Page 41]
