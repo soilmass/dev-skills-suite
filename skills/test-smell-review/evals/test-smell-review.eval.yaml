@@ -1,0 +1,78 @@
+# Table-driven eval file for test-smell-review (SDS-S-090).
+#
+# A rung-1 Query Skill over a planted suite carrying one test per smell
+# beside clean tests, a fixture, and a helper that must stay silent,
+# plus a non-test source file containing a sleep that must not be
+# scanned. Every row is deterministic and offline.
+
+skill: test-smell-review
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): exactly the planted smells are reported.
+  - name: happy-path-planted-smells
+    input:
+      command: "python3 scripts/find_test_smells.py evals/fixtures/planted-src"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "test/no-assertion names exactly TestCart.test_prints_only; not the fixture, the helper, test_raises_on_missing (pytest.raises counts) or TestCart.test_add (self.assertEqual counts)"
+        - "test/sleep-in-test names exactly test_waits_for_worker; src/worker.py's sleep is not scanned"
+        - "test/swallowed-exception names exactly test_ignores_errors; test/conditional-logic names exactly test_each_case with branches 1"
+        - "warnings are ordered before infos"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted assertion-free test is found on its def line.
+  - name: mutation-fixture-no-assertion
+    input:
+      command: "python3 scripts/find_test_smells.py evals/fixtures/planted-src"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "a test/no-assertion result exists at tests/test_orders.py line 30 with properties.test TestCart.test_prints_only, level warning"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): no test files -> empty results.
+  - name: boundary-empty-tree
+    input:
+      command: "python3 scripts/find_test_smells.py evals/fixtures/empty-src"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; the output is otherwise complete and schema-valid"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast): a test file with a syntax error stops the scan.
+  - name: boundary-malformed-source
+    input:
+      command: "python3 scripts/find_test_smells.py evals/fixtures/broken-src"
+    expected:
+      kind: failure
+      failureCode: source-unparseable
+      assertions:
+        - "exit code is 1 and stderr names tests/test_broken.py and says source-unparseable"
+
+  - name: boundary-invalid-path
+    input:
+      command: "python3 scripts/find_test_smells.py evals/fixtures/planted-src/src/worker.py"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 — the path is a file, not a directory"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/find_test_smells.py evals/fixtures/planted-src | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"
