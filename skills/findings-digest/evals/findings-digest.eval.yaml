@@ -1,0 +1,111 @@
+# Table-driven eval file for findings-digest (SDS-S-090).
+#
+# A rung-1 Query Skill whose inputs are the real outputs of three family
+# audits, frozen from their own happy-path eval rows (SDS-S-093):
+# dependency-audit's offline pipeline (6 findings, 3 errors),
+# ci-pipeline-audit's planted workflows (7), retry-timeout-audit's
+# planted calls (7). Every row is deterministic and offline.
+
+skill: findings-digest
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): three producers merged into one report.
+  - name: happy-path-three-audits
+    input:
+      command: "python3 scripts/digest_findings.py evals/fixtures/frozen-dependency-audit-findings.json evals/fixtures/frozen-ci-pipeline-audit-findings.json evals/fixtures/frozen-retry-timeout-audit-findings.json"
+    expected:
+      kind: success
+      shape: status-report
+      assertions:
+        - "summary is '20 finding(s) across 3 tool(s): 3 error(s) to fix first'; generatedFrom names the three inputs in order"
+        - "sections in order Totals, By tool, By level, Top rules, Files with most findings, Errors; Totals says 3 error(s), 10 warning(s), 7 info(s), 0 duplicate(s) merged; By tool lists ci-pipeline-audit 7, retry-timeout-audit 7, dependency-audit 6 (count descending, name ascending)"
+        - "Files with most findings starts with .github/workflows/ci.yml: 6 and package.json: 6; Errors lists the three dependency-audit GHSA errors at package.json and nothing else"
+
+  # A result carried by two inputs is counted once.
+  - name: boundary-duplicates-merged
+    input:
+      command: "python3 scripts/digest_findings.py evals/fixtures/frozen-ci-pipeline-audit-findings.json evals/fixtures/frozen-ci-pipeline-audit-findings.json"
+    expected:
+      kind: success
+      shape: status-report
+      assertions:
+        - "Totals says 7 finding(s) from 2 input(s) and 1 tool(s) and 7 duplicate(s) merged"
+
+  # The floor and the listing length are parameters.
+  - name: boundary-min-level-and-top
+    input:
+      command: "python3 scripts/digest_findings.py evals/fixtures/frozen-dependency-audit-findings.json --min-level error --top 2"
+    expected:
+      kind: success
+      shape: status-report
+      assertions:
+        - "summary says 3 finding(s) across 1 tool(s); Errors lists two entries and then '… 1 more error(s)'"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): a finding-list with no results -> zero totals.
+  - name: boundary-empty-findings
+    input:
+      command: "python3 scripts/digest_findings.py evals/fixtures/findings-empty.json"
+    expected:
+      kind: success
+      shape: status-report
+      assertions:
+        - "summary is '0 finding(s) across 0 tool(s): no findings'; every listing body is '- none'; the document validates"
+
+  - name: boundary-stdin
+    input:
+      command: "python3 scripts/digest_findings.py - < evals/fixtures/findings-empty.json"
+    expected:
+      kind: success
+      shape: status-report
+      assertions:
+        - "generatedFrom is '-' and the report matches the file-path row"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-findings
+    input:
+      command: "python3 scripts/digest_findings.py evals/fixtures/findings-malformed.json"
+    expected:
+      kind: failure
+      failureCode: input-invalid
+      assertions:
+        - "exit code is 1 — runs is a string — and stderr says input-invalid"
+
+  - name: boundary-unreadable-input
+    input:
+      command: "python3 scripts/digest_findings.py evals/fixtures"
+    expected:
+      kind: failure
+      failureCode: input-missing
+      assertions:
+        - "exit code is 1 — the path is a directory, not a file — and stderr says input-missing"
+
+  - name: boundary-invalid-level
+    input:
+      command: "python3 scripts/digest_findings.py evals/fixtures/findings-empty.json --min-level severe"
+    expected:
+      kind: failure
+      failureCode: level-invalid
+      assertions:
+        - "exit code is 1 and stderr says level-invalid"
+
+  # N/A — shape-out is status-report, not finding-list (SDS-S-095).
+  - name: mutation-fixture
+    expected:
+      kind: not-applicable
+      reason: "findings-digest does not search for known problems; shape-out is status-report."
+
+  # N/A — shape-out status-report != shape-in finding-list (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out status-report differs from shape-in finding-list; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): the frozen producer outputs validate as finding-lists and the digest consumes them; the digest validates as a status-report.
+  - name: contract-with-upstream-producers
+    input:
+      command: "python3 -c \"import json,jsonschema,subprocess; root='$(git rev-parse --show-toplevel)'; fl=json.load(open(root+'/kit/shapes/finding-list.schema.json')); files=['evals/fixtures/frozen-dependency-audit-findings.json','evals/fixtures/frozen-ci-pipeline-audit-findings.json','evals/fixtures/frozen-retry-timeout-audit-findings.json']; [jsonschema.validate(json.load(open(f)), fl) for f in files]; out=subprocess.run(['python3','scripts/digest_findings.py']+files,capture_output=True,text=True,check=True).stdout; jsonschema.validate(json.loads(out), json.load(open(root+'/kit/shapes/status-report.schema.json'))); print('3 upstream finding-lists OK; status-report OK')\""
+    expected:
+      kind: success
+      shape: status-report
+      assertions:
+        - "the three frozen producer outputs validate against kit/shapes/finding-list.schema.json and the digest validates against kit/shapes/status-report.schema.json"

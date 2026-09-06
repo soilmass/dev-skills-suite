@@ -1,0 +1,182 @@
+{
+  "version": "sds-finding-list-1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "ci-pipeline-audit",
+          "version": "0.1.0"
+        }
+      },
+      "results": [
+        {
+          "ruleId": "ci/broad-permissions",
+          "level": "warning",
+          "message": {
+            "text": ".github/workflows/ci.yml grants contents: write to every job"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/ci.yml"
+                },
+                "region": {
+                  "startLine": 8
+                }
+              }
+            }
+          ],
+          "properties": {
+            "scope": "workflow",
+            "permissions": {
+              "contents": "write"
+            }
+          }
+        },
+        {
+          "ruleId": "ci/unpinned-action",
+          "level": "warning",
+          "message": {
+            "text": "actions/checkout is pinned to branch 'main'; every run picks up whatever is there now"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/ci.yml"
+                },
+                "region": {
+                  "startLine": 14
+                }
+              }
+            }
+          ],
+          "properties": {
+            "job": "test",
+            "action": "actions/checkout",
+            "ref": "main",
+            "pin": "branch"
+          }
+        },
+        {
+          "ruleId": "ci/secret-in-run-echo",
+          "level": "warning",
+          "message": {
+            "text": "job 'test' prints a secret in a run step; it lands in the log"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/ci.yml"
+                },
+                "region": {
+                  "startLine": 20
+                }
+              }
+            }
+          ],
+          "properties": {
+            "job": "test"
+          }
+        },
+        {
+          "ruleId": "ci/pull-request-target-checkout",
+          "level": "warning",
+          "message": {
+            "text": "job 'label' runs on pull_request_target and checks out the pull request head (${{ github.event.pull_request.head.sha }}); untrusted code runs with this repository's secrets"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/pr-label.yml"
+                },
+                "region": {
+                  "startLine": 16
+                }
+              }
+            }
+          ],
+          "properties": {
+            "job": "label",
+            "ref": "${{ github.event.pull_request.head.sha }}"
+          }
+        },
+        {
+          "ruleId": "ci/no-concurrency",
+          "level": "info",
+          "message": {
+            "text": ".github/workflows/ci.yml runs on pull_request, push without a concurrency group; superseded runs keep running"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/ci.yml"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "triggers": [
+              "pull_request",
+              "push"
+            ]
+          }
+        },
+        {
+          "ruleId": "ci/no-timeout",
+          "level": "info",
+          "message": {
+            "text": "job 'test' has no timeout-minutes; a hung step runs for six hours"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/ci.yml"
+                },
+                "region": {
+                  "startLine": 11
+                }
+              }
+            }
+          ],
+          "properties": {
+            "job": "test"
+          }
+        },
+        {
+          "ruleId": "ci/unpinned-action",
+          "level": "info",
+          "message": {
+            "text": "actions/setup-python is pinned to tag 'v5', which can be moved; a commit SHA cannot"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/ci.yml"
+                },
+                "region": {
+                  "startLine": 15
+                }
+              }
+            }
+          ],
+          "properties": {
+            "job": "test",
+            "action": "actions/setup-python",
+            "ref": "v5",
+            "pin": "tag"
+          }
+        }
+      ]
+    }
+  ]
+}

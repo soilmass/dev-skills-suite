@@ -592,6 +592,16 @@
       "shape-out": "decision-doc",
       "shape-in": "freeform",
       "status": "built"
+    },
+    {
+      "name": "findings-digest",
+      "description": "Merges the finding-lists that any number of audit skills produced into one status-report — totals, counts by tool, severity, and rule, the files with the most findings, and every error listed, with duplicates across overlapping audits counted once — then judges what to fix first and which findings are noise. Use after running several audits on one repository, when a review or a release needs one page instead of ten JSON files, or when asked what the audits found overall.",
+      "version": "0.1.0",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "status-report",
+      "shape-in": "finding-list",
+      "status": "built"
     }
   ]
 }

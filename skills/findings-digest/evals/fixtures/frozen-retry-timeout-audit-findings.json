@@ -1,0 +1,186 @@
+{
+  "version": "sds-finding-list-1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "retry-timeout-audit",
+          "version": "0.1.0"
+        },
+        "properties": {
+          "networkCalls": 7,
+          "withTimeout": 5,
+          "perFile": {
+            "app/bounded.py": 1,
+            "app/fetch.py": 4,
+            "app/poll.py": 1,
+            "app/safe.py": 1
+          }
+        }
+      },
+      "results": [
+        {
+          "ruleId": "net/no-timeout",
+          "level": "warning",
+          "message": {
+            "text": "requests.get(...) has no timeout; a hung peer hangs this caller forever"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/fetch.py"
+                },
+                "region": {
+                  "startLine": 6
+                }
+              }
+            }
+          ],
+          "properties": {
+            "call": "requests.get"
+          }
+        },
+        {
+          "ruleId": "net/no-timeout",
+          "level": "warning",
+          "message": {
+            "text": "s.post(...) has no timeout; a hung peer hangs this caller forever"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/fetch.py"
+                },
+                "region": {
+                  "startLine": 11
+                }
+              }
+            }
+          ],
+          "properties": {
+            "call": "s.post"
+          }
+        },
+        {
+          "ruleId": "net/unbounded-retry",
+          "level": "warning",
+          "message": {
+            "text": "while True retries a network call on every exception with no break; a peer that is down is retried forever"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/poll.py"
+                },
+                "region": {
+                  "startLine": 7
+                }
+              }
+            }
+          ],
+          "properties": {
+            "handlers": [
+              {
+                "line": 10,
+                "broad": true
+              }
+            ]
+          }
+        },
+        {
+          "ruleId": "net/constant-backoff",
+          "level": "info",
+          "message": {
+            "text": "retry loop sleeps a constant (1 time.sleep with a literal); use exponential backoff with jitter"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/bounded.py"
+                },
+                "region": {
+                  "startLine": 7
+                }
+              }
+            }
+          ],
+          "properties": {
+            "sleeps": [
+              11
+            ]
+          }
+        },
+        {
+          "ruleId": "net/broad-retry",
+          "level": "info",
+          "message": {
+            "text": "the retry handler catches Exception (or everything); programming errors get retried too"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/poll.py"
+                },
+                "region": {
+                  "startLine": 7
+                }
+              }
+            }
+          ],
+          "properties": {}
+        },
+        {
+          "ruleId": "net/constant-backoff",
+          "level": "info",
+          "message": {
+            "text": "retry loop sleeps a constant (1 time.sleep with a literal); use exponential backoff with jitter"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/poll.py"
+                },
+                "region": {
+                  "startLine": 7
+                }
+              }
+            }
+          ],
+          "properties": {
+            "sleeps": [
+              11
+            ]
+          }
+        },
+        {
+          "ruleId": "net/subprocess-no-timeout",
+          "level": "info",
+          "message": {
+            "text": "subprocess.run(...) has no timeout"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/run.py"
+                },
+                "region": {
+                  "startLine": 5
+                }
+              }
+            }
+          ],
+          "properties": {
+            "call": "subprocess.run"
+          }
+        }
+      ]
+    }
+  ]
+}
