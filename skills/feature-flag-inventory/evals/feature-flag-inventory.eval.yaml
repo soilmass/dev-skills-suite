@@ -1,0 +1,115 @@
+# Table-driven eval file for feature-flag-inventory (SDS-S-090).
+#
+# A rung-1 Query Skill over a planted tree — Python and JavaScript
+# modules checking flags through the default check-function names —
+# and a flags configuration carrying one flag per state, under an
+# injected clock (SDS-S-064). Every row is deterministic and offline.
+
+skill: feature-flag-inventory
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): exactly the planted states are reported, with the inventory.
+  - name: happy-path-planted-flags
+    input:
+      command: "python3 scripts/inventory_flags.py evals/fixtures/planted-repo --flags-file evals/fixtures/flags.json --as-of 2026-09-06T12:00:00Z"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "flag/unregistered names exactly ghost-mode (checked in JS, absent from the configuration); flag/unreferenced names exactly legacy-export (configured, checked nowhere)"
+        - "flag/fully-rolled-out names exactly new-checkout (enabled, no rollout, created 2026-06-01 = 97 days, 3 checks across app/cart.py, app/checkout.py, web/checkout.js); flag/permanently-off names exactly dark-mode (disabled 60 days); young-flag (enabled 100% for 5 days) and partial (enabled at 25%) draw nothing"
+        - "flag/unowned names exactly dark-mode and legacy-export; tool.properties.staleDays is 30; the inventory lists new-checkout with checks 3, ageDays 97, owner @priya"
+        - "warnings are ordered before infos"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted rolled-out flag is found at its first check.
+  - name: mutation-fixture-fully-rolled-out
+    input:
+      command: "python3 scripts/inventory_flags.py evals/fixtures/planted-repo --flags-file evals/fixtures/flags.json --as-of 2026-09-06T12:00:00Z"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "a flag/fully-rolled-out result exists at app/cart.py with properties.flag new-checkout, ageDays 97, checks 3, level warning"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # The threshold is a parameter: at 120 days nothing is stale yet.
+  - name: boundary-long-stale-window
+    input:
+      command: "python3 scripts/inventory_flags.py evals/fixtures/planted-repo --flags-file evals/fixtures/flags.json --as-of 2026-09-06T12:00:00Z --stale-days 120"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "no flag/fully-rolled-out and no flag/permanently-off result; flag/unregistered, flag/unreferenced and flag/unowned are unchanged"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): checks and configuration agree, flags young -> empty results.
+  - name: boundary-empty-findings-consistent
+    input:
+      command: "python3 scripts/inventory_flags.py evals/fixtures/consistent-repo --flags-file evals/fixtures/flags-consistent.json --as-of 2026-09-06T12:00:00Z"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; tool.properties.flags has one entry with checks 1, configured true, owner set"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-flags-file
+    input:
+      command: "python3 scripts/inventory_flags.py evals/fixtures/planted-repo --flags-file evals/fixtures/flags-malformed.json --as-of 2026-09-06T12:00:00Z"
+    expected:
+      kind: failure
+      failureCode: flags-unparseable
+      assertions:
+        - "exit code is 1 and stderr says flags-unparseable"
+
+  - name: boundary-missing-as-of
+    input:
+      command: "python3 scripts/inventory_flags.py evals/fixtures/planted-repo --flags-file evals/fixtures/flags.json"
+    expected:
+      kind: failure
+      failureCode: as-of-invalid
+      assertions:
+        - "exit code is 1 and stderr says --as-of is required (as-of-invalid)"
+
+  - name: boundary-invalid-patterns
+    input:
+      command: "python3 scripts/inventory_flags.py evals/fixtures/planted-repo --flags-file evals/fixtures/flags.json --as-of 2026-09-06T12:00:00Z --patterns evals/fixtures/flags.json"
+    expected:
+      kind: failure
+      failureCode: patterns-invalid
+      assertions:
+        - "exit code is 1 — a flags file is not a patterns file — and stderr says patterns-invalid"
+
+  - name: boundary-malformed-source
+    input:
+      command: "python3 scripts/inventory_flags.py evals/fixtures/broken-repo --flags-file evals/fixtures/flags.json --as-of 2026-09-06T12:00:00Z"
+    expected:
+      kind: failure
+      failureCode: source-unparseable
+      assertions:
+        - "exit code is 1 and stderr names broken.py and says source-unparseable"
+
+  - name: boundary-invalid-path
+    input:
+      command: "python3 scripts/inventory_flags.py evals/fixtures/flags.json --flags-file evals/fixtures/flags.json --as-of 2026-09-06T12:00:00Z"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 — the repository path is a file"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/inventory_flags.py evals/fixtures/planted-repo --flags-file evals/fixtures/flags.json --as-of 2026-09-06T12:00:00Z | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"

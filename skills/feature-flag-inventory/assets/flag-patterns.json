@@ -1,0 +1,4 @@
+{
+  "description": "Function and method names whose first string argument is a feature-flag name. Matched by call shape in Python (ast) and JavaScript/TypeScript (pattern). Add a team's own helper names here or pass a copy with --patterns.",
+  "checkFunctions": ["is_enabled", "feature_enabled", "flag_enabled", "enabled", "isEnabled", "useFlag", "useFeatureFlag", "getFlag", "variation", "boolVariation", "isFeatureEnabled", "hasFeature"]
+}

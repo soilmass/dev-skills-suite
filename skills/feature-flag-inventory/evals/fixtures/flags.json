@@ -1,0 +1,9 @@
+{
+  "flags": [
+    {"name": "new-checkout", "enabled": true, "createdAt": "2026-06-01T00:00:00Z", "owner": "@priya"},
+    {"name": "dark-mode", "enabled": false, "createdAt": "2026-07-08T00:00:00Z"},
+    {"name": "young-flag", "enabled": true, "rollout": 100, "createdAt": "2026-09-01T00:00:00Z", "owner": "@marco"},
+    {"name": "partial", "enabled": true, "rollout": 25, "createdAt": "2026-05-01T00:00:00Z", "owner": "@marco"},
+    {"name": "legacy-export", "enabled": true, "createdAt": "2026-01-01T00:00:00Z"}
+  ]
+}
