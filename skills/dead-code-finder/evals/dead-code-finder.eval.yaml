@@ -37,18 +37,24 @@ rows:
         - "no result names decorator_registered_check (a top-level function decorated with @register(...), framework_registered.py) even though nothing calls it by name"
         - "no result names DiscoveredByRunner (a top-level class subclassing unittest.TestCase, framework_registered.py) even though nothing instantiates it by name"
 
-  # REQUIRED — boundary: false positive found dogfooding this skill on
-  # psf/requests (tests/test_utils.py, tests/test_requests.py, etc.: many
-  # `class TestFoo:` with no base class at all — pytest's own bare-class
-  # collection convention, not a unittest.TestCase subclass).
-  - name: boundary-pytest-bare-class
+  # REQUIRED — boundary, both shapes in one fixture tree: a false
+  # positive found dogfooding this skill on psf/requests
+  # (tests/test_utils.py, tests/test_requests.py, etc.: many
+  # `class TestFoo:` with no base class at all — pytest's own
+  # bare-class collection convention, not a unittest.TestCase
+  # subclass) — bounded to pytest's actual collection scope so it
+  # cannot also hide a forgotten production class of the same bare
+  # Test* shape outside any test path (a code-review finding on the
+  # first version of this guard).
+  - name: boundary-pytest-bare-class-scope
     input:
-      command: "python3 scripts/find_dead_code.py evals/fixtures/planted-src"
+      command: "python3 scripts/find_dead_code.py evals/fixtures/boundary-pytest-scope"
     expected:
       kind: success
       shape: finding-list
       assertions:
-        - "no result names TestBareClass (a top-level class with no base classes at all, named Test* with no __init__, framework_registered.py) even though nothing instantiates it by name"
+        - "a dead/unreferenced-definition result exists for name TestConnection (class, production.py): a bare Test* class with no __init__ outside any test path (not test_*.py/*_test.py, not under a tests/test/testing directory) is ordinary production code and must be reported"
+        - "no result names TestHelper (class, tests/test_helpers.py): the same bare Test* shape, inside pytest's collection scope (file name starts with test_, and it is under a tests/ directory), is exempt — pytest finds it by name pattern, no TestCase base required"
 
   # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted orphan is found at its line.
   - name: mutation-fixture-planted-orphan

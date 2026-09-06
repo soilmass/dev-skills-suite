@@ -28,10 +28,14 @@ the reference (SDS-C-048 — say what you cannot know):
       `TestCase` (unittest-style test classes are found by the test
       runner's discovery, not by a name reference anywhere in source);
     - a top-level class with no base classes at all, named `Test*`,
-      that defines no `__init__` (pytest's own collection convention —
-      no `TestCase` base required — finds it by name pattern, and a
-      defined `__init__` is exactly what disqualifies a class from
-      that collection, per pytest's own rule);
+      that defines no `__init__`, in a file pytest would actually
+      collect (named `test_*.py`/`*_test.py`, or under a directory
+      named `tests`, `test`, or `testing` at any depth) — pytest's own
+      collection convention finds it by name pattern there, no
+      `TestCase` base required, and a defined `__init__` is exactly
+      what disqualifies a class from that collection; the same bare
+      `Test*` shape outside any test path is ordinary production code
+      and is still reported;
     - anything under directories named in --exclude or the usual
       vendored/build directories.
 Every finding carries properties.confidence "static" and the reminder
@@ -61,27 +65,45 @@ def _base_name(base):
     return ""
 
 
-def _pytest_bare_class(node):
+def _in_test_path(rel):
+    """True when rel is inside pytest's own default collection scope:
+    a file named test_*.py or *_test.py, or anything under a directory
+    named tests, test, or testing at any depth. Bounds the bare-class
+    guard below so it cannot hide a forgotten production class outside
+    any test path."""
+    name = rel.name
+    if name.startswith("test_") or name.endswith("_test.py"):
+        return True
+    return any(part in ("tests", "test", "testing") for part in rel.parts[:-1])
+
+
+def _pytest_bare_class(node, rel):
     """A bare (no base classes) top-level class named Test* with no
-    __init__: pytest collects it by name pattern alone, no TestCase
-    base required — and a defined __init__ is exactly what would
-    disqualify it from that collection, per pytest's own rule."""
+    __init__, in a file pytest would actually collect: pytest collects
+    it by name pattern alone, no TestCase base required — and a
+    defined __init__ is exactly what would disqualify it from that
+    collection, per pytest's own rule. Outside pytest's collection
+    scope (not a test_*.py/*_test.py file, not under a tests/test/
+    testing directory), a bare Test* class is ordinary production
+    code and must still be reported if unreferenced."""
     if node.bases or not node.name.startswith("Test"):
+        return False
+    if not _in_test_path(rel):
         return False
     return not any(isinstance(s, (ast.FunctionDef, ast.AsyncFunctionDef)) and s.name == "__init__" for s in node.body)
 
 
-def _framework_registered(node):
+def _framework_registered(node, rel):
     """A top-level def/class a static name-count cannot see used: a
     decorator hands the function/class object to code elsewhere (a
     route table, a check registry, a pytest fixture) with no name
     reference to find; a TestCase subclass — or a bare pytest-style
-    Test* class — is found by the test runner's own discovery, never
-    referenced by name in source."""
+    Test* class in a test path — is found by the test runner's own
+    discovery, never referenced by name in source."""
     if node.decorator_list:
         return True
     if isinstance(node, ast.ClassDef):
-        return any(_base_name(b).endswith("TestCase") for b in node.bases) or _pytest_bare_class(node)
+        return any(_base_name(b).endswith("TestCase") for b in node.bases) or _pytest_bare_class(node, rel)
     return False
 
 
@@ -97,7 +119,7 @@ def collect(root, exclude):
             sys.exit(f"ERROR: {rel} does not parse (source-unparseable): {e}")
         for node in tree.body:
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                if _framework_registered(node):
+                if _framework_registered(node, rel):
                     continue
                 defs.append((node.name, str(rel), node.lineno, type(node).__name__))
             if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "__all__" for t in node.targets):

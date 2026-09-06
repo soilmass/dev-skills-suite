@@ -24,12 +24,3 @@ def decorator_registered_check(ctx):
 class DiscoveredByRunner(unittest.TestCase):
     def test_nothing(self):
         self.assertTrue(True)
-
-
-# Minimal reproduction of a false positive found dogfooding this skill on
-# psf/requests (tests/test_utils.py, e.g. `class TestSuperLen:`): pytest
-# collects a bare class named Test* by name pattern alone, no TestCase
-# base required.
-class TestBareClass:
-    def test_something(self):
-        assert True
