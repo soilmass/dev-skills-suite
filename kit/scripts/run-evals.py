@@ -5,7 +5,8 @@ validation gate's "eval table passes" (SDS-S-110).
 
 Usage:
     run-evals.py <skill-dir> [--skip-generators] [--timeout N] [--verbose]
-    run-evals.py --all <skills-dir> [--skip-generators] [--timeout N] [--verbose]
+                 [--json] [--sarif]
+    run-evals.py --all <skills-dir> [same options]
 
 Requires pyyaml and jsonschema (the linter's dependencies). For each
 skill: the generators `evals/fixtures/build-*.sh` are run first (they
@@ -30,6 +31,20 @@ reviewer and are not evaluated here.
 Output: one line per row (PASS / FAIL / SKIP) and a summary per skill;
 exit 0 when every executed row passed, 1 when any failed, 2 on a
 usage or setup error. `--verbose` prints the stderr of failed rows.
+
+`--json` emits a `finding-list` document (kit/shapes/finding-list.schema.json)
+to stdout instead — driver name `run-evals` — with one result per FAILED
+row: `ruleId` `eval/<row-name>`, `level` `error`, `message.text` the same
+failure reason the text mode prints, `locations[0]` pointing at the
+skill's eval YAML file and the row's `- name:` line, and
+`properties.skill` naming the skill. The usual per-row/per-skill text
+goes to stderr instead of stdout so stdout is the one JSON document; the
+document is self-validated against the schema before printing (exit 2
+if it does not validate); the exit code otherwise stays 1 on any row
+failure. `--sarif` (only meaningful with `--json`) emits the SARIF-2.1.0
+variant of that document instead: `version` becomes `"2.1.0"` and a
+top-level `$schema` of `https://json.schemastore.org/sarif-2.1.0.json`
+is added, for upload to GitHub Code Scanning.
 """
 import argparse
 import json
@@ -46,6 +61,7 @@ except ImportError as e:  # pragma: no cover
 FAMILY_ROOT = Path(__file__).resolve().parent.parent.parent
 SHAPES = FAMILY_ROOT / "kit" / "shapes"
 ENVELOPE_KEYS = ("decision", "report", "plan", "document", "artifact")
+RUNNER_VERSION = "0.1.0"
 
 
 def load_rows(skill: Path):
@@ -57,15 +73,15 @@ def load_rows(skill: Path):
     return (table or {}).get("rows") or [], None
 
 
-def run_generators(skill: Path, timeout: int, verbose: bool):
+def run_generators(skill: Path, timeout: int, verbose: bool, out=sys.stdout):
     ok = True
     for gen in sorted((skill / "evals" / "fixtures").glob("build-*.sh")):
         r = subprocess.run(["bash", str(gen)], cwd=skill, capture_output=True, text=True, timeout=timeout)
         if r.returncode != 0:
             ok = False
-            print(f"  GEN  FAIL {gen.relative_to(skill)} (exit {r.returncode})")
+            print(f"  GEN  FAIL {gen.relative_to(skill)} (exit {r.returncode})", file=out)
             if verbose:
-                print("       " + r.stderr.strip().replace("\n", "\n       "))
+                print("       " + r.stderr.strip().replace("\n", "\n       "), file=out)
     return ok
 
 
@@ -109,21 +125,51 @@ def judge(row, r, shape_ok):
     return False, f"unknown expected.kind {kind!r}"
 
 
-def run_skill(skill: Path, args):
+def find_row_line(eval_lines, name):
+    """Best-effort line number of a row's `- name: <name>` line: scan the
+    eval file's text for a line containing `name: <name>` (SDS-K row IDs
+    aren't unique-quoting-sensitive; "good enough" per the row's own
+    `- name:` convention)."""
+    if eval_lines is None:
+        return None
+    needle = f"name: {name}"
+    for i, line in enumerate(eval_lines):
+        if needle in line:
+            return i + 1
+    return None
+
+
+def make_finding(skill: Path, eval_file: Path, eval_lines, name: str, message: str) -> dict:
+    loc = {"physicalLocation": {"artifactLocation": {"uri": str(eval_file.relative_to(FAMILY_ROOT))}}}
+    line = find_row_line(eval_lines, name)
+    if line:
+        loc["physicalLocation"]["region"] = {"startLine": line}
+    return {
+        "ruleId": f"eval/{name}",
+        "level": "error",
+        "message": {"text": message},
+        "locations": [loc],
+        "properties": {"skill": str(skill.relative_to(FAMILY_ROOT))},
+    }
+
+
+def run_skill(skill: Path, args, out=sys.stdout, findings=None):
     rows, err = load_rows(skill)
-    print(f"== {skill.relative_to(FAMILY_ROOT)}")
+    print(f"== {skill.relative_to(FAMILY_ROOT)}", file=out)
     if err:
-        print(f"  SETUP FAIL {err}")
+        print(f"  SETUP FAIL {err}", file=out)
         return 0, 1, 0
-    if not args.skip_generators and not run_generators(skill, args.timeout, args.verbose):
+    if not args.skip_generators and not run_generators(skill, args.timeout, args.verbose, out=out):
         return 0, 1, 0
+    eval_file = skill / "evals" / f"{skill.name}.eval.yaml"
+    eval_lines = eval_file.read_text(encoding="utf-8").splitlines() if findings is not None and eval_file.is_file() else None
     passed = failed = skipped = 0
     for row in rows:
         name = row.get("name", "<unnamed>")
         cmd = ((row.get("input") or {}).get("command")) if isinstance(row.get("input"), dict) else None
         if (row.get("expected") or {}).get("kind") == "not-applicable" or not cmd:
             skipped += 1
-            print(f"  SKIP {name}")
+            print(f"  SKIP {name}", file=out)
             continue
         # A folded YAML scalar keeps the newlines of its more-indented
         # continuation lines; the row means one command line.
@@ -132,19 +178,39 @@ def run_skill(skill: Path, args):
             r = subprocess.run(["bash", "-c", cmd], cwd=skill, capture_output=True, text=True, timeout=args.timeout)
         except subprocess.TimeoutExpired:
             failed += 1
-            print(f"  FAIL {name}: timed out after {args.timeout}s")
+            reason = f"timed out after {args.timeout}s"
+            print(f"  FAIL {name}: {reason}", file=out)
+            if findings is not None:
+                findings.append(make_finding(skill, eval_file, eval_lines, name, reason))
             continue
         ok, why = judge(row, r, True)
         if ok:
             passed += 1
-            print(f"  PASS {name} ({why})")
+            print(f"  PASS {name} ({why})", file=out)
         else:
             failed += 1
-            print(f"  FAIL {name}: {why}")
+            print(f"  FAIL {name}: {why}", file=out)
             if args.verbose and r.stderr.strip():
-                print("       " + r.stderr.strip()[-800:].replace("\n", "\n       "))
-    print(f"  -- {passed} passed, {failed} failed, {skipped} skipped")
+                print("       " + r.stderr.strip()[-800:].replace("\n", "\n       "), file=out)
+            if findings is not None:
+                findings.append(make_finding(skill, eval_file, eval_lines, name, why))
+    print(f"  -- {passed} passed, {failed} failed, {skipped} skipped", file=out)
     return passed, failed, skipped
+
+
+def emit_json(findings: list[dict], sarif: bool) -> int:
+    doc = {"version": "sds-finding-list-1.0",
+           "runs": [{"tool": {"driver": {"name": "run-evals", "version": RUNNER_VERSION}}, "results": findings}]}
+    schema_p = SHAPES / "finding-list.schema.json"
+    try:
+        jsonschema.validate(doc, json.loads(schema_p.read_text(encoding="utf-8")))
+    except (jsonschema.ValidationError, json.JSONDecodeError) as e:
+        sys.stderr.write(f"ERROR: runner output failed finding-list schema validation: {str(e)[:120]}\n")
+        return 2
+    if sarif:
+        doc = {"$schema": "https://json.schemastore.org/sarif-2.1.0.json", "version": "2.1.0", "runs": doc["runs"]}
+    print(json.dumps(doc, indent=2))
+    return 0
 
 
 def main():
@@ -154,17 +220,25 @@ def main():
     ap.add_argument("--skip-generators", action="store_true")
     ap.add_argument("--timeout", type=int, default=120)
     ap.add_argument("--verbose", action="store_true")
+    ap.add_argument("--json", action="store_true", help="emit a finding-list document (one result per failed row); per-row text goes to stderr")
+    ap.add_argument("--sarif", action="store_true", help="with --json, emit the SARIF 2.1.0 variant for GitHub Code Scanning upload")
     a = ap.parse_args()
     if bool(a.skill) == bool(a.all):
         ap.error("give exactly one of <skill-dir> or --all <skills-dir>")
     targets = sorted(p for p in Path(a.all).iterdir() if (p / "SKILL.md").is_file()) if a.all else [Path(a.skill)]
     if not targets or any(not t.is_dir() for t in targets):
         sys.exit(2)
+    out = sys.stderr if a.json else sys.stdout
+    findings = [] if a.json else None
     totals = [0, 0, 0]
     for t in targets:
-        for i, n in enumerate(run_skill(t.resolve(), a)):
+        for i, n in enumerate(run_skill(t.resolve(), a, out=out, findings=findings)):
             totals[i] += n
-    print(f"TOTAL {len(targets)} skill(s): {totals[0]} passed, {totals[1]} failed, {totals[2]} skipped")
+    print(f"TOTAL {len(targets)} skill(s): {totals[0]} passed, {totals[1]} failed, {totals[2]} skipped", file=out)
+    if a.json:
+        rc = emit_json(findings, a.sarif)
+        if rc:
+            sys.exit(rc)
     sys.exit(1 if totals[1] else 0)
 
 

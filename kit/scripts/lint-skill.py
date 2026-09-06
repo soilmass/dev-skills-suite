@@ -5,7 +5,7 @@ Specification (SDS) 1.0-draft.
 
 Usage:
     lint-skill.py <skill-dir> [--kit <kit>] [--registry <file>] [--json]
-                  [--strict] [--no-review]
+                  [--sarif] [--strict] [--no-review]
     lint-skill.py --all <skills-dir> [same options]
     lint-skill.py --rules
 
@@ -14,9 +14,16 @@ Exit codes: 0 conformant; 1 at least one ERROR (or WARN with --strict);
 `<RULE-ID> <LEVEL> <root-relative path>[:line] <message>`, sorted by
 path, line, ID; a summary on stderr; then the REVIEW checklist.
 `--json` emits a `finding-list` document conforming to
-kit/shapes/finding-list.schema.json (REVIEW items become level "hint").
-`--rules` prints the embedded rule table (`ID|slug|level|tag|section`),
-one rule per line in ID order, for diffing against the spec's Appendix B.
+kit/shapes/finding-list.schema.json (REVIEW items become level "hint");
+the document is self-validated against that schema before printing
+(exit 2 if it does not validate). `--sarif` (only meaningful with
+`--json`) emits the SARIF-2.1.0 variant of that same document instead:
+`version` becomes `"2.1.0"` and a top-level `$schema` of
+`https://json.schemastore.org/sarif-2.1.0.json` is added, for upload to
+GitHub Code Scanning via github/codeql-action/upload-sarif — the shape
+underneath (`runs`, `results`) is unchanged. `--rules` prints the
+embedded rule table (`ID|slug|level|tag|section`), one rule per line in
+ID order, for diffing against the spec's Appendix B.
 
 Family root = parent of --kit (default: two levels above this file).
 Never the git toplevel.
@@ -134,7 +141,7 @@ SDS-K-043 | profile-verbatim | SHOULD | MACHINE | 9.5 | Skills copy profile entr
 SDS-K-050 | glossary-row | MUST | MACHINE | 9.6 | Glossary rows are term | definition | do-not-use.
 SDS-K-051 | glossary-cites | SHOULD | REVIEW | 9.6 | Each glossary row cites the spec section fixing the concept.
 SDS-K-060 | eval-row-schema | MUST | MACHINE | 9.7 | Eval rows are {name, input?, expected{kind, shape?, failureCode?, reason?, assertions[]}} (checked per skill by SDS-S-090).
-SDS-K-070 | linter-contract | MUST | MACHINE | 9.8 | kit/scripts/lint-skill.py <skill-dir>|--all exits 0 only when all MUST+MACHINE rules pass; output `<ID> <LEVEL> <path>[:line] <message>`; --json emits finding-list.
+SDS-K-070 | linter-contract | MUST | MACHINE | 9.8 | kit/scripts/lint-skill.py <skill-dir>|--all exits 0 only when all MUST+MACHINE rules pass; output `<ID> <LEVEL> <path>[:line] <message>`; --json emits finding-list; --sarif (with --json) emits the SARIF 2.1.0 variant for code-scanning upload.
 SDS-K-071 | linter-rules-match-spec | MUST | REVIEW | 9.8 | The linter's MACHINE rule table equals Appendix B's MACHINE set.
 SDS-K-072 | eval-runner-contract | MUST | REVIEW | 9.9 | kit/scripts/run-evals.py <skill-dir>|--all runs generators then every row with a command, judged by expected.kind (exit code, failureCode on stderr, Shape validation); never the smoke section; exit 0 only when every executed row passed.
 SDS-S-001 | skillmd-present | MUST | MACHINE | 10.1 | SKILL.md exists at the skill root.
@@ -1926,7 +1933,7 @@ def report_text(findings: list[Finding], review: bool, label: str) -> None:
             print(f"  REVIEW {rid} [{level}, §{section}] {text}")
 
 
-def report_json(findings: list[Finding], review: bool, kit: Path) -> int:
+def report_json(findings: list[Finding], review: bool, kit: Path, sarif: bool = False) -> int:
     results = []
     for f in sorted(findings, key=sort_key):
         r = {"ruleId": f.rule_id, "level": JSON_LEVEL[f.level], "message": {"text": f.message},
@@ -1946,6 +1953,13 @@ def report_json(findings: list[Finding], review: bool, kit: Path) -> int:
         except (jsonschema.ValidationError, json.JSONDecodeError) as e:
             sys.stderr.write(f"ERROR: linter output failed finding-list schema validation: {str(e)[:120]}\n")
             return 2
+    if sarif:
+        # SARIF-2.1.0 variant for GitHub Code Scanning upload: same `runs`
+        # shape, but `version` and a top-level `$schema` per GitHub's
+        # upload-sarif requirements (the family shape's own version stays
+        # "sds-finding-list-1.0" — this is a presentation variant, not a
+        # change to kit/shapes/finding-list.schema.json).
+        doc = {"$schema": "https://json.schemastore.org/sarif-2.1.0.json", "version": "2.1.0", "runs": doc["runs"]}
     print(json.dumps(doc, indent=2))
     return 0
 
@@ -1957,6 +1971,7 @@ def main(argv=None) -> int:
     ap.add_argument("--kit", help="kit directory (default: two levels above this script)")
     ap.add_argument("--registry", help="registry file (default: <kit>/registry/marketplace.json)")
     ap.add_argument("--json", action="store_true", help="emit a finding-list document")
+    ap.add_argument("--sarif", action="store_true", help="with --json, emit the SARIF 2.1.0 variant for GitHub Code Scanning upload")
     ap.add_argument("--rules", action="store_true", help="print the embedded rule table and exit")
     ap.add_argument("--strict", action="store_true", help="treat WARN as failing")
     ap.add_argument("--no-review", action="store_true", help="suppress the REVIEW checklist")
@@ -2001,7 +2016,7 @@ def main(argv=None) -> int:
 
     review = not a.no_review
     if a.json:
-        rc = report_json(findings, review, kit)
+        rc = report_json(findings, review, kit, a.sarif)
         if rc:
             return rc
     else:
