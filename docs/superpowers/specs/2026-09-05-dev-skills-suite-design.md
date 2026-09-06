@@ -78,6 +78,22 @@ rhythm, each hanging off an existing cluster and pinned to a standard
 generated shape graph showed the family's dominant shape had no
 consumer. It merges any number of audit outputs into one status-report.
 
+**Fourth bench (2026-09-06, built):** seven more for the thin clusters
+and a security seam:
+
+| Cluster | Skills |
+|---|---|
+| Architecture & Decisions | import-cycle-finder, layer-boundary-check |
+| Monorepo Coordination | workspace-consistency-check |
+| Feature Flags & Experimentation | flag-retirement-plan-writer |
+| AI Feature Engineering | eval-dataset-audit |
+| Local Dev & Environment | dockerfile-review |
+| Dependencies & Supply Chain | license-header-check |
+
+The shape graph closed the same day: findings-to-issues,
+findings-to-code-scanning, and report-poster (rung 5) give finding-list
+and status-report their Command consumers.
+
 ## Core Model: a skill is a function
 
 ```
