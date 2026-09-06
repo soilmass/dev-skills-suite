@@ -73,3 +73,26 @@ repository, declined because it changes the user's own plugin
 configuration; the first real install is therefore still an open
 test, and the `${CLAUDE_SKILL_DIR}` working-directory assumption in
 the README's Install section is the thing to check when it runs.
+
+## Third bench (added later the same day)
+
+The ten third-bench skills are rung 1 except `github-actions-cost-audit`
+(rung 3, the runs API). The testbed has no workflow runs, so its live
+run returned the empty finding-list (`runs: 0`) — correct, and
+uninformative. The live path was therefore exercised, read-only,
+against a shallow clone of the public `actions/checkout` repository
+(deleted afterwards) with a three-day window:
+
+| Run | Result |
+|---|---|
+| First | 14 runs across 5 workflows, 20 minutes, weighted 20; two `top-workflow` findings. `test.yml` weighted at 1x although its matrix has macOS and Windows legs — `runs-on: ${{ matrix.os }}` names no runner. |
+| Fix | `runner_cost` now reads `strategy.matrix` as well as `runs-on`; the docstring says a matrix workflow is weighted at its most expensive leg. |
+| Second | Same 14 runs, weighted 83; `expensive-runner` on `test.yml` (macos, 7 minutes billed as 70) and `top-workflow` at 84%. Output validated against `finding-list`. |
+
+Also from this pass: `kit/scripts/run-evals.py` now runs every
+executable eval row of the family (507 pass, 82 not-applicable rows
+skipped); its first run found five multi-line commands the runner had
+to fold, three scripts that omitted their documented failure code
+from stderr, one borrowed failure code, and one intermediate output
+mislabelled with a registered shape — all fixed in the skills, not
+the rows' expectations.

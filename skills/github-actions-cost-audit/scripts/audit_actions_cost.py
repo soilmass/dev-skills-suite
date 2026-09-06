@@ -22,8 +22,9 @@ Minutes are wall-clock per run (updated_at - run_started_at, rounded
 up), multiplied by the runner cost of the workflow's most expensive
 `runs-on` (linux 1, windows 2, macos 10, per GitHub's billing
 multipliers). This approximates billed minutes — billing is per job
-and includes queue-free time only — and the skill says so; the exact
-figure is on the billing page.
+and includes queue-free time only, and a matrix workflow with one
+macOS leg is weighted here as if every leg were macOS — and the
+skill says so; the exact figure is on the billing page.
 
 Rules emitted:
 
@@ -97,8 +98,9 @@ def runner_cost(wf):
     for job in (wf.get("jobs") or {}).values():
         if not isinstance(job, dict):
             continue
-        ro = job.get("runs-on")
-        text = json.dumps(ro).lower() if not isinstance(ro, str) else ro.lower()
+        # runs-on may be a literal, a list of labels, or a matrix
+        # expression; the matrix values name the runner in the last case.
+        text = json.dumps([job.get("runs-on"), job.get("strategy")]).lower()
         for name, mult in MULTIPLIER:
             if name in text:
                 cost = max(cost, mult)
