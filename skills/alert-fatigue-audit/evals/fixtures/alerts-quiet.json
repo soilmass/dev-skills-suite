@@ -1,0 +1,36 @@
+[
+ {
+  "labels": {
+   "alertname": "HighErrorRate",
+   "severity": "critical",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "HighErrorRate",
+   "runbook_url": "https://runbooks.example/HighErrorRate"
+  },
+  "startsAt": "2026-08-26T12:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": true,
+  "endsAt": "2026-08-26T12:15:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "HighErrorRate",
+   "severity": "critical",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "HighErrorRate",
+   "runbook_url": "https://runbooks.example/HighErrorRate"
+  },
+  "startsAt": "2026-09-03T12:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": true,
+  "endsAt": "2026-09-03T12:12:00Z"
+ }
+]

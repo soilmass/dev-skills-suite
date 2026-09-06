@@ -1,0 +1,32 @@
+groups:
+  - name: platform
+    rules:
+      - alert: NoisyCron
+        expr: cron_last_success_seconds > 3600
+        for: 5m
+        labels: {severity: warning}
+      - alert: DiskAlmostFull
+        expr: disk_free_ratio < 0.1
+        for: 1m
+        labels: {severity: warning}
+      - alert: DiskIOSaturated
+        expr: disk_io_util > 0.95
+        for: 5m
+        labels: {severity: warning}
+        annotations: {runbook_url: https://runbooks.example/DiskIOSaturated}
+      - alert: HighErrorRate
+        expr: rate(http_errors[5m]) / rate(http_requests[5m]) > 0.05
+        for: 10m
+        labels: {severity: critical}
+        annotations: {runbook_url: https://runbooks.example/HighErrorRate}
+      - alert: CertExpiringSoon
+        expr: cert_expiry_days < 14
+        for: 1h
+        labels: {severity: warning}
+        annotations: {runbook_url: https://runbooks.example/CertExpiringSoon}
+      - alert: DeploymentStuck
+        expr: deployment_progress_seconds > 1800
+        for: 10m
+        labels: {severity: warning}
+      - record: job:up:ratio
+        expr: avg(up) by (job)

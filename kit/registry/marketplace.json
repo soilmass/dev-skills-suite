@@ -341,6 +341,16 @@
       "tier": "situational",
       "shape-out": "freeform",
       "shape-in": "freeform"
+    },
+    {
+      "name": "alert-fatigue-audit",
+      "description": "Finds the alerts that page people without telling them anything — from an Alertmanager-shaped alert history and, optionally, the Prometheus rules behind it: alerts fired many times and never acknowledged, alerts that flap for minutes at a time, conditions that have been \"firing\" for a week, alerts with no runbook, pairs that always fire together, and rules that never fire — as a finding-list, leaving the call on delete, re-threshold, or reroute to a human. Use after an on-call retrospective, when pages are being ignored, or when asked which alerts are noise.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
     }
   ]
 }

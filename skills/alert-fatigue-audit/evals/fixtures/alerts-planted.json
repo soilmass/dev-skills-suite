@@ -1,0 +1,674 @@
+[
+ {
+  "labels": {
+   "alertname": "NoisyCron",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "NoisyCron"
+  },
+  "startsAt": "2026-08-08T10:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": false,
+  "endsAt": "2026-08-08T10:10:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "NoisyCron",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "NoisyCron"
+  },
+  "startsAt": "2026-08-11T10:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": false,
+  "endsAt": "2026-08-11T10:10:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "NoisyCron",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "NoisyCron"
+  },
+  "startsAt": "2026-08-14T10:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": false,
+  "endsAt": "2026-08-14T10:10:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "NoisyCron",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "NoisyCron"
+  },
+  "startsAt": "2026-08-17T10:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": false,
+  "endsAt": "2026-08-17T10:10:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "NoisyCron",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "NoisyCron"
+  },
+  "startsAt": "2026-08-20T10:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": false,
+  "endsAt": "2026-08-20T10:10:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "NoisyCron",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "NoisyCron"
+  },
+  "startsAt": "2026-08-23T10:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": false,
+  "endsAt": "2026-08-23T10:10:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "NoisyCron",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "NoisyCron"
+  },
+  "startsAt": "2026-08-26T10:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": false,
+  "endsAt": "2026-08-26T10:10:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "NoisyCron",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "NoisyCron"
+  },
+  "startsAt": "2026-08-29T10:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": false,
+  "endsAt": "2026-08-29T10:10:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "DiskAlmostFull",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "DiskAlmostFull"
+  },
+  "startsAt": "2026-08-09T11:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": false,
+  "endsAt": "2026-08-09T11:02:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "DiskAlmostFull",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "DiskAlmostFull"
+  },
+  "startsAt": "2026-08-11T11:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": false,
+  "endsAt": "2026-08-11T11:02:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "DiskAlmostFull",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "DiskAlmostFull"
+  },
+  "startsAt": "2026-08-13T11:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": false,
+  "endsAt": "2026-08-13T11:02:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "DiskAlmostFull",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "DiskAlmostFull"
+  },
+  "startsAt": "2026-08-15T11:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": true,
+  "endsAt": "2026-08-15T11:02:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "DiskAlmostFull",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "DiskAlmostFull"
+  },
+  "startsAt": "2026-08-17T11:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": false,
+  "endsAt": "2026-08-17T11:02:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "DiskAlmostFull",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "DiskAlmostFull"
+  },
+  "startsAt": "2026-08-19T11:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": false,
+  "endsAt": "2026-08-19T11:02:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "DiskAlmostFull",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "DiskAlmostFull"
+  },
+  "startsAt": "2026-08-21T11:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": false,
+  "endsAt": "2026-08-21T11:02:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "DiskAlmostFull",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "DiskAlmostFull"
+  },
+  "startsAt": "2026-08-23T11:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": false,
+  "endsAt": "2026-08-23T11:30:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "DiskAlmostFull",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "DiskAlmostFull"
+  },
+  "startsAt": "2026-08-25T11:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": false,
+  "endsAt": "2026-08-25T11:02:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "DiskAlmostFull",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "DiskAlmostFull"
+  },
+  "startsAt": "2026-08-27T11:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": true,
+  "endsAt": "2026-08-27T11:02:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "DiskAlmostFull",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "DiskAlmostFull"
+  },
+  "startsAt": "2026-08-29T11:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": false,
+  "endsAt": "2026-08-29T11:02:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "DiskAlmostFull",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "DiskAlmostFull"
+  },
+  "startsAt": "2026-08-31T11:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": false,
+  "endsAt": "2026-08-31T11:02:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "DiskAlmostFull",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "DiskAlmostFull"
+  },
+  "startsAt": "2026-09-02T11:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": false,
+  "endsAt": "2026-09-02T11:02:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "DiskAlmostFull",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "DiskAlmostFull"
+  },
+  "startsAt": "2026-09-04T11:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": false,
+  "endsAt": "2026-09-04T11:02:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "DiskIOSaturated",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "DiskIOSaturated",
+   "runbook_url": "https://runbooks.example/DiskIOSaturated"
+  },
+  "startsAt": "2026-08-09T11:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": true,
+  "endsAt": "2026-08-09T11:08:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "DiskIOSaturated",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "DiskIOSaturated",
+   "runbook_url": "https://runbooks.example/DiskIOSaturated"
+  },
+  "startsAt": "2026-08-11T11:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": true,
+  "endsAt": "2026-08-11T11:08:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "DiskIOSaturated",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "DiskIOSaturated",
+   "runbook_url": "https://runbooks.example/DiskIOSaturated"
+  },
+  "startsAt": "2026-08-13T11:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": true,
+  "endsAt": "2026-08-13T11:08:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "DiskIOSaturated",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "DiskIOSaturated",
+   "runbook_url": "https://runbooks.example/DiskIOSaturated"
+  },
+  "startsAt": "2026-08-15T11:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": true,
+  "endsAt": "2026-08-15T11:08:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "DiskIOSaturated",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "DiskIOSaturated",
+   "runbook_url": "https://runbooks.example/DiskIOSaturated"
+  },
+  "startsAt": "2026-08-17T11:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": true,
+  "endsAt": "2026-08-17T11:08:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "DiskIOSaturated",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "DiskIOSaturated",
+   "runbook_url": "https://runbooks.example/DiskIOSaturated"
+  },
+  "startsAt": "2026-08-19T11:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": true,
+  "endsAt": "2026-08-19T11:08:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "DiskIOSaturated",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "DiskIOSaturated",
+   "runbook_url": "https://runbooks.example/DiskIOSaturated"
+  },
+  "startsAt": "2026-08-21T11:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": true,
+  "endsAt": "2026-08-21T11:08:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "DiskIOSaturated",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "DiskIOSaturated",
+   "runbook_url": "https://runbooks.example/DiskIOSaturated"
+  },
+  "startsAt": "2026-08-23T11:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": true,
+  "endsAt": "2026-08-23T11:08:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "DiskIOSaturated",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "DiskIOSaturated",
+   "runbook_url": "https://runbooks.example/DiskIOSaturated"
+  },
+  "startsAt": "2026-08-25T11:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": true,
+  "endsAt": "2026-08-25T11:08:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "DiskIOSaturated",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "DiskIOSaturated",
+   "runbook_url": "https://runbooks.example/DiskIOSaturated"
+  },
+  "startsAt": "2026-08-27T11:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": true,
+  "endsAt": "2026-08-27T11:08:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "DiskIOSaturated",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "DiskIOSaturated",
+   "runbook_url": "https://runbooks.example/DiskIOSaturated"
+  },
+  "startsAt": "2026-08-29T11:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": true,
+  "endsAt": "2026-08-29T11:08:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "DiskIOSaturated",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "DiskIOSaturated",
+   "runbook_url": "https://runbooks.example/DiskIOSaturated"
+  },
+  "startsAt": "2026-08-31T11:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": true,
+  "endsAt": "2026-08-31T11:08:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "DiskIOSaturated",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "DiskIOSaturated",
+   "runbook_url": "https://runbooks.example/DiskIOSaturated"
+  },
+  "startsAt": "2026-09-02T11:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": true,
+  "endsAt": "2026-09-02T11:08:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "DiskIOSaturated",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "DiskIOSaturated",
+   "runbook_url": "https://runbooks.example/DiskIOSaturated"
+  },
+  "startsAt": "2026-09-04T11:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": true,
+  "endsAt": "2026-09-04T11:08:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "HighErrorRate",
+   "severity": "critical",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "HighErrorRate",
+   "runbook_url": "https://runbooks.example/HighErrorRate"
+  },
+  "startsAt": "2026-08-16T12:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": true,
+  "endsAt": "2026-08-16T12:15:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "HighErrorRate",
+   "severity": "critical",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "HighErrorRate",
+   "runbook_url": "https://runbooks.example/HighErrorRate"
+  },
+  "startsAt": "2026-08-22T12:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": true,
+  "endsAt": "2026-08-22T12:15:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "HighErrorRate",
+   "severity": "critical",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "HighErrorRate",
+   "runbook_url": "https://runbooks.example/HighErrorRate"
+  },
+  "startsAt": "2026-08-28T12:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": true,
+  "endsAt": "2026-08-28T12:15:00Z"
+ },
+ {
+  "labels": {
+   "alertname": "CertExpiringSoon",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "CertExpiringSoon"
+  },
+  "startsAt": "2026-08-24T12:00:00Z",
+  "status": {
+   "state": "active"
+  },
+  "acknowledged": false
+ },
+ {
+  "labels": {
+   "alertname": "AncientAlert",
+   "severity": "warning",
+   "instance": "web-1"
+  },
+  "annotations": {
+   "summary": "AncientAlert"
+  },
+  "startsAt": "2026-07-27T12:00:00Z",
+  "status": {
+   "state": "resolved"
+  },
+  "acknowledged": false,
+  "endsAt": "2026-07-27T12:05:00Z"
+ }
+]
