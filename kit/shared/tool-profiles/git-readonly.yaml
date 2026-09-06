@@ -8,6 +8,8 @@ allowed-tools:
   - "Bash(git show:*)"
   - "Bash(git describe:*)"
   - "Bash(git tag -l:*)"
+  - "Bash(git for-each-ref:*)"
+  - "Bash(git branch --merged:*)"
   - "Bash(git fetch:*)"
 notes: >
   Read-only against local and remote git state. Deliberately excludes

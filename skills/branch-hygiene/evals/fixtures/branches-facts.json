@@ -1,0 +1,8 @@
+[
+  { "name": "main", "lastCommit": "2026-09-05", "merged": true, "upstream": "origin/main", "upstreamGone": false },
+  { "name": "feature/merged", "lastCommit": "2026-01-10", "merged": true, "upstream": "origin/feature/merged", "upstreamGone": false },
+  { "name": "feature/stale", "lastCommit": "2026-01-15", "merged": false, "upstream": "origin/feature/stale", "upstreamGone": false },
+  { "name": "feature/active", "lastCommit": "2026-09-01", "merged": false, "upstream": "origin/feature/active", "upstreamGone": false },
+  { "name": "feature/gone", "lastCommit": "2026-08-20", "merged": false, "upstream": "origin/feature/gone", "upstreamGone": true },
+  { "name": "hotfix/stale-and-gone", "lastCommit": "2026-03-01", "merged": false, "upstream": "origin/hotfix/stale-and-gone", "upstreamGone": true }
+]

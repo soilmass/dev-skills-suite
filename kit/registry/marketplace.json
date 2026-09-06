@@ -131,6 +131,16 @@
       "tier": "situational",
       "shape-out": "plan-doc",
       "shape-in": "freeform"
+    },
+    {
+      "name": "branch-hygiene",
+      "description": "Lists a repository's branches that are merged into the base, stale beyond a threshold, or tracking an upstream that no longer exists, as a finding-list for a human to act on — it proposes deletions and never performs one. Use when a repository has accumulated branches, before a release freeze, or when asked which branches can be cleaned up.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "domain-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
     }
   ]
 }
