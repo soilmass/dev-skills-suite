@@ -27,6 +27,11 @@ the reference (SDS-C-048 — say what you cannot know):
     - a top-level class whose base list names anything ending in
       `TestCase` (unittest-style test classes are found by the test
       runner's discovery, not by a name reference anywhere in source);
+    - a top-level class with no base classes at all, named `Test*`,
+      that defines no `__init__` (pytest's own collection convention —
+      no `TestCase` base required — finds it by name pattern, and a
+      defined `__init__` is exactly what disqualifies a class from
+      that collection, per pytest's own rule);
     - anything under directories named in --exclude or the usual
       vendored/build directories.
 Every finding carries properties.confidence "static" and the reminder
@@ -56,16 +61,27 @@ def _base_name(base):
     return ""
 
 
+def _pytest_bare_class(node):
+    """A bare (no base classes) top-level class named Test* with no
+    __init__: pytest collects it by name pattern alone, no TestCase
+    base required — and a defined __init__ is exactly what would
+    disqualify it from that collection, per pytest's own rule."""
+    if node.bases or not node.name.startswith("Test"):
+        return False
+    return not any(isinstance(s, (ast.FunctionDef, ast.AsyncFunctionDef)) and s.name == "__init__" for s in node.body)
+
+
 def _framework_registered(node):
     """A top-level def/class a static name-count cannot see used: a
     decorator hands the function/class object to code elsewhere (a
     route table, a check registry, a pytest fixture) with no name
-    reference to find; a TestCase subclass is found by the test
-    runner's own discovery, never referenced by name in source."""
+    reference to find; a TestCase subclass — or a bare pytest-style
+    Test* class — is found by the test runner's own discovery, never
+    referenced by name in source."""
     if node.decorator_list:
         return True
     if isinstance(node, ast.ClassDef):
-        return any(_base_name(b).endswith("TestCase") for b in node.bases)
+        return any(_base_name(b).endswith("TestCase") for b in node.bases) or _pytest_bare_class(node)
     return False
 
 

@@ -37,6 +37,19 @@ rows:
         - "no result names decorator_registered_check (a top-level function decorated with @register(...), framework_registered.py) even though nothing calls it by name"
         - "no result names DiscoveredByRunner (a top-level class subclassing unittest.TestCase, framework_registered.py) even though nothing instantiates it by name"
 
+  # REQUIRED — boundary: false positive found dogfooding this skill on
+  # psf/requests (tests/test_utils.py, tests/test_requests.py, etc.: many
+  # `class TestFoo:` with no base class at all — pytest's own bare-class
+  # collection convention, not a unittest.TestCase subclass).
+  - name: boundary-pytest-bare-class
+    input:
+      command: "python3 scripts/find_dead_code.py evals/fixtures/planted-src"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "no result names TestBareClass (a top-level class with no base classes at all, named Test* with no __init__, framework_registered.py) even though nothing instantiates it by name"
+
   # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted orphan is found at its line.
   - name: mutation-fixture-planted-orphan
     input:
