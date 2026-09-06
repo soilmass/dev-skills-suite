@@ -241,6 +241,16 @@
       "tier": "situational",
       "shape-out": "finding-list",
       "shape-in": "freeform"
+    },
+    {
+      "name": "ci-pipeline-audit",
+      "description": "Audits GitHub Actions workflow files for the mistakes that cost the most in practice — actions pinned to a branch or a movable tag, write permissions granted to every job, pull_request_target checking out untrusted code, secrets printed into logs, jobs without a timeout, workflows without a concurrency group — as a finding-list, leaving the call on which one matters in this repository to a human. Use when inheriting a pipeline, before granting a workflow new permissions, or when asked whether CI is safe and sane.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
     }
   ]
 }

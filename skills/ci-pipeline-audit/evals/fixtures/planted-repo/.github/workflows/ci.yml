@@ -1,0 +1,21 @@
+# Planted fixture: no concurrency, workflow-wide contents: write, a job with
+# no timeout, a branch-pinned and a tag-pinned action, and a secret echoed.
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e .
+      - run: |
+          echo "token is ${{ secrets.NPM_TOKEN }}"
+          pytest

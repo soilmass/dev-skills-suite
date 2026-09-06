@@ -1,0 +1,14 @@
+# Planted fixture: clean — manual trigger, SHA pins, timeouts, scoped permissions.
+name: Release
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: ./.github/actions/build
+      - run: make dist

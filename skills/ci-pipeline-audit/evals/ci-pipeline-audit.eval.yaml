@@ -1,0 +1,79 @@
+# Table-driven eval file for ci-pipeline-audit (SDS-S-090).
+#
+# A rung-1 Query Skill over a planted repository with three workflows:
+# a CI workflow carrying every hygiene and permission fault, a
+# pull_request_target workflow that checks out the pull request head,
+# and a clean release workflow that must draw nothing. Every row is
+# deterministic and offline — the script reads files only.
+
+skill: ci-pipeline-audit
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): exactly the planted faults are reported; the clean workflow is silent.
+  - name: happy-path-planted-workflows
+    input:
+      command: "python3 scripts/audit_workflows.py evals/fixtures/planted-repo"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "ci.yml draws: ci/broad-permissions (workflow scope, contents write), ci/unpinned-action for actions/checkout@main (warning, pin branch) and actions/setup-python@v5 (info, pin tag), ci/secret-in-run-echo on the echo line, ci/no-timeout for job test, ci/no-concurrency"
+        - "pr-label.yml draws exactly one finding: ci/pull-request-target-checkout for job label"
+        - "release.yml draws nothing (workflow_dispatch, SHA pin, local action, timeout, contents read)"
+        - "warnings are ordered before infos"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted branch pin is found on its line.
+  - name: mutation-fixture-branch-pinned-action
+    input:
+      command: "python3 scripts/audit_workflows.py evals/fixtures/planted-repo"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "a ci/unpinned-action result exists at .github/workflows/ci.yml line 14 with properties action actions/checkout, ref main, pin branch, job test, level warning"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): no .github/workflows -> empty results.
+  - name: boundary-empty-repo
+    input:
+      command: "python3 scripts/audit_workflows.py evals/fixtures/empty-repo"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; the output is otherwise complete and schema-valid"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast): invalid YAML stops the scan.
+  - name: boundary-malformed-workflow
+    input:
+      command: "python3 scripts/audit_workflows.py evals/fixtures/broken-repo"
+    expected:
+      kind: failure
+      failureCode: workflow-malformed
+      assertions:
+        - "exit code is 1 and stderr names broken.yml and says workflow-malformed"
+
+  - name: boundary-invalid-path
+    input:
+      command: "python3 scripts/audit_workflows.py evals/fixtures/planted-repo/.github/workflows/ci.yml"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 — the path is a file, not a directory"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/audit_workflows.py evals/fixtures/planted-repo | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"
