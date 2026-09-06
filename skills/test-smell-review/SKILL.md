@@ -3,10 +3,10 @@ name: test-smell-review
 description: >-
   Reviews Python test files for structural smells — tests that assert
   nothing, tests that sleep, tests that swallow exceptions, tests that
-  branch at their top level — as a finding-list, leaving the call on
-  which smell is a real weakness to a human. Use before trusting a
-  green suite, when reviewing a test-heavy pull request, or when
-  asked why tests pass but bugs ship.
+  branch in their outermost block — as a finding-list, leaving the
+  call on which smell is a real weakness to a human. Use before
+  trusting a green test run, when reviewing a test-heavy pull request,
+  or when asked why tests pass but bugs ship.
 license: Apache-2.0
 metadata:
   family: dev-skills-suite
