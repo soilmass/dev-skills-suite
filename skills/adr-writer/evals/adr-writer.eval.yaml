@@ -1,0 +1,123 @@
+# Table-driven eval file for adr-writer (SDS-S-090).
+#
+# A rung-4 Command Skill: the only mutation is writing files into an
+# ADR directory, so — unlike rung-5/6 skills — the eval suite CAN
+# exercise the Act path, against gitignored output directories that
+# the build script resets (SDS-S-096). The dry-run rows and the write
+# rows share one rendering code path.
+#
+# Before running: evals/fixtures/adr-out and adr-out-empty are
+# generated, not checked in. Reset them first:
+#   evals/fixtures/build-adr-out.sh
+
+skill: adr-writer
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): dry-run render of a valid decision-doc next to an existing ADR-0001.
+  - name: happy-path-dry-run-render
+    input:
+      command: "python3 scripts/render_adr.py evals/fixtures/decision-example.json --adr-dir evals/fixtures/adr-dir-existing --title \"PostgreSQL (managed)\" --dry-run"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "number is 0002 (0001 already exists) and path ends with 0002-postgresql-managed.md"
+        - "rendered contains '# ADR-0002: PostgreSQL (managed)', '- status: accepted', and a '## Consequences' block with Good and Bad"
+        - "decision.status is 'accepted'; nothing was written to adr-dir-existing (dry run)"
+
+  # Happy path: real write into the generated output directory.
+  - name: happy-path-write-new-adr
+    input:
+      command: "evals/fixtures/build-adr-out.sh && python3 scripts/render_adr.py evals/fixtures/decision-example.json --adr-dir evals/fixtures/adr-out --title \"PostgreSQL (managed)\""
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "evals/fixtures/adr-out/0002-postgresql-managed.md now exists and 0001-use-postgres.md is byte-for-byte unchanged"
+        - "stdout JSON has number 0002 and supersededPath null"
+
+  # Happy path: supersession updates exactly one status line of the old record (SDS-C-034).
+  - name: happy-path-supersede
+    input:
+      command: "evals/fixtures/build-adr-out.sh && python3 scripts/render_adr.py evals/fixtures/decision-supersede.json --adr-dir evals/fixtures/adr-out --title \"Split hot tables to DynamoDB\" --supersedes 0001"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "0002-split-hot-tables-to-dynamodb.md exists and contains '- supersedes: ADR-0001'"
+        - "0001-use-postgres.md's status line is now '- status: superseded by ADR-0002' and every other line is unchanged"
+        - "stdout JSON supersededPath ends with 0001-use-postgres.md"
+
+  # REQUIRED — boundary: empty ADR directory -> numbering starts at 0001 (SDS-C-005, SDS-C-033).
+  - name: boundary-empty-adr-dir
+    input:
+      command: "evals/fixtures/build-adr-out.sh && python3 scripts/render_adr.py evals/fixtures/decision-example.json --adr-dir evals/fixtures/adr-out-empty --dry-run"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "number is 0001 — an empty directory is a valid starting state, not an error"
+        - "title defaults to the chosen option, so the path ends with 0001-postgresql-managed.md"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-decision
+    input:
+      command: "python3 scripts/render_adr.py evals/fixtures/decision-malformed.json --adr-dir evals/fixtures/adr-dir-existing --dry-run"
+    expected:
+      kind: failure
+      failureCode: decision-unparseable
+      assertions:
+        - "exit code is 1"
+        - "stderr names the file and says decision-unparseable"
+
+  - name: boundary-invalid-decision-shape
+    input:
+      command: "python3 scripts/render_adr.py evals/fixtures/decision-invalid.json --adr-dir evals/fixtures/adr-dir-existing --dry-run"
+    expected:
+      kind: failure
+      failureCode: decision-invalid
+      assertions:
+        - "exit code is 1"
+        - "stderr says decision-invalid and names the missing required property (decisionOutcome)"
+
+  - name: boundary-missing-adr-dir
+    input:
+      command: "python3 scripts/render_adr.py evals/fixtures/decision-example.json --adr-dir evals/fixtures/decision-example.json --dry-run"
+    expected:
+      kind: failure
+      failureCode: adr-dir-missing
+      assertions:
+        - "exit code is 1 — the --adr-dir argument is an existing file, not a directory"
+        - "stderr says adr-dir-missing"
+
+  - name: boundary-missing-supersede-target
+    input:
+      command: "python3 scripts/render_adr.py evals/fixtures/decision-supersede.json --adr-dir evals/fixtures/adr-dir-existing --supersedes 0042 --dry-run"
+    expected:
+      kind: failure
+      failureCode: supersede-target-missing
+      assertions:
+        - "exit code is 1"
+        - "stderr says supersede-target-missing and names 0042; adr-dir-existing is untouched (dry run)"
+
+  # N/A — shape-out is decision-doc, not finding-list (SDS-S-095).
+  - name: mutation-fixture
+    expected:
+      kind: not-applicable
+      reason: "adr-writer does not search for known problems; shape-out is decision-doc, not finding-list."
+
+  # N/A — shape-out decision-doc != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out decision-doc differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): the accepted decision-doc this skill returns validates against the family shape.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/render_adr.py evals/fixtures/decision-example.json --adr-dir evals/fixtures/adr-dir-existing --dry-run | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin)['decision']; jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/decision-doc.schema.json'))); assert d['status']=='accepted'; print('decision-doc OK')\""
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "the returned decision (status accepted) validates against kit/shapes/decision-doc.schema.json"

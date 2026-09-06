@@ -1,0 +1,23 @@
+{
+  "status": "proposed",
+  "contextAndProblemStatement": "The service needs a primary datastore. Reads dominate, the schema is relational, and the team has operated PostgreSQL before but not MongoDB.",
+  "decisionDrivers": [
+    "relational schema with foreign keys across five core tables",
+    "team operational experience",
+    "managed offering available from the current cloud provider"
+  ],
+  "consideredOptions": [
+    "PostgreSQL (managed)",
+    "MongoDB Atlas",
+    "SQLite embedded"
+  ],
+  "decisionOutcome": {
+    "chosenOption": "PostgreSQL (managed)",
+    "justification": "it matches the relational schema, the team can operate it today, and the managed offering removes backup and failover work."
+  },
+  "consequences": {
+    "positive": ["referential integrity enforced by the database", "no new operational skill to acquire"],
+    "negative": ["vertical scaling limits on the managed tier", "schema migrations must be reviewed for lock impact"]
+  },
+  "confirmation": "The schema migration tooling targets PostgreSQL only, and the ADR is referenced from the service README."
+}

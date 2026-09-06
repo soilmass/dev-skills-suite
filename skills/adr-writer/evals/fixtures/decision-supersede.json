@@ -1,0 +1,23 @@
+{
+  "status": "proposed",
+  "contextAndProblemStatement": "ADR-0001 chose managed PostgreSQL. Two years on, write volume has grown 40x and the managed tier's vertical limit is now the bottleneck; the schema has also drifted toward wide, document-shaped rows in the two hottest tables.",
+  "decisionDrivers": [
+    "write throughput now exceeds the largest managed PostgreSQL tier",
+    "the two hottest tables are effectively documents already",
+    "the rest of the schema is still relational"
+  ],
+  "consideredOptions": [
+    "Shard PostgreSQL with Citus",
+    "Move the two hot tables to DynamoDB, keep PostgreSQL for the rest",
+    "Migrate everything to MongoDB"
+  ],
+  "decisionOutcome": {
+    "chosenOption": "Move the two hot tables to DynamoDB, keep PostgreSQL for the rest",
+    "justification": "it removes the bottleneck where it actually is without rewriting the relational core, and the team has since gained DynamoDB experience on another service."
+  },
+  "consequences": {
+    "positive": ["write throughput no longer bound by a single node", "the relational schema and its tooling are untouched"],
+    "negative": ["two datastores to operate", "cross-store consistency must be handled in application code"]
+  },
+  "confirmation": "Load test at 2x current peak passes against the split datastore before cutover; ADR-0001 is marked superseded."
+}

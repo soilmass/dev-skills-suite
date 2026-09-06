@@ -24,9 +24,9 @@
     },
     {
       "name": "adr-writer",
-      "description": "Captures an architecture decision as a MADR-shaped, portable decision record.",
+      "description": "Captures an architecture decision as a numbered MADR record in the repository's ADR directory and as a machine-readable decision-doc, treating accepted records as immutable and superseding rather than editing them. Use when a significant technical choice has just been settled, when asked to write or record an ADR, or when an earlier decision is being replaced.",
       "version": "0.1.0",
-      "status": "planned",
+      "status": "built",
       "effect-tier": "local-write",
       "tier": "pillar",
       "shape-out": "decision-doc",
