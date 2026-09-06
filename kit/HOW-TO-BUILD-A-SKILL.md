@@ -266,3 +266,12 @@ manifests against Claude Code's own schema.
 
 If all five pass, the skill is done. If any fail, fix the skill —
 not the eval, and not the glossary.
+
+## Step 12 — Register the sweep line
+
+If this is a Query Skill whose Gather script runs with the repository
+path alone — no other required input — add one entry to
+`kit/registry/sweep.json`: `{"script": "<file>.py", "args": "", "needs":
+[], "shape": "finding-list"|"freeform"}` (`needs` names `git` or `osv`
+only when the script itself requires one). Otherwise, add it to that
+file's top-level `excluded` object instead, with a one-line reason.

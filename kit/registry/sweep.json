@@ -1,0 +1,42 @@
+{
+  "_comment": "Registry for kit/scripts/sweep.py. Each key is a skill directory under skills/. `script` is run as `python3 scripts/<script> <abs-repo-path> <args>` from the skill directory; `pipeline` (dependency-audit) is run through bash instead, with `{repo}` substituted for the absolute repository path. `args` are the extra flags always passed (repository-agnostic; use --extra <skill>=<args> on the sweep.py command line for per-run additions). `needs` lists gates this entry requires opt-in for via --needs (git, osv); an empty list means it runs by default. `shape` is `finding-list` (included in the digest) or `freeform` (run, but excluded from the digest).",
+
+  "ci-pipeline-audit": {"script": "audit_workflows.py", "args": "", "needs": [], "shape": "finding-list"},
+  "codeowners-check": {"script": "check_codeowners.py", "args": "", "needs": [], "shape": "finding-list"},
+  "dead-code-finder": {"script": "find_dead_code.py", "args": "", "needs": [], "shape": "finding-list"},
+  "code-comment-audit": {"script": "audit_comments.py", "args": "", "needs": [], "shape": "finding-list"},
+  "naming-consistency-check": {"script": "check_naming.py", "args": "", "needs": [], "shape": "finding-list"},
+  "large-file-splitter-advisor": {"script": "find_split_seams.py", "args": "", "needs": [], "shape": "finding-list"},
+  "tech-debt-inventory": {"script": "scan_debt.py", "args": "", "needs": [], "shape": "finding-list"},
+  "test-smell-review": {"script": "find_test_smells.py", "args": "", "needs": [], "shape": "finding-list"},
+  "env-var-inventory": {"script": "inventory_env_vars.py", "args": "", "needs": [], "shape": "finding-list"},
+  "devcontainer-audit": {"script": "audit_devcontainer.py", "args": "", "needs": [], "shape": "finding-list"},
+  "retry-timeout-audit": {"script": "audit_network_calls.py", "args": "", "needs": [], "shape": "finding-list"},
+  "prompt-template-audit": {"script": "audit_prompts.py", "args": "", "needs": [], "shape": "finding-list"},
+  "test-data-pii-scan": {"script": "scan_test_data.py", "args": "", "needs": [], "shape": "finding-list"},
+  "import-cycle-finder": {"script": "find_import_cycles.py", "args": "", "needs": [], "shape": "finding-list"},
+  "workspace-consistency-check": {"script": "check_workspaces.py", "args": "", "needs": [], "shape": "finding-list"},
+  "dockerfile-review": {"script": "review_dockerfile.py", "args": "", "needs": [], "shape": "finding-list"},
+  "deprecation-sweep": {"script": "sweep_deprecations.py", "args": "", "needs": [], "shape": "finding-list"},
+  "repository-orientation": {"script": "map_repository.py", "args": "", "needs": [], "shape": "freeform"},
+
+  "commit-message-lint": {"script": "lint_commits.py", "args": "", "needs": ["git"], "shape": "finding-list"},
+  "branch-hygiene": {"script": "scan_branches.py", "args": "", "needs": ["git"], "shape": "finding-list"},
+
+  "dependency-audit": {
+    "pipeline": "python3 scripts/parse_manifest.py {repo} {extra} | python3 scripts/osv_batch_query.py - | python3 scripts/osv_to_finding.py -",
+    "needs": ["osv"],
+    "shape": "finding-list"
+  },
+
+  "excluded": {
+    "feature-flag-inventory": "requires --flags-file <flags.json|yaml> and --as-of ISO; no repository-only default",
+    "i18n-string-inventory": "requires --catalogs <dir>; no repository-only default",
+    "docker-compose-review": "first positional is a compose.yml file, not the repository path",
+    "license-compliance-check": "requires --bom <bom.json> and --own-license <SPDX-id>; no repository-path form at all",
+    "public-api-change-check": "requires two package directories (old and new), not a single repository path",
+    "sla-error-budget-check": "first positional is an OpenSLO YAML file, not the repository path, plus requires --measurements-json-file and --as-of",
+    "github-actions-cost-audit": "repository-only form hits the live GitHub Actions API (rung 3, network + auth) unless --runs-json-file is also given",
+    "test-coverage-gap-finder": "first positional is a cobertura.xml coverage file, not the repository path; requires --repo separately"
+  }
+}
