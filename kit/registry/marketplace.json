@@ -612,6 +612,16 @@
       "shape-out": "status-report",
       "shape-in": "finding-list",
       "status": "built"
+    },
+    {
+      "name": "findings-to-code-scanning",
+      "description": "Uploads a family finding-list to GitHub Code Scanning as SARIF — merging every input into one analysis scoped to a commit and ref — after a medium-risk confirmation, with the single upload step checkpointed and, once accepted, not reversible through this skill. Use after an audit, when findings should surface as code scanning alerts, or when asked to upload findings to code scanning.",
+      "version": "0.1.0",
+      "effect-tier": "shared-write",
+      "tier": "situational",
+      "shape-out": "status-report",
+      "shape-in": "finding-list",
+      "status": "built"
     }
   ]
 }

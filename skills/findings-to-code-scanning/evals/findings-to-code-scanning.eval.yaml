@@ -1,0 +1,141 @@
+# Table-driven eval file for findings-to-code-scanning (SDS-S-090).
+#
+# A rung-5 Command Skill, another Command consumer of the family's
+# finding-list shape. prepare_sarif.py is exercised offline: every row
+# passes --sha and --ref explicitly, so no git repository fixture is
+# needed. The checkpoint store runs against the gitignored
+# evals/fixtures/state-scratch/ (reset by build-state-scratch.sh,
+# SDS-S-096). The mutation — gh api -X POST .../code-scanning/sarifs —
+# is never run by this suite in any capacity (SDS-S-092).
+
+skill: findings-to-code-scanning
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): the three frozen audits merge to
+  # 20 results total. Numbers recorded from a hand run of the script.
+  - name: happy-path-three-audits
+    input:
+      command: >-
+        python3 scripts/prepare_sarif.py . evals/fixtures/frozen-dependency-audit-findings.json
+        evals/fixtures/frozen-ci-pipeline-audit-findings.json evals/fixtures/frozen-retry-timeout-audit-findings.json
+        --sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --ref refs/heads/main
+    expected:
+      kind: success
+      assertions:
+        - "commit_sha is aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, ref is refs/heads/main, results is 20, tool_name is dev-skills-suite"
+        - "the sarif field, base64-decoded then gunzipped, parses as JSON with version \"2.1.0\", a top-level $schema, and 20 results total across its runs"
+
+  # REQUIRED — boundary: an empty finding-list is still a valid, zero-result upload (SDS-C-033).
+  - name: boundary-empty-findings
+    input:
+      command: >-
+        python3 scripts/prepare_sarif.py . evals/fixtures/findings-empty.json
+        --sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --ref refs/heads/main
+    expected:
+      kind: success
+      assertions:
+        - "results is 0 and the sarif field still decodes to a well-formed SARIF-2.1.0 document — not null, not omitted"
+
+  # REQUIRED — boundary: malformed findings input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-findings
+    input:
+      command: >-
+        python3 scripts/prepare_sarif.py . evals/fixtures/findings-malformed.json
+        --sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --ref refs/heads/main
+    expected:
+      kind: failure
+      failureCode: findings-invalid
+      assertions:
+        - "exit code is 1 and stderr says findings-invalid"
+
+  - name: boundary-invalid-sha
+    input:
+      command: >-
+        python3 scripts/prepare_sarif.py . evals/fixtures/frozen-dependency-audit-findings.json
+        --sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --ref refs/heads/main
+    expected:
+      kind: failure
+      failureCode: sha-invalid
+      assertions:
+        - "exit code is 1 and stderr says sha-invalid — the given sha is 39 hex characters, not 40"
+
+  - name: boundary-invalid-ref
+    input:
+      command: >-
+        python3 scripts/prepare_sarif.py . evals/fixtures/frozen-dependency-audit-findings.json
+        --sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --ref main
+    expected:
+      kind: failure
+      failureCode: ref-invalid
+      assertions:
+        - "exit code is 1 and stderr says ref-invalid — 'main' does not start with refs/"
+
+  - name: boundary-invalid-repo-path
+    input:
+      command: >-
+        python3 scripts/prepare_sarif.py evals/fixtures/findings-empty.json evals/fixtures/frozen-dependency-audit-findings.json
+        --sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --ref refs/heads/main
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 — the repository path is a file"
+
+  # Checkpoint round trip (SDS-S-053): pending before, completed after, one step for the upload.
+  - name: happy-path-checkpoint-round-trip
+    input:
+      command: >-
+        evals/fixtures/build-state-scratch.sh &&
+        python3 scripts/checkpoint.py findings-to-code-scanning aaaaaaa --step upload-aaaaaaa --status pending
+          --compensating-action "none — this step must be last" --state-dir evals/fixtures/state-scratch &&
+        python3 scripts/checkpoint.py findings-to-code-scanning aaaaaaa --step upload-aaaaaaa --status completed --state-dir evals/fixtures/state-scratch &&
+        python3 scripts/checkpoint.py findings-to-code-scanning aaaaaaa --show --state-dir evals/fixtures/state-scratch
+    expected:
+      kind: success
+      assertions:
+        - "the record at evals/fixtures/state-scratch/findings-to-code-scanning/aaaaaaa.json has one step, upload-aaaaaaa, status completed, with startedAt and completedAt and the compensating action 'none — this step must be last'"
+
+  # N/A — shape-out is status-report, not finding-list (SDS-S-095).
+  - name: mutation-fixture
+    expected:
+      kind: not-applicable
+      reason: "findings-to-code-scanning does not search for known findings; shape-out is status-report, not finding-list."
+
+  # N/A — shape-out status-report != shape-in finding-list (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out status-report differs from shape-in finding-list; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): the three frozen finding-lists this suite feeds in
+  # validate against this skill's own shape-in, and the payload's decoded sarif field
+  # has one result per input result, each with a ruleId, a level in {note, warning,
+  # error}, and a message.text.
+  - name: contract-with-upstream-producers
+    input:
+      command: >-
+        python3 -c "import json,jsonschema; s=json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'));
+        jsonschema.validate(json.load(open('evals/fixtures/frozen-dependency-audit-findings.json')), s);
+        jsonschema.validate(json.load(open('evals/fixtures/frozen-ci-pipeline-audit-findings.json')), s);
+        jsonschema.validate(json.load(open('evals/fixtures/frozen-retry-timeout-audit-findings.json')), s);
+        print('finding-list OK')" &&
+        python3 scripts/prepare_sarif.py . evals/fixtures/frozen-dependency-audit-findings.json evals/fixtures/frozen-ci-pipeline-audit-findings.json evals/fixtures/frozen-retry-timeout-audit-findings.json
+        --sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --ref refs/heads/main |
+        python3 -c "import json,sys,base64,gzip; d=json.load(sys.stdin); doc=json.loads(gzip.decompress(base64.b64decode(d['sarif'])));
+        rs=[r for run in doc['runs'] for r in run['results']];
+        assert len(rs) == 20;
+        assert all('ruleId' in r and r['level'] in ('note','warning','error') and 'text' in r['message'] for r in rs);
+        print('sarif OK, 20 results, all ruleId/level/message.text present')"
+    expected:
+      kind: success
+      assertions:
+        - "each frozen finding-list validates against kit/shapes/finding-list.schema.json"
+        - "the decoded sarif document has 20 results, each with a ruleId, a level in {note, warning, error}, and a message.text"
+
+---
+# Non-executed by design: gh api -X POST is never run by this suite
+# (SDS-S-092). A live, read-only smoke check confirming a completed
+# upload actually landed:
+#   gh api -X GET repos/soilmass/dev-skills-suite/code-scanning/sarifs/<id>
+# requires a real prior upload and gh auth against the real repository
+# and is not a gate.
