@@ -9,7 +9,7 @@ description: >-
   revises, applied only after a medium-risk confirmation with every
   edit reversible and checkpointed. Use when the board has drifted
   from reality, before a planning meeting, or when asked to update,
-  sync, or tidy the project board.
+  sync, or tidy the board.
 license: Apache-2.0
 compatibility: Requires the gh CLI authenticated with the `project`
   scope (gh auth refresh -s project), with read access to the board

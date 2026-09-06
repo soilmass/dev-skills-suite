@@ -9,6 +9,9 @@ allowed-tools:
   - "Bash(gh repo view:*)"
   - "Bash(gh release view:*)"
   - "Bash(gh release list:*)"
+  - "Bash(gh project view:*)"
+  - "Bash(gh project field-list:*)"
+  - "Bash(gh project item-list:*)"
   - "Bash(gh api -X GET:*)"
 notes: >
   Read-only GitHub API access. Deliberately excludes gh pr merge, gh pr
