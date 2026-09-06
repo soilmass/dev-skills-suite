@@ -141,6 +141,16 @@
       "tier": "situational",
       "shape-out": "finding-list",
       "shape-in": "freeform"
+    },
+    {
+      "name": "sbom-generator",
+      "description": "Produces a CycloneDX software bill of materials from a repository's manifests and lockfiles (npm, PyPI, crates.io), with package URLs and every license the manifests actually declare — unknown where they do not — and no timestamp or serial number unless supplied, so the same tree always yields the same BOM. Use when a release needs an SBOM, when asked what a repository depends on, or as the input to license-compliance-check.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "freeform",
+      "shape-in": "freeform"
     }
   ]
 }

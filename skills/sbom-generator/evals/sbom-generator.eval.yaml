@@ -1,0 +1,88 @@
+# Table-driven eval file for sbom-generator (SDS-S-090).
+#
+# A rung-1 Query Skill over a static planted project (npm lockfile with
+# node_modules licenses, one pinned and one unpinned pip requirement, a
+# Cargo.lock), an empty project, and a malformed manifest. Every row is
+# deterministic and offline; reproducibility itself is a row.
+
+skill: sbom-generator
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): the planted project yields four components across three ecosystems.
+  - name: happy-path-generate
+    input:
+      command: "python3 scripts/generate_sbom.py evals/fixtures/sample-project --name sample-project --version 2.3.0"
+    expected:
+      kind: success
+      assertions:
+        - "bomFormat is CycloneDX, specVersion 1.5, metadata.component is {type application, name sample-project, version 2.3.0}"
+        - "components (sorted by purl) are pkg:cargo/serde@1.0.200, pkg:npm/left-pad@1.3.0, pkg:npm/lodash@4.17.21, pkg:pypi/requests@2.32.3 — pyyaml (unpinned) is absent"
+        - "left-pad carries licenses [{expression WTFPL}] and lodash [{expression MIT}]; serde and requests carry no licenses key at all"
+        - "no serialNumber and no metadata.timestamp are present"
+
+  # Happy path: the same tree yields a byte-identical document on every run (SDS-C-003 hermeticity).
+  - name: happy-path-reproducible
+    input:
+      command: "python3 -c \"import subprocess; a=['python3','scripts/generate_sbom.py','evals/fixtures/sample-project']; x=subprocess.run(a,capture_output=True,text=True,check=True).stdout; y=subprocess.run(a,capture_output=True,text=True,check=True).stdout; assert x==y; print('reproducible')\""
+    expected:
+      kind: success
+      assertions:
+        - "two consecutive runs produce identical bytes"
+
+  # Happy path: timestamp and serial appear only when supplied.
+  - name: happy-path-explicit-timestamp-serial
+    input:
+      command: "python3 scripts/generate_sbom.py evals/fixtures/sample-project --timestamp 2026-09-06T00:00:00Z --serial urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79"
+    expected:
+      kind: success
+      assertions:
+        - "serialNumber and metadata.timestamp equal the supplied values"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): no manifests -> valid BOM with empty components.
+  - name: boundary-empty-project
+    input:
+      command: "python3 scripts/generate_sbom.py evals/fixtures/empty-project"
+    expected:
+      kind: success
+      assertions:
+        - "components is an empty array; bomFormat/specVersion/version are present and valid"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-manifest
+    input:
+      command: "python3 scripts/generate_sbom.py evals/fixtures/malformed-project"
+    expected:
+      kind: failure
+      failureCode: manifest-unparseable
+      assertions:
+        - "exit code is 1 and stderr names package.json and says manifest-unparseable"
+
+  - name: boundary-invalid-project-path
+    input:
+      command: "python3 scripts/generate_sbom.py evals/fixtures/sample-project/package.json"
+    expected:
+      kind: failure
+      failureCode: project-invalid
+      assertions:
+        - "exit code is 1 — the path is a file, not a directory"
+
+  # N/A — shape-out is freeform, not finding-list (SDS-S-095).
+  - name: mutation-fixture
+    expected:
+      kind: not-applicable
+      reason: "sbom-generator does not search for known problems; shape-out is freeform (a CycloneDX document)."
+
+  # N/A — freeform/freeform is not a self-composability signal (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out and shape-in are both freeform; per SDS-S-094 that is not self-composability, and a BOM is not an input to this skill."
+
+  # REQUIRED — contract (SDS-C-063): the document satisfies the CycloneDX subset schema a downstream consumer (license-compliance-check) relies on.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/generate_sbom.py evals/fixtures/sample-project | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('assets/cyclonedx-minimal.schema.json'))); print('cyclonedx-minimal OK', len(d['components']), 'components')\""
+    expected:
+      kind: success
+      assertions:
+        - "the document validates against assets/cyclonedx-minimal.schema.json (a subset of ECMA-424 CycloneDX 1.5)"

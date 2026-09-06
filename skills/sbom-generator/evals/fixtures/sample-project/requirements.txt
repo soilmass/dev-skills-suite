@@ -1,0 +1,3 @@
+requests==2.32.3
+# unpinned entries are deliberately excluded from the BOM:
+pyyaml>=6.0
