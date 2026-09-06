@@ -1,0 +1,39 @@
+{
+  "description": "Callees that reach the network. networkCalls are dotted names resolved through imports; clientConstructors create objects whose clientMethods are network calls (a timeout passed to the constructor covers them). Add a team's wrapper names or pass a copy with --patterns.",
+  "networkCalls": [
+    "requests.get",
+    "requests.post",
+    "requests.put",
+    "requests.patch",
+    "requests.delete",
+    "requests.head",
+    "requests.request",
+    "httpx.get",
+    "httpx.post",
+    "httpx.put",
+    "httpx.patch",
+    "httpx.delete",
+    "httpx.request",
+    "urllib.request.urlopen",
+    "socket.create_connection",
+    "aiohttp.request",
+    "http_client.fetch"
+  ],
+  "clientConstructors": [
+    "requests.Session",
+    "httpx.Client",
+    "httpx.AsyncClient",
+    "aiohttp.ClientSession"
+  ],
+  "clientMethods": [
+    "get",
+    "post",
+    "put",
+    "patch",
+    "delete",
+    "head",
+    "request",
+    "send",
+    "stream"
+  ]
+}

@@ -512,6 +512,16 @@
       "tier": "situational",
       "shape-out": "finding-list",
       "shape-in": "freeform"
+    },
+    {
+      "name": "retry-timeout-audit",
+      "description": "Audits a Python repository's network calls for the three shapes behind most cascading failures — calls with no timeout (including through a client object constructed without one), retry loops that sleep a constant instead of backing off, and `while True` retries with no bound — plus subprocess calls without a timeout and retry handlers that catch everything, as a finding-list with the call inventory attached. Use after an outage that spread, before a service goes on a request path, or when asked whether the code is resilient to a slow dependency.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
     }
   ]
 }
