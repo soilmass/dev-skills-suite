@@ -1,0 +1,5 @@
+{
+  "nav": { "home": "Accueil", "cart": "Panier", "about": "À propos" },
+  "cart": { "items": "{count} articles" },
+  "checkout": { "title": "Paiement" }
+}

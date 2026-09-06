@@ -1,0 +1,3 @@
+{
+  "translateFunctions": ["t", "_", "gettext", "ngettext", "i18n.t", "translate", "formatMessage", "$t"]
+}

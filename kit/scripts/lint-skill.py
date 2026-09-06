@@ -116,7 +116,7 @@ SDS-F-051 | ids-permanent | MUST | REVIEW | 8.6 | Rule IDs are never reused; wit
 SDS-F-052 | guides-non-normative | MUST | ADVISORY | 8.6 | Kit guides are non-normative; conflicts resolve to the spec.
 SDS-F-053 | promotion-threshold | SHOULD | REVIEW | 8.6 | Promotion situational -> pillar requires a recorded numeric threshold.
 SDS-F-060 | glossary-single | MUST | MACHINE | 8.7 | Exactly one glossary at kit/shared/glossary.md.
-SDS-F-061 | glossary-no-synonyms | SHOULD | MACHINE | 8.7 | Headings, @requires, @returns, and description avoid the glossary's do-not-use terms (heuristic; proper nouns such as GitHub Projects or JSON Schema, hyphenated names, and backticked literals exempt; reserved words tier/rung/gate/checkpoint are REVIEW).
+SDS-F-061 | glossary-no-synonyms | SHOULD | MACHINE | 8.7 | Headings, @requires, @returns, and description avoid the glossary's do-not-use terms (heuristic; proper nouns such as GitHub Projects or JSON Schema, words inside a glossary-defined multi-word term such as GitHub issue, hyphenated names, and backticked literals exempt; reserved words tier/rung/gate/checkpoint are REVIEW).
 SDS-K-001 | kit-layout | MUST | MACHINE | 9.1 | kit/ contains templates/, evals/TEMPLATE.eval.yaml, shapes/, shared/{glossary.md,gates/,tool-profiles/}, registry/, scripts/lint-skill.py.
 SDS-K-002 | guides-banner | MUST | MACHINE | 9.1 | HOW-TO-BUILD-A-SKILL.md and PRIMITIVES.md open with a non-normative banner citing the spec.
 SDS-K-010 | template-order | MUST | MACHINE | 9.2 | Template H2/H3 order equals the normative order in 10.3.
@@ -317,6 +317,7 @@ class FamilyCtx:
     profile_tokens: set[str]
     glossary_terms: list[str]
     all_mode: bool = False
+    glossary_phrases: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -532,16 +533,19 @@ def load_family(root: Path, kit: Path, registry_arg: str | None, all_mode: bool)
         except yaml.YAMLError:
             pass
     terms: list[str] = []
+    phrases: list[str] = []
     gl = kit / "shared" / "glossary.md"
     if gl.exists():
         for line in gl.read_text(encoding="utf-8").splitlines():
             cells = [c.strip() for c in line.strip().strip("|").split("|")]
             if len(cells) == 3 and cells[0] not in ("Term", "---"):
+                if " " in cells[0]:
+                    phrases.append(cells[0].lower())
                 for tok in cells[2].split(","):
                     tok = re.sub(r"\(.*?\)", "", tok).strip().strip("`")
                     if tok and " " not in tok and tok.lower() not in {"tier", "rung", "gate", "checkpoint"}:
                         terms.append(tok.lower())
-    return FamilyCtx(root, kit, reg_path, reg, reg_err, shapes, profile_tokens, terms, all_mode)
+    return FamilyCtx(root, kit, reg_path, reg, reg_err, shapes, profile_tokens, terms, all_mode, phrases)
 
 
 def load_skill(d: Path, fam: FamilyCtx) -> SkillCtx:
@@ -1611,7 +1615,10 @@ def c_f061(ctx):
             pattern = rf"(?<![\w`-])(?<!github\s)(?<!gh\s){re.escape(term)}(?![\w`-])(?!\.json|\sfile)"
             hits = [m for m in re.finditer(pattern, text, re.I)
                     # a capitalised term right after a capitalised word is a proper noun: JSON Schema, OpenAPI Description
-                    if not (m.group(0)[:1].isupper() and re.search(r"\b[A-Z][A-Za-z0-9]*\s$", text[:m.start()]))]
+                    if not (m.group(0)[:1].isupper() and re.search(r"\b[A-Z][A-Za-z0-9]*\s$", text[:m.start()]))
+                    # a word inside a glossary-defined multi-word term (GitHub issue, message catalog) is that term, not the synonym
+                    and not any(ph.endswith(" " + term) and text[:m.start()].lower().endswith(ph[:-len(term)])
+                                for ph in ctx.fam.glossary_phrases)]
             if hits:
                 out.append(F(ctx, "SDS-F-061", f"glossary do-not-use term {term!r} in: {text.strip()[:60]!r}", line=ln))
     return out

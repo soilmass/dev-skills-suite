@@ -13,6 +13,7 @@ first.
 | finding | One entry inside a finding-list | problem |
 | board item | One entry on a GitHub Projects (v2) board — an issue, a pull request, or a draft note — the object project-board-sync moves between Status columns; never a finding | card |
 | GitHub issue | An item in a repository's issue tracker, the object the GitHub cluster (issue-triage, project-board-sync) operates on; never a synonym for finding, which is an entry a skill produced (SDS-C-031) | ticket |
+| message catalog | One locale's file of translation keys and texts (`<locale>.json`), the object i18n-string-inventory compares with the code; never a synonym for family | translation file, locale bundle |
 | gate | A Confirm stage | checkpoint (reserved, see below), approval step |
 | checkpoint | The two-phase persisted record for a mutating Act step — `pending` before the call, `completed` after (SDS-S-053) | gate, save point |
 | rung | One level of the Effect Ladder (SDS-C-040) | risk level, danger level, tier (reserved, see below) |

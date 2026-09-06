@@ -552,6 +552,16 @@
       "tier": "situational",
       "shape-out": "finding-list",
       "shape-in": "freeform"
+    },
+    {
+      "name": "i18n-string-inventory",
+      "description": "Compares the translation keys a repository's Python and JavaScript code references — through t(), _(), gettext, i18n.t and the team's own names — with its message catalogs: keys used but missing from the base message catalog, keys nothing references, locales missing keys the base has, placeholders that differ between a translation and its source, and translate calls whose key the inventory cannot see — as a finding-list with per-locale coverage attached. Use before a release in a new locale, when users see raw keys, or when asked how complete the translations are.",
+      "version": "0.1.0",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform",
+      "status": "built"
     }
   ]
 }

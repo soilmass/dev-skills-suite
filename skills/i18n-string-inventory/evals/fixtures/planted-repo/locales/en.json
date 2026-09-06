@@ -1,0 +1,5 @@
+{
+  "nav": { "home": "Home", "cart": "Cart", "about": "About us" },
+  "cart": { "items": "{count} items" },
+  "checkout": { "title": "Checkout" }
+}

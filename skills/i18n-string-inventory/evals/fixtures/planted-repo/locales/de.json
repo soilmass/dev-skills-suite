@@ -1,0 +1,4 @@
+{
+  "nav": { "home": "Startseite", "about": "Über uns" },
+  "cart": { "items": "{{count}} Artikel" }
+}
