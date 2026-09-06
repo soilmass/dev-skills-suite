@@ -215,7 +215,7 @@ for _line in _RULE_TEXT.strip().splitlines():
 REVIEW_ORDER = [
     "SDS-C-002", "SDS-C-003", "SDS-C-005", "SDS-C-019", "SDS-C-020",
     "SDS-C-033", "SDS-C-031", "SDS-C-044", "SDS-C-045", "SDS-C-046",
-    "SDS-C-047", "SDS-S-024", "SDS-S-042", "SDS-S-052", "SDS-S-055",
+    "SDS-C-047", "SDS-S-024", "SDS-S-042", "SDS-S-052", "SDS-S-055", "SDS-S-056",
     "SDS-S-060", "SDS-S-061", "SDS-S-064", "SDS-S-070", "SDS-S-082",
     "SDS-S-101", "SDS-S-110",
 ]
