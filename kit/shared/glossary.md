@@ -10,7 +10,8 @@ first.
 | repository | The version-controlled project a skill operates on | codebase, project, repo (fine in casual prose, never as a defined term) |
 | artifact | The structured output a skill produces | document, deliverable, output file |
 | shape | The registered, machine-checkable type an artifact conforms to | schema (reserve for the JSON Schema file itself), format |
-| finding | One entry inside a finding-list | problem, item |
+| finding | One entry inside a finding-list | problem |
+| board item | One entry on a GitHub Projects (v2) board — an issue, a pull request, or a draft note — the object project-board-sync moves between Status columns; never a finding | card |
 | GitHub issue | An item in a repository's issue tracker, the object the GitHub cluster (issue-triage, project-board-sync) operates on; never a synonym for finding, which is an entry a skill produced (SDS-C-031) | ticket |
 | gate | A Confirm stage | checkpoint (reserved, see below), approval step |
 | checkpoint | The two-phase persisted record for a mutating Act step — `pending` before the call, `completed` after (SDS-S-053) | gate, save point |

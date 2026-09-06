@@ -1598,7 +1598,12 @@ def c_f061(ctx):
                 targets.append((ret.line, l))
     for ln, text in targets:
         for term in ctx.fam.glossary_terms:
-            if re.search(rf"\b{re.escape(term)}\b(?!\.json|\sfile)", text, re.I):
+            # A term inside a proper noun or an identifier is not a synonym for
+            # the family concept: "GitHub Projects", "gh project", the
+            # hyphenated skill name project-board-sync, or a backticked
+            # literal such as the `project` auth scope.
+            pattern = rf"(?<![\w`-])(?<!github\s)(?<!gh\s){re.escape(term)}(?![\w`-])(?!\.json|\sfile)"
+            if re.search(pattern, text, re.I):
                 out.append(F(ctx, "SDS-F-061", f"glossary do-not-use term {term!r} in: {text.strip()[:60]!r}", line=ln))
     return out
 
