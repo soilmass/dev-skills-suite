@@ -17,7 +17,6 @@
   "import-cycle-finder": {"script": "find_import_cycles.py", "args": "", "needs": [], "shape": "finding-list"},
   "workspace-consistency-check": {"script": "check_workspaces.py", "args": "", "needs": [], "shape": "finding-list"},
   "dockerfile-review": {"script": "review_dockerfile.py", "args": "", "needs": [], "shape": "finding-list"},
-  "deprecation-sweep": {"script": "sweep_deprecations.py", "args": "", "needs": [], "shape": "finding-list"},
   "repository-orientation": {"script": "map_repository.py", "args": "", "needs": [], "shape": "freeform"},
 
   "commit-message-lint": {"script": "lint_commits.py", "args": "", "needs": ["git"], "shape": "finding-list"},
@@ -30,6 +29,7 @@
   },
 
   "excluded": {
+    "deprecation-sweep": "requires --deprecations and/or --warnings-log; a repo-path-only run always exits ERROR: give --deprecations and/or --warnings-log (no-source) — there is no repository-only default",
     "feature-flag-inventory": "requires --flags-file <flags.json|yaml> and --as-of ISO; no repository-only default",
     "i18n-string-inventory": "requires --catalogs <dir>; no repository-only default",
     "docker-compose-review": "first positional is a compose.yml file, not the repository path",
