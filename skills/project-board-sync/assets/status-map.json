@@ -1,0 +1,4 @@
+{
+  "description": "Maps the rule table's column keys to the board's Status option names. Edit the values to match the board; the keys are fixed. Every value must exist as a Status option or the proposal refuses (status-field-missing).",
+  "columns": { "todo": "Todo", "inProgress": "In progress", "inReview": "In review", "done": "Done" }
+}

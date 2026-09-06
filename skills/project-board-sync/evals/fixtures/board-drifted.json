@@ -1,0 +1,199 @@
+{
+  "project": {
+    "id": "PVT_1",
+    "number": 3,
+    "title": "Checkout",
+    "url": "https://github.com/orgs/soilmass/projects/3"
+  },
+  "fields": [
+    {
+      "id": "PVTSSF_1",
+      "name": "Status",
+      "type": "ProjectV2SingleSelectField",
+      "options": [
+        {
+          "id": "opt-todo",
+          "name": "Todo"
+        },
+        {
+          "id": "opt-prog",
+          "name": "In progress"
+        },
+        {
+          "id": "opt-review",
+          "name": "In review"
+        },
+        {
+          "id": "opt-done",
+          "name": "Done"
+        }
+      ]
+    },
+    {
+      "id": "PVTF_2",
+      "name": "Title",
+      "type": "ProjectV2Field"
+    }
+  ],
+  "items": [
+    {
+      "id": "PVTI_12",
+      "content": {
+        "type": "Issue",
+        "number": 12,
+        "title": "App crashes on startup",
+        "repository": "soilmass/shop"
+      },
+      "status": "Todo",
+      "title": "App crashes on startup"
+    },
+    {
+      "id": "PVTI_13",
+      "content": {
+        "type": "Issue",
+        "number": 13,
+        "title": "Add dark mode",
+        "repository": "soilmass/shop"
+      },
+      "status": "In progress",
+      "title": "Add dark mode"
+    },
+    {
+      "id": "PVTI_14",
+      "content": {
+        "type": "Issue",
+        "number": 14,
+        "title": "README typo",
+        "repository": "soilmass/shop"
+      },
+      "status": "Todo",
+      "title": "README typo"
+    },
+    {
+      "id": "PVTI_40",
+      "content": {
+        "type": "PullRequest",
+        "number": 40,
+        "title": "Retry logic",
+        "repository": "soilmass/shop"
+      },
+      "status": "In review",
+      "title": "Retry logic"
+    },
+    {
+      "id": "PVTI_42",
+      "content": {
+        "type": "PullRequest",
+        "number": 42,
+        "title": "WIP: caching",
+        "repository": "soilmass/shop"
+      },
+      "status": "In progress",
+      "title": "WIP: caching"
+    },
+    {
+      "id": "PVTI_43",
+      "content": {
+        "type": "PullRequest",
+        "number": 43,
+        "title": "Abandoned spike",
+        "repository": "soilmass/shop"
+      },
+      "status": "In review",
+      "title": "Abandoned spike"
+    },
+    {
+      "id": "PVTI_note",
+      "content": {
+        "type": "DraftIssue",
+        "title": "Plan Q4"
+      },
+      "status": "Todo",
+      "title": "Plan Q4"
+    }
+  ],
+  "issues": [
+    {
+      "number": 12,
+      "title": "App crashes on startup",
+      "state": "OPEN",
+      "assignees": [
+        {
+          "login": "priya"
+        }
+      ],
+      "labels": [],
+      "url": "https://github.com/soilmass/shop/issues/12"
+    },
+    {
+      "number": 13,
+      "title": "Add dark mode",
+      "state": "CLOSED",
+      "assignees": [
+        {
+          "login": "marco"
+        }
+      ],
+      "labels": [],
+      "url": "https://github.com/soilmass/shop/issues/13"
+    },
+    {
+      "number": 14,
+      "title": "README typo",
+      "state": "OPEN",
+      "assignees": [],
+      "labels": [],
+      "url": "https://github.com/soilmass/shop/issues/14"
+    },
+    {
+      "number": 15,
+      "title": "Proxy support",
+      "state": "OPEN",
+      "assignees": [],
+      "labels": [],
+      "url": "https://github.com/soilmass/shop/issues/15"
+    },
+    {
+      "number": 16,
+      "title": "Old closed thing",
+      "state": "CLOSED",
+      "assignees": [],
+      "labels": [],
+      "url": "https://github.com/soilmass/shop/issues/16"
+    }
+  ],
+  "prs": [
+    {
+      "number": 40,
+      "title": "Retry logic",
+      "state": "MERGED",
+      "isDraft": false,
+      "reviewDecision": "",
+      "url": "https://github.com/soilmass/shop/pull/40"
+    },
+    {
+      "number": 41,
+      "title": "Hotfix",
+      "state": "MERGED",
+      "isDraft": false,
+      "reviewDecision": "",
+      "url": "https://github.com/soilmass/shop/pull/41"
+    },
+    {
+      "number": 42,
+      "title": "WIP: caching",
+      "state": "OPEN",
+      "isDraft": true,
+      "reviewDecision": "",
+      "url": "https://github.com/soilmass/shop/pull/42"
+    },
+    {
+      "number": 43,
+      "title": "Abandoned spike",
+      "state": "CLOSED",
+      "isDraft": false,
+      "reviewDecision": "",
+      "url": "https://github.com/soilmass/shop/pull/43"
+    }
+  ]
+}

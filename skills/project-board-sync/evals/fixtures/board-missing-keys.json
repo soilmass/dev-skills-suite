@@ -1,0 +1,38 @@
+{
+  "project": {
+    "id": "PVT_1",
+    "number": 3,
+    "title": "Checkout",
+    "url": "https://github.com/orgs/soilmass/projects/3"
+  },
+  "fields": [
+    {
+      "id": "PVTSSF_1",
+      "name": "Status",
+      "type": "ProjectV2SingleSelectField",
+      "options": [
+        {
+          "id": "opt-todo",
+          "name": "Todo"
+        },
+        {
+          "id": "opt-prog",
+          "name": "In progress"
+        },
+        {
+          "id": "opt-review",
+          "name": "In review"
+        },
+        {
+          "id": "opt-done",
+          "name": "Done"
+        }
+      ]
+    },
+    {
+      "id": "PVTF_2",
+      "name": "Title",
+      "type": "ProjectV2Field"
+    }
+  ]
+}

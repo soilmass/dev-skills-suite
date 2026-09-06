@@ -1,0 +1,119 @@
+# Table-driven eval file for project-board-sync (SDS-S-090).
+#
+# A rung-5 Command Skill. The proposal script is exercised offline
+# through --board-json-file fixtures that bundle the five gh reads
+# (project, fields, items, issues, prs) in their gh --format json shapes
+# (SDS-S-065); the checkpoint store runs against the gitignored
+# evals/fixtures/state-scratch/ (build-state-scratch.sh, SDS-S-096).
+# The mutations — gh project item-add, gh project item-edit — are never
+# run by this suite in any capacity (SDS-S-092).
+
+skill: project-board-sync
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): the drifted board produces exactly the planted add and status steps.
+  - name: happy-path-drifted-board
+    input:
+      command: "python3 scripts/propose_board_sync.py . --board-json-file evals/fixtures/board-drifted.json"
+    expected:
+      kind: success
+      shape: plan-doc
+      assertions:
+        - "goal says 1 to add, 3 status change(s), 2 already in sync"
+        - "add phase: issue #15 (open, not on the board) with targetStatus Todo; merged PR #41 (not on the board) is NOT added"
+        - "status phase, in kind then number order: issue #12 Todo -> In progress (now assigned); issue #13 In progress -> Done (closed); PR #40 In review -> Done (merged); PR #42 (draft, In progress) and issue #14 (unassigned, Todo) produce no step; closed-unmerged PR #43 is left alone; the draft note item is ignored"
+        - "every step has a rollback: add -> gh project item-delete; status -> gh project item-edit back to the previous option id; the add phase precedes the status phase"
+        - "facts carries projectId PVT_1, statusFieldId PVTSSF_1, and the four option ids"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): a board already in sync -> a valid 'nothing to do' plan.
+  - name: boundary-empty-diff-in-sync
+    input:
+      command: "python3 scripts/propose_board_sync.py . --board-json-file evals/fixtures/board-in-sync.json"
+    expected:
+      kind: success
+      shape: plan-doc
+      assertions:
+        - "phases has one entry named 'nothing to do' whose single step says 2 item(s) at their target status and whose rollback says none needed; goal says 0 to add, 0 status change(s), 2 already in sync"
+
+  # A board whose Status field lacks a mapped column is refused (SDS-C-019).
+  - name: boundary-missing-status-column
+    input:
+      command: "python3 scripts/propose_board_sync.py . --board-json-file evals/fixtures/board-no-review-column.json"
+    expected:
+      kind: failure
+      failureCode: status-field-missing
+      assertions:
+        - "exit code is 1 and stderr names the missing option 'In review' and says status-field-missing"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-board
+    input:
+      command: "python3 scripts/propose_board_sync.py . --board-json-file evals/fixtures/board-malformed.json"
+    expected:
+      kind: failure
+      failureCode: board-unparseable
+      assertions:
+        - "exit code is 1 and stderr says board-unparseable"
+
+  - name: boundary-incomplete-board-file
+    input:
+      command: "python3 scripts/propose_board_sync.py . --board-json-file evals/fixtures/board-missing-keys.json"
+    expected:
+      kind: failure
+      failureCode: board-unparseable
+      assertions:
+        - "exit code is 1 and stderr lists the missing keys (items, issues, prs) and says board-unparseable"
+
+  - name: boundary-invalid-repo-path
+    input:
+      command: "python3 scripts/propose_board_sync.py evals/fixtures/board-drifted.json --board-json-file evals/fixtures/board-drifted.json"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 — the repository path is a file"
+
+  # Checkpoint round trip (SDS-S-053): pending before an add, completed after with the new item id in postState.
+  - name: happy-path-checkpoint-round-trip
+    input:
+      command: >-
+        evals/fixtures/build-state-scratch.sh &&
+        printf '{"itemId": "PVTI_15"}' > evals/fixtures/state-scratch/post.json &&
+        python3 scripts/checkpoint.py project-board-sync soilmass-3 --step issue-15-add --status pending
+          --compensating-action "gh project item-delete 3 --owner soilmass --id <new-item-id>" --state-dir evals/fixtures/state-scratch &&
+        python3 scripts/checkpoint.py project-board-sync soilmass-3 --step issue-15-add --status completed
+          --post-state-file evals/fixtures/state-scratch/post.json --state-dir evals/fixtures/state-scratch &&
+        python3 scripts/checkpoint.py project-board-sync soilmass-3 --show --state-dir evals/fixtures/state-scratch
+    expected:
+      kind: success
+      assertions:
+        - "the record at evals/fixtures/state-scratch/project-board-sync/soilmass-3.json has one step, issue-15-add, status completed, with postState.itemId PVTI_15"
+
+  # N/A — shape-out is status-report, not finding-list (SDS-S-095).
+  - name: mutation-fixture
+    expected:
+      kind: not-applicable
+      reason: "project-board-sync does not search for known problems; shape-out is status-report."
+
+  # N/A — shape-out status-report != shape-in plan-doc (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out status-report differs from shape-in plan-doc; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): the proposal, this skill's own shape-in, validates against the registered plan-doc shape.
+  - name: contract-with-upstream-producer
+    input:
+      command: "python3 scripts/propose_board_sync.py . --board-json-file evals/fixtures/board-drifted.json | python3 -c \"import json,sys,jsonschema; jsonschema.validate(json.load(sys.stdin), json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/plan-doc.schema.json'))); print('plan-doc OK')\""
+    expected:
+      kind: success
+      shape: plan-doc
+      assertions:
+        - "the actual proposal validates against kit/shapes/plan-doc.schema.json"
+
+---
+# Non-executed by design: gh project item-add and gh project item-edit
+# are never run by this suite (SDS-S-092). A live, read-only smoke check
+# of the proposal (asserting SHAPE only):
+#   python3 scripts/propose_board_sync.py . --project <n> --owner <login> | python3 -c "import json,sys,jsonschema; jsonschema.validate(json.load(sys.stdin), json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/plan-doc.schema.json')))"
+# requires gh auth with the project scope against a real board and is not a gate.

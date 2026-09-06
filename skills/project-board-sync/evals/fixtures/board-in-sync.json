@@ -1,0 +1,86 @@
+{
+  "project": {
+    "id": "PVT_1",
+    "number": 3,
+    "title": "Checkout",
+    "url": "https://github.com/orgs/soilmass/projects/3"
+  },
+  "fields": [
+    {
+      "id": "PVTSSF_1",
+      "name": "Status",
+      "type": "ProjectV2SingleSelectField",
+      "options": [
+        {
+          "id": "opt-todo",
+          "name": "Todo"
+        },
+        {
+          "id": "opt-prog",
+          "name": "In progress"
+        },
+        {
+          "id": "opt-review",
+          "name": "In review"
+        },
+        {
+          "id": "opt-done",
+          "name": "Done"
+        }
+      ]
+    },
+    {
+      "id": "PVTF_2",
+      "name": "Title",
+      "type": "ProjectV2Field"
+    }
+  ],
+  "items": [
+    {
+      "id": "PVTI_12",
+      "content": {
+        "type": "Issue",
+        "number": 12,
+        "title": "App crashes on startup",
+        "repository": "soilmass/shop"
+      },
+      "status": "In progress",
+      "title": "App crashes on startup"
+    },
+    {
+      "id": "PVTI_42",
+      "content": {
+        "type": "PullRequest",
+        "number": 42,
+        "title": "WIP: caching",
+        "repository": "soilmass/shop"
+      },
+      "status": "In progress",
+      "title": "WIP: caching"
+    }
+  ],
+  "issues": [
+    {
+      "number": 12,
+      "title": "App crashes on startup",
+      "state": "OPEN",
+      "assignees": [
+        {
+          "login": "priya"
+        }
+      ],
+      "labels": [],
+      "url": "https://github.com/soilmass/shop/issues/12"
+    }
+  ],
+  "prs": [
+    {
+      "number": 42,
+      "title": "WIP: caching",
+      "state": "OPEN",
+      "isDraft": true,
+      "reviewDecision": "",
+      "url": "https://github.com/soilmass/shop/pull/42"
+    }
+  ]
+}
