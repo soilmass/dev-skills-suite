@@ -4,7 +4,7 @@
      IETF and the ipr attribute below is included only as conventional
      xml2rfc boilerplate for tooling compatibility, not as a legal
      claim about IETF Trust provisions. -->
-<rfc ipr="trust200902" category="info" docName="draft-skill-design-spec-03"
+<rfc ipr="trust200902" category="info" docName="draft-skill-design-spec-04"
      submissionType="independent" version="3">
   <front>
     <title abbrev="SDS">Skill Design Specification (SDS): A
@@ -850,6 +850,14 @@ Result<Success, Failure>
         threshold over real invocations (an error-budget style
         criterion <xref target="SRE-EB"/>) recorded under
         <tt>docs/</tt>, not a subjective judgment.</t>
+        <t anchor="SDS-F-054"><strong>SDS-F-054</strong> (SHOULD, ADVISORY)
+        A family <bcp14>SHOULD</bcp14> run its validation gate
+        (<xref target="SDS-S-110"/>) — the linter over every skill, the
+        registry against its schema, generated files against the
+        registry, and the eval runner (<xref target="SDS-K-072"/>) —
+        in continuous integration on every push and pull request. The
+        gate is offline by construction (<xref target="SDS-S-092"/>),
+        so the job needs no credential and mutates nothing.</t>
       </section>
 
       <section anchor="family-glossary">
@@ -886,8 +894,9 @@ Result<Success, Failure>
         <tt>kit/</tt> <bcp14>MUST</bcp14> contain <tt>templates/</tt>,
         <tt>evals/TEMPLATE.eval.yaml</tt>, <tt>shapes/</tt>,
         <tt>shared/glossary.md</tt>, <tt>shared/gates/</tt>,
-        <tt>shared/tool-profiles/</tt>, <tt>registry/</tt>, and
-        <tt>scripts/lint-skill.py</tt>.</t>
+        <tt>shared/tool-profiles/</tt>, <tt>registry/</tt>,
+        <tt>scripts/lint-skill.py</tt>, and
+        <tt>scripts/run-evals.py</tt>.</t>
         <t anchor="SDS-K-002"><strong>SDS-K-002</strong> (MUST, MACHINE)
         <tt>kit/HOW-TO-BUILD-A-SKILL.md</tt> and
         <tt>kit/PRIMITIVES.md</tt> are non-normative guides and
@@ -1013,6 +1022,26 @@ Result<Success, Failure>
         The linter's MACHINE rule table (<tt>--rules</tt>)
         <bcp14>MUST</bcp14> equal the MACHINE subset of
         <xref target="rule-index"/>.</t>
+      </section>
+
+      <section anchor="kit-eval-runner">
+        <name>The Eval Runner</name>
+        <t anchor="SDS-K-072"><strong>SDS-K-072</strong> (MUST, REVIEW)
+        <tt>kit/scripts/run-evals.py &lt;skill-dir&gt;</tt> or
+        <tt>--all skills/</tt> <bcp14>MUST</bcp14> run each generator
+        (<xref target="SDS-S-096"/>) and then every row of the eval
+        table that carries <tt>input.command</tt>, from the skill
+        directory (<xref target="SDS-F-031"/>), and judge it by
+        <tt>expected.kind</tt>: <tt>success</tt> requires exit 0 and,
+        when <tt>expected.shape</tt> names a registered Shape and the
+        output is JSON, validation against that Shape's schema (the
+        artifact may sit inside a Command Skill's dry-run envelope);
+        <tt>failure</tt> requires a non-zero exit and the row's
+        <tt>failureCode</tt> on stderr; <tt>not-applicable</tt> rows are
+        skipped. It <bcp14>MUST NOT</bcp14> run the smoke section after
+        the table (<xref target="SDS-S-092"/>). It exits 0 only when
+        every executed row passed. Prose assertions are for the
+        reviewer; the runner does not evaluate them.</t>
       </section>
     </section>
 
@@ -1473,8 +1502,10 @@ metadata:
         A skill is done only when: (0) the linter passes with no
         errors; (1) <tt>metadata</tt> matches what the Procedure
         actually does; (2) an example artifact validates against its
-        Shape's schema; (3) every eval row passes, including the
-        mutation fixture and fixed-point row where required; and (4)
+        Shape's schema; (3) every eval row passes under the eval runner
+        (<xref target="SDS-K-072"/>), including the mutation fixture
+        and fixed-point row where required, and its prose assertions
+        hold against the actual output; and (4)
         the glossary check passes. If any fails, fix the skill — not the
         eval, and not the glossary.</t>
       </section>
@@ -1962,6 +1993,7 @@ metadata:
           <tr><td>SDS-F-051</td><td>ids-permanent</td><td>8.6</td><td>MUST</td><td>REVIEW</td></tr>
           <tr><td>SDS-F-052</td><td>guides-non-normative</td><td>8.6</td><td>MUST</td><td>ADVISORY</td></tr>
           <tr><td>SDS-F-053</td><td>promotion-threshold</td><td>8.6</td><td>SHOULD</td><td>REVIEW</td></tr>
+          <tr><td>SDS-F-054</td><td>gate-in-ci</td><td>8.6</td><td>SHOULD</td><td>ADVISORY</td></tr>
           <tr><td>SDS-F-060</td><td>glossary-single</td><td>8.7</td><td>MUST</td><td>MACHINE</td></tr>
           <tr><td>SDS-F-061</td><td>glossary-no-synonyms</td><td>8.7</td><td>SHOULD</td><td>MACHINE</td></tr>
           <tr><td>SDS-K-001</td><td>kit-layout</td><td>9.1</td><td>MUST</td><td>MACHINE</td></tr>
@@ -1982,6 +2014,7 @@ metadata:
           <tr><td>SDS-K-060</td><td>eval-row-schema</td><td>9.7</td><td>MUST</td><td>MACHINE</td></tr>
           <tr><td>SDS-K-070</td><td>linter-contract</td><td>9.8</td><td>MUST</td><td>MACHINE</td></tr>
           <tr><td>SDS-K-071</td><td>linter-rules-match-spec</td><td>9.8</td><td>MUST</td><td>REVIEW</td></tr>
+          <tr><td>SDS-K-072</td><td>eval-runner-contract</td><td>9.9</td><td>MUST</td><td>REVIEW</td></tr>
           <tr><td>SDS-S-001</td><td>skillmd-present</td><td>10.1</td><td>MUST</td><td>MACHINE</td></tr>
           <tr><td>SDS-S-002</td><td>eval-file-present</td><td>10.1</td><td>MUST</td><td>MACHINE</td></tr>
           <tr><td>SDS-S-003</td><td>dir-name</td><td>10.1</td><td>MUST</td><td>MACHINE</td></tr>
@@ -2061,6 +2094,19 @@ metadata:
 
     <section anchor="changelog" numbered="true">
       <name>Change Log</name>
+      <t><strong>1.0-draft, revision 04 (2026-09-06):</strong> Adds
+      the eval runner. SDS-K-001 now requires
+      <tt>kit/scripts/run-evals.py</tt> (MACHINE rule changed; linter
+      updated in the same change). New SDS-K-072 (MUST, REVIEW): the
+      runner's contract — generators first, then every row with a
+      command, judged by <tt>expected.kind</tt>, exit code,
+      <tt>failureCode</tt> on stderr, and Shape validation; never the
+      smoke section. New SDS-F-054 (SHOULD, ADVISORY): the family runs
+      its validation gate in continuous integration. SDS-S-110 now
+      cites the runner. Introduced when the first family-wide run of
+      the runner found fifteen rows the linter could not see — folded
+      commands, undocumented failure codes on stderr, one borrowed
+      code, one mislabelled intermediate — all fixed in the skills.</t>
       <t><strong>1.0-draft, revision 03 (2026-09-06):</strong> Adds
       SDS-K-023 (SHOULD, REVIEW): a family carries a machine check that
       each registered Shape stays backward compatible with its copy at

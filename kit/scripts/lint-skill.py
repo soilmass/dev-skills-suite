@@ -115,9 +115,10 @@ SDS-F-050 | spec-change-process | MUST | REVIEW | 8.6 | A spec change = XML edit
 SDS-F-051 | ids-permanent | MUST | REVIEW | 8.6 | Rule IDs are never reused; withdrawn rules stay listed as withdrawn.
 SDS-F-052 | guides-non-normative | MUST | ADVISORY | 8.6 | Kit guides are non-normative; conflicts resolve to the spec.
 SDS-F-053 | promotion-threshold | SHOULD | REVIEW | 8.6 | Promotion situational -> pillar requires a recorded numeric threshold.
+SDS-F-054 | gate-in-ci | SHOULD | ADVISORY | 8.6 | The family runs its validation gate (linter, registry, generated files, eval runner) in CI on every push and pull request; offline, no credential.
 SDS-F-060 | glossary-single | MUST | MACHINE | 8.7 | Exactly one glossary at kit/shared/glossary.md.
 SDS-F-061 | glossary-no-synonyms | SHOULD | MACHINE | 8.7 | Headings, @requires, @returns, and description avoid the glossary's do-not-use terms (heuristic; proper nouns such as GitHub Projects or JSON Schema, words inside a glossary-defined multi-word term such as GitHub issue, hyphenated names, and backticked literals exempt; reserved words tier/rung/gate/checkpoint are REVIEW).
-SDS-K-001 | kit-layout | MUST | MACHINE | 9.1 | kit/ contains templates/, evals/TEMPLATE.eval.yaml, shapes/, shared/{glossary.md,gates/,tool-profiles/}, registry/, scripts/lint-skill.py.
+SDS-K-001 | kit-layout | MUST | MACHINE | 9.1 | kit/ contains templates/, evals/TEMPLATE.eval.yaml, shapes/, shared/{glossary.md,gates/,tool-profiles/}, registry/, scripts/lint-skill.py, scripts/run-evals.py.
 SDS-K-002 | guides-banner | MUST | MACHINE | 9.1 | HOW-TO-BUILD-A-SKILL.md and PRIMITIVES.md open with a non-normative banner citing the spec.
 SDS-K-010 | template-order | MUST | MACHINE | 9.2 | Template H2/H3 order equals the normative order in 10.3.
 SDS-K-020 | shape-file | MUST | MACHINE | 9.3 | kit/shapes/<name>.schema.json is JSON Schema 2020-12 with title == name and $id https://skills.local/shapes/<name>.schema.json.
@@ -135,6 +136,7 @@ SDS-K-051 | glossary-cites | SHOULD | REVIEW | 9.6 | Each glossary row cites the
 SDS-K-060 | eval-row-schema | MUST | MACHINE | 9.7 | Eval rows are {name, input?, expected{kind, shape?, failureCode?, reason?, assertions[]}} (checked per skill by SDS-S-090).
 SDS-K-070 | linter-contract | MUST | MACHINE | 9.8 | kit/scripts/lint-skill.py <skill-dir>|--all exits 0 only when all MUST+MACHINE rules pass; output `<ID> <LEVEL> <path>[:line] <message>`; --json emits finding-list.
 SDS-K-071 | linter-rules-match-spec | MUST | REVIEW | 9.8 | The linter's MACHINE rule table equals Appendix B's MACHINE set.
+SDS-K-072 | eval-runner-contract | MUST | REVIEW | 9.9 | kit/scripts/run-evals.py <skill-dir>|--all runs generators then every row with a command, judged by expected.kind (exit code, failureCode on stderr, Shape validation); never the smoke section; exit 0 only when every executed row passed.
 SDS-S-001 | skillmd-present | MUST | MACHINE | 10.1 | SKILL.md exists at the skill root.
 SDS-S-002 | eval-file-present | MUST | MACHINE | 10.1 | Exactly one evals/<name>.eval.yaml exists.
 SDS-S-003 | dir-name | MUST | MACHINE | 10.1 | Directory name equals frontmatter name.
@@ -1747,7 +1749,7 @@ def f_060(fam):
 @check("SDS-K-001", "family")
 def k_001(fam):
     req = ["templates", "evals/TEMPLATE.eval.yaml", "shapes", "shared/glossary.md", "shared/gates",
-           "shared/tool-profiles", "registry", "scripts/lint-skill.py"]
+           "shared/tool-profiles", "registry", "scripts/lint-skill.py", "scripts/run-evals.py"]
     return [FF(fam, "SDS-K-001", f"kit/ lacks {r}", f"kit/{r}") for r in req if not (fam.kit / r).exists()]
 
 

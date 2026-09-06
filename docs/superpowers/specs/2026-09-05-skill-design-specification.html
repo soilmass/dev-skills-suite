@@ -31,7 +31,7 @@
 <meta content="agent skills" name="keyword">
 <meta content="composability" name="keyword">
 <meta content="SKILL.md" name="keyword">
-<meta content="draft-skill-design-spec-03" name="ietf.draft">
+<meta content="draft-skill-design-spec-04" name="ietf.draft">
 <!-- Generator version information:
   xml2rfc 3.34.0
     Python 3.10.12
@@ -1525,6 +1525,9 @@ li > p:last-of-type:only-child {
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.8">
                 <p id="section-toc.1-1.9.2.8.1"><a href="#section-9.8" class="auto internal xref">9.8</a>.  <a href="#name-the-linter" class="internal xref">The Linter</a></p>
 </li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.9">
+                <p id="section-toc.1-1.9.2.9.1"><a href="#section-9.9" class="auto internal xref">9.9</a>.  <a href="#name-the-eval-runner" class="internal xref">The Eval Runner</a></p>
+</li>
             </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
@@ -2758,6 +2761,16 @@ Result&lt;Success, Failure&gt;
         criterion <span>[<a href="#SRE-EB" class="cite xref">SRE-EB</a>]</span>) recorded under
         <code>docs/</code>, not a subjective judgment.<a href="#section-8.6-4" class="pilcrow">¶</a></p>
 </div>
+<div id="SDS-F-054">
+<p id="section-8.6-5"><strong>SDS-F-054</strong> (SHOULD, ADVISORY)
+        A family <span class="bcp14">SHOULD</span> run its validation gate
+        (<a href="#SDS-S-110" class="auto internal xref">Section 10.11, Paragraph 1</a>) — the linter over every skill, the
+        registry against its schema, generated files against the
+        registry, and the eval runner (<a href="#SDS-K-072" class="auto internal xref">Section 9.9, Paragraph 1</a>) —
+        in continuous integration on every push and pull request. The
+        gate is offline by construction (<a href="#SDS-S-092" class="auto internal xref">Section 10.9, Paragraph 3</a>),
+        so the job needs no credential and mutates nothing.<a href="#section-8.6-5" class="pilcrow">¶</a></p>
+</div>
 </section>
 </div>
 <div id="family-glossary">
@@ -2806,8 +2819,9 @@ Result&lt;Success, Failure&gt;
         <code>kit/</code> <span class="bcp14">MUST</span> contain <code>templates/</code>,
         <code>evals/TEMPLATE.eval.yaml</code>, <code>shapes/</code>,
         <code>shared/glossary.md</code>, <code>shared/gates/</code>,
-        <code>shared/tool-profiles/</code>, <code>registry/</code>, and
-        <code>scripts/lint-skill.py</code>.<a href="#section-9.1-1" class="pilcrow">¶</a></p>
+        <code>shared/tool-profiles/</code>, <code>registry/</code>,
+        <code>scripts/lint-skill.py</code>, and
+        <code>scripts/run-evals.py</code>.<a href="#section-9.1-1" class="pilcrow">¶</a></p>
 </div>
 <div id="SDS-K-002">
 <p id="section-9.1-2"><strong>SDS-K-002</strong> (MUST, MACHINE)
@@ -2988,6 +3002,31 @@ Result&lt;Success, Failure&gt;
         The linter's MACHINE rule table (<code>--rules</code>)
         <span class="bcp14">MUST</span> equal the MACHINE subset of
         <a href="#rule-index" class="auto internal xref">Appendix B</a>.<a href="#section-9.8-2" class="pilcrow">¶</a></p>
+</div>
+</section>
+</div>
+<div id="kit-eval-runner">
+<section id="section-9.9">
+        <h3 id="name-the-eval-runner">
+<a href="#section-9.9" class="section-number selfRef">9.9. </a><a href="#name-the-eval-runner" class="section-name selfRef">The Eval Runner</a>
+        </h3>
+<div id="SDS-K-072">
+<p id="section-9.9-1"><strong>SDS-K-072</strong> (MUST, REVIEW)
+        <code>kit/scripts/run-evals.py &lt;skill-dir&gt;</code> or
+        <code>--all skills/</code> <span class="bcp14">MUST</span> run each generator
+        (<a href="#SDS-S-096" class="auto internal xref">Section 10.9, Paragraph 7</a>) and then every row of the eval
+        table that carries <code>input.command</code>, from the skill
+        directory (<a href="#SDS-F-031" class="auto internal xref">Section 8.4, Paragraph 2</a>), and judge it by
+        <code>expected.kind</code>: <code>success</code> requires exit 0 and,
+        when <code>expected.shape</code> names a registered Shape and the
+        output is JSON, validation against that Shape's schema (the
+        artifact may sit inside a Command Skill's dry-run envelope);
+        <code>failure</code> requires a non-zero exit and the row's
+        <code>failureCode</code> on stderr; <code>not-applicable</code> rows are
+        skipped. It <span class="bcp14">MUST NOT</span> run the smoke section after
+        the table (<a href="#SDS-S-092" class="auto internal xref">Section 10.9, Paragraph 3</a>). It exits 0 only when
+        every executed row passed. Prose assertions are for the
+        reviewer; the runner does not evaluate them.<a href="#section-9.9-1" class="pilcrow">¶</a></p>
 </div>
 </section>
 </div>
@@ -3631,8 +3670,10 @@ metadata:
         A skill is done only when: (0) the linter passes with no
         errors; (1) <code>metadata</code> matches what the Procedure
         actually does; (2) an example artifact validates against its
-        Shape's schema; (3) every eval row passes, including the
-        mutation fixture and fixed-point row where required; and (4)
+        Shape's schema; (3) every eval row passes under the eval runner
+        (<a href="#SDS-K-072" class="auto internal xref">Section 9.9, Paragraph 1</a>), including the mutation fixture
+        and fixed-point row where required, and its prose assertions
+        hold against the actual output; and (4)
         the glossary check passes. If any fails, fix the skill — not the
         eval, and not the glossary.<a href="#section-10.11-1" class="pilcrow">¶</a></p>
 </div>
@@ -4411,6 +4452,13 @@ metadata:
             <td class="text-left" rowspan="1" colspan="1">REVIEW</td>
           </tr>
           <tr>
+            <td class="text-left" rowspan="1" colspan="1">SDS-F-054</td>
+            <td class="text-left" rowspan="1" colspan="1">gate-in-ci</td>
+            <td class="text-left" rowspan="1" colspan="1">8.6</td>
+            <td class="text-left" rowspan="1" colspan="1">SHOULD</td>
+            <td class="text-left" rowspan="1" colspan="1">ADVISORY</td>
+          </tr>
+          <tr>
             <td class="text-left" rowspan="1" colspan="1">SDS-F-060</td>
             <td class="text-left" rowspan="1" colspan="1">glossary-single</td>
             <td class="text-left" rowspan="1" colspan="1">8.7</td>
@@ -4547,6 +4595,13 @@ metadata:
             <td class="text-left" rowspan="1" colspan="1">SDS-K-071</td>
             <td class="text-left" rowspan="1" colspan="1">linter-rules-match-spec</td>
             <td class="text-left" rowspan="1" colspan="1">9.8</td>
+            <td class="text-left" rowspan="1" colspan="1">MUST</td>
+            <td class="text-left" rowspan="1" colspan="1">REVIEW</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">SDS-K-072</td>
+            <td class="text-left" rowspan="1" colspan="1">eval-runner-contract</td>
+            <td class="text-left" rowspan="1" colspan="1">9.9</td>
             <td class="text-left" rowspan="1" colspan="1">MUST</td>
             <td class="text-left" rowspan="1" colspan="1">REVIEW</td>
           </tr>
@@ -5071,7 +5126,20 @@ metadata:
       <h2 id="name-change-log">
 <a href="#appendix-C" class="section-number selfRef">Appendix C. </a><a href="#name-change-log" class="section-name selfRef">Change Log</a>
       </h2>
-<p id="appendix-C-1"><strong>1.0-draft, revision 03 (2026-09-06):</strong> Adds
+<p id="appendix-C-1"><strong>1.0-draft, revision 04 (2026-09-06):</strong> Adds
+      the eval runner. SDS-K-001 now requires
+      <code>kit/scripts/run-evals.py</code> (MACHINE rule changed; linter
+      updated in the same change). New SDS-K-072 (MUST, REVIEW): the
+      runner's contract — generators first, then every row with a
+      command, judged by <code>expected.kind</code>, exit code,
+      <code>failureCode</code> on stderr, and Shape validation; never the
+      smoke section. New SDS-F-054 (SHOULD, ADVISORY): the family runs
+      its validation gate in continuous integration. SDS-S-110 now
+      cites the runner. Introduced when the first family-wide run of
+      the runner found fifteen rows the linter could not see — folded
+      commands, undocumented failure codes on stderr, one borrowed
+      code, one mislabelled intermediate — all fixed in the skills.<a href="#appendix-C-1" class="pilcrow">¶</a></p>
+<p id="appendix-C-2"><strong>1.0-draft, revision 03 (2026-09-06):</strong> Adds
       SDS-K-023 (SHOULD, REVIEW): a family carries a machine check that
       each registered Shape stays backward compatible with its copy at
       the last tag, the concrete form of SDS-F-051's MAJOR-change review
@@ -5080,8 +5148,8 @@ metadata:
       v1.0.0-draft. One REVIEW rule added to Appendix B; no MACHINE rule
       changed. Editorial: SDS-S-093 admits a native text extension for
       a frozen recording that is not JSON (a git log shared by
-      changelog-writer and commit-message-lint).<a href="#appendix-C-1" class="pilcrow">¶</a></p>
-<p id="appendix-C-2"><strong>1.0-draft, revision 02 (2026-09-06):</strong> Folds in
+      changelog-writer and commit-message-lint).<a href="#appendix-C-2" class="pilcrow">¶</a></p>
+<p id="appendix-C-3"><strong>1.0-draft, revision 02 (2026-09-06):</strong> Folds in
       what building the twenty-eight situational skills and two more
       live runs taught. SDS-F-061 now exempts a glossary term that is
       part of a proper noun or an identifier (the GitHub cluster's own
@@ -5094,15 +5162,15 @@ metadata:
       SDS-S-056 (SHOULD, REVIEW): a mutating call names its target
       explicitly rather than relying on the working directory. The
       linter's heuristics changed to match; one REVIEW rule was added
-      to Appendix B; no MACHINE rule was added or removed.<a href="#appendix-C-2" class="pilcrow">¶</a></p>
-<p id="appendix-C-3"><strong>1.0-draft, editorial (2026-09-06):</strong> SDS-S-100
+      to Appendix B; no MACHINE rule was added or removed.<a href="#appendix-C-3" class="pilcrow">¶</a></p>
+<p id="appendix-C-4"><strong>1.0-draft, editorial (2026-09-06):</strong> SDS-S-100
       now states that the family root is the skill family's own
       checkout, not the repository a skill operates on, and that a
       bundled checkpoint script must accept an explicit state directory
       — observed while driving <code>pr-lifecycle-manager</code> against a
       separate repository. No rule was added, removed, or re-tagged;
-      Appendix B is unchanged.<a href="#appendix-C-3" class="pilcrow">¶</a></p>
-<p id="appendix-C-4"><strong>1.0-draft (2026-09-05):</strong> Restructured top to
+      Appendix B is unchanged.<a href="#appendix-C-4" class="pilcrow">¶</a></p>
+<p id="appendix-C-5"><strong>1.0-draft (2026-09-05):</strong> Restructured top to
       bottom into Part 0 (core model), Part I (family and repository),
       Part II (kit), and Part III (skill anatomy); every normative rule
       now carries a permanent identifier and a MACHINE/REVIEW/ADVISORY
@@ -5128,20 +5196,20 @@ metadata:
       Also added: the checkpoint state path, the prohibition on wrapping
       a rung-5/6 Act in a pre-approved script, script and reference
       conventions, the long-parameter-list rule, and the validation
-      gate.<a href="#appendix-C-4" class="pilcrow">¶</a></p>
-<p id="appendix-C-5"><strong>0.3 (2026-09-05):</strong> Rebuilt in xml2rfc version
+      gate.<a href="#appendix-C-5" class="pilcrow">¶</a></p>
+<p id="appendix-C-6"><strong>0.3 (2026-09-05):</strong> Rebuilt in xml2rfc version
       3 (RFC 7991) vocabulary in place of the plain-text RFC-style
-      draft. No normative changes from 0.2.<a href="#appendix-C-5" class="pilcrow">¶</a></p>
-<p id="appendix-C-6"><strong>0.2 (2026-09-05):</strong> Rebuilt as an RFC-structured
+      draft. No normative changes from 0.2.<a href="#appendix-C-6" class="pilcrow">¶</a></p>
+<p id="appendix-C-7"><strong>0.2 (2026-09-05):</strong> Rebuilt as an RFC-structured
       document: added formal Terminology, Security Considerations, and
       Registry Considerations sections; added full Normative/
       Informative References with verified citations for MCP tool
       annotations, SARIF, OSV, SPDX (ISO/IEC 5962:2021), CycloneDX
       (ECMA-424), and MADR (v4.0.0); formalized the composition laws,
       contracts, and effect ladder with MUST/SHOULD/MAY language
-      throughout.<a href="#appendix-C-6" class="pilcrow">¶</a></p>
-<p id="appendix-C-7"><strong>0.1 (2026-09-05):</strong> Initial high-level
-      draft.<a href="#appendix-C-7" class="pilcrow">¶</a></p>
+      throughout.<a href="#appendix-C-7" class="pilcrow">¶</a></p>
+<p id="appendix-C-8"><strong>0.1 (2026-09-05):</strong> Initial high-level
+      draft.<a href="#appendix-C-8" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="authors-addresses">

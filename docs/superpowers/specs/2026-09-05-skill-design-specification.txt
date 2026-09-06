@@ -10,7 +10,7 @@ Expires: 9 March 2027
 
      Skill Design Specification (SDS): A Composability, Safety, and
                 Interoperability Layer for Agent Skills
-                       draft-skill-design-spec-03
+                       draft-skill-design-spec-04
 
 Abstract
 
@@ -71,7 +71,7 @@ Copyright Notice
 
 Table of Contents
 
-   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   3
+   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   4
      1.1.  Purpose and Scope . . . . . . . . . . . . . . . . . . . .   4
      1.2.  Relationship to the Base Spec . . . . . . . . . . . . . .   4
      1.3.  Terminology . . . . . . . . . . . . . . . . . . . . . . .   5
@@ -135,30 +135,30 @@ Internet-Draft                     SDS                    September 2026
      9.4.  Gates: Adding One . . . . . . . . . . . . . . . . . . . .  20
      9.5.  Tool Profiles: Adding One . . . . . . . . . . . . . . . .  20
      9.6.  Glossary Terms: Adding One  . . . . . . . . . . . . . . .  20
-     9.7.  The Eval Template . . . . . . . . . . . . . . . . . . . .  20
+     9.7.  The Eval Template . . . . . . . . . . . . . . . . . . . .  21
      9.8.  The Linter  . . . . . . . . . . . . . . . . . . . . . . .  21
+     9.9.  The Eval Runner . . . . . . . . . . . . . . . . . . . . .  21
    10. Skill Anatomy . . . . . . . . . . . . . . . . . . . . . . . .  21
      10.1.  Package Layout . . . . . . . . . . . . . . . . . . . . .  21
-     10.2.  Frontmatter  . . . . . . . . . . . . . . . . . . . . . .  21
-     10.3.  Section Order  . . . . . . . . . . . . . . . . . . . . .  23
-     10.4.  Conditional Command Skills . . . . . . . . . . . . . . .  24
-     10.5.  Confirm, Act, and Checkpoint . . . . . . . . . . . . . .  24
-     10.6.  scripts/ . . . . . . . . . . . . . . . . . . . . . . . .  25
-     10.7.  references/  . . . . . . . . . . . . . . . . . . . . . .  26
-     10.8.  assets/  . . . . . . . . . . . . . . . . . . . . . . . .  26
+     10.2.  Frontmatter  . . . . . . . . . . . . . . . . . . . . . .  22
+     10.3.  Section Order  . . . . . . . . . . . . . . . . . . . . .  24
+     10.4.  Conditional Command Skills . . . . . . . . . . . . . . .  25
+     10.5.  Confirm, Act, and Checkpoint . . . . . . . . . . . . . .  25
+     10.6.  scripts/ . . . . . . . . . . . . . . . . . . . . . . . .  26
+     10.7.  references/  . . . . . . . . . . . . . . . . . . . . . .  27
+     10.8.  assets/  . . . . . . . . . . . . . . . . . . . . . . . .  27
      10.9.  evals/ and Fixtures  . . . . . . . . . . . . . . . . . .  27
      10.10. Runtime State  . . . . . . . . . . . . . . . . . . . . .  28
      10.11. Validation Gate  . . . . . . . . . . . . . . . . . . . .  29
    11. Security Considerations . . . . . . . . . . . . . . . . . . .  29
    12. Registry Considerations . . . . . . . . . . . . . . . . . . .  30
-   13. Normative References  . . . . . . . . . . . . . . . . . . . .  30
+   13. Normative References  . . . . . . . . . . . . . . . . . . . .  31
    14. Informative References  . . . . . . . . . . . . . . . . . . .  31
    Appendix A.  Worked Examples  . . . . . . . . . . . . . . . . . .  33
-   Appendix B.  Rule Index . . . . . . . . . . . . . . . . . . . . .  34
+   Appendix B.  Rule Index . . . . . . . . . . . . . . . . . . . . .  35
    Appendix C.  Change Log . . . . . . . . . . . . . . . . . . . . .  41
-   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  42
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  43
 
-1.  Introduction
 
 
 
@@ -169,6 +169,8 @@ Steele                    Expires 9 March 2027                  [Page 3]
 
 Internet-Draft                     SDS                    September 2026
 
+
+1.  Introduction
 
 1.1.  Purpose and Scope
 
@@ -212,8 +214,6 @@ Internet-Draft                     SDS                    September 2026
    schemas and the kit live outside any skill package, so a host loading
    a single skill never sees them; a skill therefore cites a shape by
    name first and by path second.
-
-
 
 
 
@@ -989,19 +989,19 @@ Internet-Draft                     SDS                    September 2026
    error-budget style criterion [SRE-EB]) recorded under docs/, not a
    subjective judgment.
 
+   *SDS-F-054* (SHOULD, ADVISORY) A family SHOULD run its validation
+   gate (Section 10.11, Paragraph 1) — the linter over every skill, the
+   registry against its schema, generated files against the registry,
+   and the eval runner (Section 9.9, Paragraph 1) — in continuous
+   integration on every push and pull request.  The gate is offline by
+   construction (Section 10.9, Paragraph 3), so the job needs no
+   credential and mutates nothing.
+
 8.7.  Glossary
 
    *SDS-F-060* (MUST, MACHINE) A family MUST maintain exactly one
    glossary at kit/shared/glossary.md, fixing one canonical term per
    concept.
-
-   *SDS-F-061* (SHOULD, MACHINE) A skill's headings, @requires bullets,
-   @returns line, and description SHOULD NOT use a term the glossary
-   lists under "do not use instead."  A term that is part of a proper
-   noun or an identifier is not a synonym for the family concept and is
-   exempt: a product or command namespace (GitHub Projects, gh project),
-   a capitalised name following another capitalised word (JSON Schema,
-   OpenAPI Description), a hyphenated name (project-board-sync), or a
 
 
 
@@ -1010,6 +1010,13 @@ Steele                    Expires 9 March 2027                 [Page 18]
 Internet-Draft                     SDS                    September 2026
 
 
+   *SDS-F-061* (SHOULD, MACHINE) A skill's headings, @requires bullets,
+   @returns line, and description SHOULD NOT use a term the glossary
+   lists under "do not use instead."  A term that is part of a proper
+   noun or an identifier is not a synonym for the family concept and is
+   exempt: a product or command namespace (GitHub Projects, gh project),
+   a capitalised name following another capitalised word (JSON Schema,
+   OpenAPI Description), a hyphenated name (project-board-sync), or a
    backticked literal (`FORMAT JSON`).  The linter applies a
    conservative single-word heuristic with exactly those exemptions; the
    reserved words tier, rung, gate, and checkpoint require human review.
@@ -1020,7 +1027,8 @@ Internet-Draft                     SDS                    September 2026
 
    *SDS-K-001* (MUST, MACHINE) kit/ MUST contain templates/, evals/
    TEMPLATE.eval.yaml, shapes/, shared/glossary.md, shared/gates/,
-   shared/tool-profiles/, registry/, and scripts/lint-skill.py.
+   shared/tool-profiles/, registry/, scripts/lint-skill.py, and scripts/
+   run-evals.py.
 
    *SDS-K-002* (MUST, MACHINE) kit/HOW-TO-BUILD-A-SKILL.md and kit/
    PRIMITIVES.md are non-normative guides and MUST open with a banner
@@ -1050,14 +1058,6 @@ Internet-Draft                     SDS                    September 2026
    *SDS-K-023* (SHOULD, REVIEW) A family SHOULD carry a machine check
    that each registered Shape remains backward compatible with its copy
    at the last tagged release: a frozen recording of every kit/
-   shapes/<name>.schema.json at the tag, diffed against the current file
-   by a skill or script that reports the changes able to reject a
-   previously valid instance.  A break found this way is the MAJOR
-   change of Section 8.6, Paragraph 2 and requires the review that rule
-   names.  In this family the check is json-schema-compat-check's
-   contract-with-family-shapes eval row.
-
-
 
 
 
@@ -1065,6 +1065,13 @@ Steele                    Expires 9 March 2027                 [Page 19]
 
 Internet-Draft                     SDS                    September 2026
 
+
+   shapes/<name>.schema.json at the tag, diffed against the current file
+   by a skill or script that reports the changes able to reject a
+   previously valid instance.  A break found this way is the MAJOR
+   change of Section 8.6, Paragraph 2 and requires the review that rule
+   names.  In this family the check is json-schema-compat-check's
+   contract-with-family-shapes eval row.
 
 9.4.  Gates: Adding One
 
@@ -1106,13 +1113,6 @@ Internet-Draft                     SDS                    September 2026
    *SDS-K-051* (SHOULD, REVIEW) Each row SHOULD cite the section of this
    specification that fixes the concept.
 
-9.7.  The Eval Template
-
-   *SDS-K-060* (MUST, MACHINE) kit/evals/TEMPLATE.eval.yaml defines the
-   row schema every skill's eval file follows: name, optional input, and
-   expected with kind (success, failure, or not-applicable), optional
-   shape, failureCode, reason, and assertions.  Per-skill conformance is
-   checked by Section 10.9, Paragraph 1.
 
 
 
@@ -1121,6 +1121,14 @@ Steele                    Expires 9 March 2027                 [Page 20]
 
 Internet-Draft                     SDS                    September 2026
 
+
+9.7.  The Eval Template
+
+   *SDS-K-060* (MUST, MACHINE) kit/evals/TEMPLATE.eval.yaml defines the
+   row schema every skill's eval file follows: name, optional input, and
+   expected with kind (success, failure, or not-applicable), optional
+   shape, failureCode, reason, and assertions.  Per-skill conformance is
+   checked by Section 10.9, Paragraph 1.
 
 9.8.  The Linter
 
@@ -1135,6 +1143,21 @@ Internet-Draft                     SDS                    September 2026
    *SDS-K-071* (MUST, REVIEW) The linter's MACHINE rule table (--rules)
    MUST equal the MACHINE subset of Appendix B.
 
+9.9.  The Eval Runner
+
+   *SDS-K-072* (MUST, REVIEW) kit/scripts/run-evals.py <skill-dir> or
+   --all skills/ MUST run each generator (Section 10.9, Paragraph 7) and
+   then every row of the eval table that carries input.command, from the
+   skill directory (Section 8.4, Paragraph 2), and judge it by
+   expected.kind: success requires exit 0 and, when expected.shape names
+   a registered Shape and the output is JSON, validation against that
+   Shape's schema (the artifact may sit inside a Command Skill's dry-run
+   envelope); failure requires a non-zero exit and the row's failureCode
+   on stderr; not-applicable rows are skipped.  It MUST NOT run the
+   smoke section after the table (Section 10.9, Paragraph 3).  It exits
+   0 only when every executed row passed.  Prose assertions are for the
+   reviewer; the runner does not evaluate them.
+
 10.  Skill Anatomy
 
 10.1.  Package Layout
@@ -1146,6 +1169,14 @@ Internet-Draft                     SDS                    September 2026
 
    *SDS-S-003* (MUST, MACHINE) The directory name MUST equal the
    frontmatter name.
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 21]
+
+Internet-Draft                     SDS                    September 2026
+
 
    *SDS-S-004* (SHOULD, MACHINE) Only scripts/, references/, assets/,
    and evals/ SHOULD appear beside SKILL.md.
@@ -1168,15 +1199,6 @@ Internet-Draft                     SDS                    September 2026
    phrase ("Use when" or equivalent) and the specific keywords a task
    would contain.  Write it last, after the body, so it describes real
    triggers rather than summarizing the draft.
-
-
-
-
-
-Steele                    Expires 9 March 2027                 [Page 21]
-
-Internet-Draft                     SDS                    September 2026
-
 
    *SDS-S-014* (SHOULD, MACHINE) license SHOULD be set explicitly; the
    family default is Apache-2.0, and a different value is reported for
@@ -1204,6 +1226,14 @@ Internet-Draft                     SDS                    September 2026
    *SDS-S-017* (MUST, MACHINE) effect-tier MUST be one of the six rung
    names in Section 5.1.
 
+
+
+
+Steele                    Expires 9 March 2027                 [Page 22]
+
+Internet-Draft                     SDS                    September 2026
+
+
    *SDS-S-018* (MUST, MACHINE) idempotent MUST be the YAML string "true"
    or "false" (Base Spec metadata is string-to-string; an unquoted
    boolean is nonconformant).
@@ -1222,17 +1252,6 @@ Internet-Draft                     SDS                    September 2026
 
    *SDS-S-022* (MUST, MACHINE) allowed-tools MUST NOT contain a bare
    interpreter or wildcard (Section 9.5, Paragraph 3).
-
-
-
-
-
-
-
-Steele                    Expires 9 March 2027                 [Page 22]
-
-Internet-Draft                     SDS                    September 2026
-
 
    *SDS-S-023* (MUST, MACHINE) allowed-tools MUST NOT contain a
    forbidden-always operation at any rung, a forbidden-below-5 operation
@@ -1256,6 +1275,20 @@ Internet-Draft                     SDS                    September 2026
    Paragraph 1).
 
    *SDS-S-028* (MUST, MACHINE) family MUST equal the registry's family.
+
+
+
+
+
+
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 23]
+
+Internet-Draft                     SDS                    September 2026
+
 
 10.3.  Section Order
 
@@ -1283,13 +1316,6 @@ Internet-Draft                     SDS                    September 2026
    *SDS-S-033* (MUST, MACHINE) No template residue ([FILL, skill-name-
    here, [Write this LAST) MUST remain.
 
-
-
-Steele                    Expires 9 March 2027                 [Page 23]
-
-Internet-Draft                     SDS                    September 2026
-
-
    *SDS-S-034* (SHOULD, MACHINE) Instructions SHOULD be second-person
    imperative, one checkable action per sentence, and MUST NOT use
    marketing language (powerful, seamless, comprehensive, robust,
@@ -1310,6 +1336,15 @@ Internet-Draft                     SDS                    September 2026
    *SDS-S-038* (MUST, MACHINE) @returns MUST contain Shape: `<shape-
    out>` and, for a registered Shape, the literal kit/shapes/<shape-
    out>.schema.json.
+
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 24]
+
+Internet-Draft                     SDS                    September 2026
+
 
    *SDS-S-039* (MUST, MACHINE) @throws MUST have at least one bullet of
    the form - `kebab-code`: ...; codes MUST be unique; every failureCode
@@ -1337,15 +1372,6 @@ Internet-Draft                     SDS                    September 2026
    kit/shared/gates/medium.md; a rung-6 Confirm section MUST cite
    kit/shared/gates/high.md; Confirm MUST precede Act.
 
-
-
-
-
-Steele                    Expires 9 March 2027                 [Page 24]
-
-Internet-Draft                     SDS                    September 2026
-
-
    *SDS-S-051* (MUST, MACHINE) A rung-5 or rung-6 Act MUST be issued as
    a direct, unwrapped tool call after Confirm.  It MUST NOT be
    delegated to a bundled script, because pre-approving the script pre-
@@ -1368,6 +1394,13 @@ Internet-Draft                     SDS                    September 2026
    *SDS-S-054* (MUST, MACHINE) A rung-4-or-higher Act section MUST
    contain a **Compensating action** label for each mutating step
    (Section 5.5, Paragraph 1).
+
+
+
+Steele                    Expires 9 March 2027                 [Page 25]
+
+Internet-Draft                     SDS                    September 2026
+
 
    *SDS-S-055* (SHOULD, REVIEW) A skill with one mutating step SHOULD
    write its checkpoint inline; a skill with two or more SHOULD use
@@ -1394,14 +1427,6 @@ Internet-Draft                     SDS                    September 2026
    *SDS-S-061* (MUST, REVIEW) Analyze, Classify, and Decide MUST NOT
    live in a script; a script cannot exercise judgment.
 
-
-
-
-Steele                    Expires 9 March 2027                 [Page 25]
-
-Internet-Draft                     SDS                    September 2026
-
-
    *SDS-S-062* (SHOULD, MACHINE) Files under scripts/ SHOULD be
    snake_case verb-noun names (parse_manifest.py); an Adapter names both
    sides (osv_to_finding.py).  This rule does not apply to fixture
@@ -1425,6 +1450,13 @@ Internet-Draft                     SDS                    September 2026
 
    *SDS-S-067* (SHOULD, MACHINE) Every file under scripts/ SHOULD be
    referenced from SKILL.md.
+
+
+
+Steele                    Expires 9 March 2027                 [Page 26]
+
+Internet-Draft                     SDS                    September 2026
+
 
 10.7.  references/
 
@@ -1451,13 +1483,6 @@ Internet-Draft                     SDS                    September 2026
    MUST be named in @requires or Instructions; it is a declared input
    for hermeticity (Section 2.3, Paragraph 1).
 
-
-
-Steele                    Expires 9 March 2027                 [Page 26]
-
-Internet-Draft                     SDS                    September 2026
-
-
    *SDS-S-082* (MUST, REVIEW) Per-installation configuration MUST be
    injected via assets/, never by forking (Section 7.2, Paragraph 1).
 
@@ -1482,6 +1507,13 @@ Internet-Draft                     SDS                    September 2026
    world system changes for reasons unrelated to the skill's
    correctness.
 
+
+
+Steele                    Expires 9 March 2027                 [Page 27]
+
+Internet-Draft                     SDS                    September 2026
+
+
    *SDS-S-093* (SHOULD, MACHINE) A frozen recording of a real external
    response SHOULD be named evals/fixtures/frozen-<source>-<what>.json —
    or the source's native text extension (.txt, .log, .yaml, .xml, .md)
@@ -1498,21 +1530,6 @@ Internet-Draft                     SDS                    September 2026
    deliberately planted instance of what the skill detects iff shape-out
    is finding-list; otherwise it is not-applicable with the reason
    stated.
-
-
-
-
-
-
-
-
-
-
-
-Steele                    Expires 9 March 2027                 [Page 27]
-
-Internet-Draft                     SDS                    September 2026
-
 
    *SDS-S-096* (MUST, MACHINE) Static fixtures live in evals/
    fixtures/<case>/, with .gitkeep marking an intentionally empty case.
@@ -1545,6 +1562,14 @@ Internet-Draft                     SDS                    September 2026
    migration id); the skill's Act section names this path.  Referencing
    another skill's state directory is an error.  The family root is the
    root of the skill family's own checkout, not of the repository the
+
+
+
+Steele                    Expires 9 March 2027                 [Page 28]
+
+Internet-Draft                     SDS                    September 2026
+
+
    skill is operating on: when a skill runs inside some other repository
    (the normal case for a GitHub-operating skill), its state still lives
    under the family's .skills-state/, and a bundled checkpoint script
@@ -1553,22 +1578,6 @@ Internet-Draft                     SDS                    September 2026
 
    *SDS-S-101* (MUST, REVIEW) The checkpoint record MUST have the
    following form.
-
-
-
-
-
-
-
-
-
-
-
-
-Steele                    Expires 9 March 2027                 [Page 28]
-
-Internet-Draft                     SDS                    September 2026
-
 
    {
      "key": "<invocation key>",
@@ -1585,9 +1594,11 @@ Internet-Draft                     SDS                    September 2026
    *SDS-S-110* (MUST, REVIEW) A skill is done only when: (0) the linter
    passes with no errors; (1) metadata matches what the Procedure
    actually does; (2) an example artifact validates against its Shape's
-   schema; (3) every eval row passes, including the mutation fixture and
-   fixed-point row where required; and (4) the glossary check passes.
-   If any fails, fix the skill — not the eval, and not the glossary.
+   schema; (3) every eval row passes under the eval runner (Section 9.9,
+   Paragraph 1), including the mutation fixture and fixed-point row
+   where required, and its prose assertions hold against the actual
+   output; and (4) the glossary check passes.  If any fails, fix the
+   skill — not the eval, and not the glossary.
 
 11.  Security Considerations
 
@@ -1605,6 +1616,16 @@ Internet-Draft                     SDS                    September 2026
       and the script, not the model's next tool call, performs the
       effect.
 
+
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 29]
+
+Internet-Draft                     SDS                    September 2026
+
+
    *  Content gathered from an open-world source during a Query stage
       may later inform a Decide or Act stage.  It MUST be treated as
       data, not instruction; a Procedure MUST NOT follow directives
@@ -1617,14 +1638,6 @@ Internet-Draft                     SDS                    September 2026
    *  Bundled scripts/ are executable code with the supply-chain risk of
       any third-party code; a family SHOULD review and pin them like a
       dependency.
-
-
-
-
-Steele                    Expires 9 March 2027                 [Page 29]
-
-Internet-Draft                     SDS                    September 2026
-
 
    *  Overly broad allowed-tools scoping does not merely fail to add
       safety; it suppresses the host's own confirmation mechanism from
@@ -1661,6 +1674,14 @@ Internet-Draft                     SDS                    September 2026
    Rule Index (Appendix B):
       identifiers are permanent (Section 8.6, Paragraph 2).
 
+
+
+
+Steele                    Expires 9 March 2027                 [Page 30]
+
+Internet-Draft                     SDS                    September 2026
+
+
 13.  Normative References
 
    [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
@@ -1673,14 +1694,6 @@ Internet-Draft                     SDS                    September 2026
 
    [BASESPEC] agentskills.io, "Agent Skills Specification", 2026,
               <https://agentskills.io/specification>.
-
-
-
-
-Steele                    Expires 9 March 2027                 [Page 30]
-
-Internet-Draft                     SDS                    September 2026
-
 
 14.  Informative References
 
@@ -1716,6 +1729,15 @@ Internet-Draft                     SDS                    September 2026
    [PACT]     Pact Foundation, "Pact: Contract Testing", 2026,
               <https://pact.io>.
 
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 31]
+
+Internet-Draft                     SDS                    September 2026
+
+
    [ERRWRAP]  The Go Programming Language, "Working with Errors in Go
               1.13", 2019, <https://go.dev/blog/go1.13-errors>.
 
@@ -1729,14 +1751,6 @@ Internet-Draft                     SDS                    September 2026
 
    [SEMVER]   Preston-Werner, T., "Semantic Versioning 2.0.0", 2013,
               <https://semver.org>.
-
-
-
-
-Steele                    Expires 9 March 2027                 [Page 31]
-
-Internet-Draft                     SDS                    September 2026
-
 
    [SRE-EB]   Beyer, B. and et al., eds., "Site Reliability
               Engineering", O'Reilly Media. Source of the error-budget
@@ -1772,6 +1786,14 @@ Internet-Draft                     SDS                    September 2026
               JSON Schema Organization, "JSON Schema", 2026,
               <https://json-schema.org>.
 
+
+
+
+Steele                    Expires 9 March 2027                 [Page 32]
+
+Internet-Draft                     SDS                    September 2026
+
+
    [MADR]     MADR project, "MADR: Markdown Architectural Decision
               Records", Version 4.0.0., 2024,
               <https://adr.github.io/madr/>.
@@ -1784,15 +1806,6 @@ Internet-Draft                     SDS                    September 2026
    [OTELSEMCONV]
               OpenTelemetry / CNCF, "OpenTelemetry Semantic
               Conventions", 2026, <https://opentelemetry.io>.
-
-
-
-
-
-Steele                    Expires 9 March 2027                 [Page 32]
-
-Internet-Draft                     SDS                    September 2026
-
 
    [TWELVEFACTOR]
               Wiggins, A., "The Twelve-Factor App", 2011,
@@ -1828,6 +1841,15 @@ Appendix A.  Worked Examples
       unwrapped rung-5 Act, a conditional Act path, a generated (not
       checked-in) version-control fixture.
 
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 33]
+
+Internet-Draft                     SDS                    September 2026
+
+
    *  skills/pr-lifecycle-manager/ — Command, rung 6, decision-doc in,
       status-report out: an orchestrator with no Analyze logic of its
       own (SDS-C-060), a multi-step Act with a compensating action per
@@ -1839,16 +1861,6 @@ Appendix A.  Worked Examples
       fully offline git-state assessment over a generated bare-origin-
       plus-clone fixture, with the one judgment a script cannot make (is
       the branch shared) left to Analyze.
-
-
-
-
-
-
-Steele                    Expires 9 March 2027                 [Page 33]
-
-Internet-Draft                     SDS                    September 2026
-
 
    *  skills/adr-writer/ — Command, rung 4, decision-doc: an Act without
       a mandatory gate, MADR rendering, and immutability with
@@ -1881,6 +1893,19 @@ Internet-Draft                     SDS                    September 2026
    assignments are one domain's answer to the Standards-First Rule, not
    part of this specification.
 
+
+
+
+
+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 34]
+
+Internet-Draft                     SDS                    September 2026
+
+
 Appendix B.  Rule Index
 
    Every rule in this document, in identifier order.  Levels are MUST,
@@ -1898,14 +1923,6 @@ Appendix B.  Rule Index
    | SDS-C-003 | hermetic-gather          | 2.3     |MUST  | REVIEW   |
    +-----------+--------------------------+---------+------+----------+
    | SDS-C-004 | idempotent-semantics     | 2.3     |MAY   | ADVISORY |
-
-
-
-Steele                    Expires 9 March 2027                 [Page 34]
-
-Internet-Draft                     SDS                    September 2026
-
-
    +-----------+--------------------------+---------+------+----------+
    | SDS-C-005 | totality                 | 2.4     |MUST  | REVIEW   |
    +-----------+--------------------------+---------+------+----------+
@@ -1937,6 +1954,14 @@ Internet-Draft                     SDS                    September 2026
    +-----------+--------------------------+---------+------+----------+
    | SDS-C-033 | null-object              | 4.3     |MUST  | REVIEW   |
    +-----------+--------------------------+---------+------+----------+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 35]
+
+Internet-Draft                     SDS                    September 2026
+
+
    | SDS-C-034 | immutability             | 4.4     |SHOULD| REVIEW   |
    +-----------+--------------------------+---------+------+----------+
    | SDS-C-040 | highest-rung             | 5.1     |MUST  | REVIEW   |
@@ -1954,14 +1979,6 @@ Internet-Draft                     SDS                    September 2026
    | SDS-C-046 | check-before-act         | 5.6     |MUST  | REVIEW   |
    +-----------+--------------------------+---------+------+----------+
    | SDS-C-047 | checkpoint               | 5.6     |MUST  | REVIEW   |
-
-
-
-Steele                    Expires 9 March 2027                 [Page 35]
-
-Internet-Draft                     SDS                    September 2026
-
-
    +-----------+--------------------------+---------+------+----------+
    | SDS-C-048 | trust-model              | 5.7     |MUST  | ADVISORY |
    +-----------+--------------------------+---------+------+----------+
@@ -1993,6 +2010,14 @@ Internet-Draft                     SDS                    September 2026
    +-----------+--------------------------+---------+------+----------+
    | SDS-F-011 | registry-schema          | 8.2     |MUST  | MACHINE  |
    +-----------+--------------------------+---------+------+----------+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 36]
+
+Internet-Draft                     SDS                    September 2026
+
+
    | SDS-F-012 | registry-fields          | 8.2     |MUST  | MACHINE  |
    +-----------+--------------------------+---------+------+----------+
    | SDS-F-013 | registry-skill-match     | 8.2     |MUST  | MACHINE  |
@@ -2010,14 +2035,6 @@ Internet-Draft                     SDS                    September 2026
    | SDS-F-030 | root-relative-paths      | 8.4     |MUST  | MACHINE  |
    +-----------+--------------------------+---------+------+----------+
    | SDS-F-031 | skill-relative-commands  | 8.4     |MUST  | MACHINE  |
-
-
-
-Steele                    Expires 9 March 2027                 [Page 36]
-
-Internet-Draft                     SDS                    September 2026
-
-
    +-----------+--------------------------+---------+------+----------+
    | SDS-F-032 | root-resolution          | 8.4     |MAY   | ADVISORY |
    +-----------+--------------------------+---------+------+----------+
@@ -2039,6 +2056,8 @@ Internet-Draft                     SDS                    September 2026
    +-----------+--------------------------+---------+------+----------+
    | SDS-F-053 | promotion-threshold      | 8.6     |SHOULD| REVIEW   |
    +-----------+--------------------------+---------+------+----------+
+   | SDS-F-054 | gate-in-ci               | 8.6     |SHOULD| ADVISORY |
+   +-----------+--------------------------+---------+------+----------+
    | SDS-F-060 | glossary-single          | 8.7     |MUST  | MACHINE  |
    +-----------+--------------------------+---------+------+----------+
    | SDS-F-061 | glossary-no-synonyms     | 8.7     |SHOULD| MACHINE  |
@@ -2047,6 +2066,14 @@ Internet-Draft                     SDS                    September 2026
    +-----------+--------------------------+---------+------+----------+
    | SDS-K-002 | guides-banner            | 9.1     |MUST  | MACHINE  |
    +-----------+--------------------------+---------+------+----------+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 37]
+
+Internet-Draft                     SDS                    September 2026
+
+
    | SDS-K-010 | template-order           | 9.2     |MUST  | MACHINE  |
    +-----------+--------------------------+---------+------+----------+
    | SDS-K-020 | shape-file               | 9.3     |MUST  | MACHINE  |
@@ -2066,14 +2093,6 @@ Internet-Draft                     SDS                    September 2026
    | SDS-K-041 | profile-denylist         | 9.5     |MUST  | MACHINE  |
    +-----------+--------------------------+---------+------+----------+
    | SDS-K-042 | profile-no-bare          | 9.5     |MUST  | MACHINE  |
-
-
-
-Steele                    Expires 9 March 2027                 [Page 37]
-
-Internet-Draft                     SDS                    September 2026
-
-
    +-----------+--------------------------+---------+------+----------+
    | SDS-K-043 | profile-verbatim         | 9.5     |SHOULD| MACHINE  |
    +-----------+--------------------------+---------+------+----------+
@@ -2086,6 +2105,8 @@ Internet-Draft                     SDS                    September 2026
    | SDS-K-070 | linter-contract          | 9.8     |MUST  | MACHINE  |
    +-----------+--------------------------+---------+------+----------+
    | SDS-K-071 | linter-rules-match-spec  | 9.8     |MUST  | REVIEW   |
+   +-----------+--------------------------+---------+------+----------+
+   | SDS-K-072 | eval-runner-contract     | 9.9     |MUST  | REVIEW   |
    +-----------+--------------------------+---------+------+----------+
    | SDS-S-001 | skillmd-present          | 10.1    |MUST  | MACHINE  |
    +-----------+--------------------------+---------+------+----------+
@@ -2101,6 +2122,14 @@ Internet-Draft                     SDS                    September 2026
    +-----------+--------------------------+---------+------+----------+
    | SDS-S-011 | name-format              | 10.2    |MUST  | MACHINE  |
    +-----------+--------------------------+---------+------+----------+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 38]
+
+Internet-Draft                     SDS                    September 2026
+
+
    | SDS-S-012 | description-length       | 10.2    |MUST  | MACHINE  |
    +-----------+--------------------------+---------+------+----------+
    | SDS-S-013 | description-trigger      | 10.2    |SHOULD| MACHINE  |
@@ -2122,14 +2151,6 @@ Internet-Draft                     SDS                    September 2026
    | SDS-S-021 | allowed-tools-sources    | 10.2    |MUST  | MACHINE  |
    +-----------+--------------------------+---------+------+----------+
    | SDS-S-022 | allowed-tools-no-bare    | 10.2    |MUST  | MACHINE  |
-
-
-
-Steele                    Expires 9 March 2027                 [Page 38]
-
-Internet-Draft                     SDS                    September 2026
-
-
    +-----------+--------------------------+---------+------+----------+
    | SDS-S-023 | allowed-tools-denylist   | 10.2    |MUST  | MACHINE  |
    +-----------+--------------------------+---------+------+----------+
@@ -2157,6 +2178,14 @@ Internet-Draft                     SDS                    September 2026
    +-----------+--------------------------+---------+------+----------+
    | SDS-S-036 | requires-form            | 10.3    |MUST  | MACHINE  |
    +-----------+--------------------------+---------+------+----------+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 39]
+
+Internet-Draft                     SDS                    September 2026
+
+
    | SDS-S-037 | requires-count           | 10.3    |MUST  | MACHINE  |
    +-----------+--------------------------+---------+------+----------+
    | SDS-S-038 | returns-shape            | 10.3    |MUST  | MACHINE  |
@@ -2178,14 +2207,6 @@ Internet-Draft                     SDS                    September 2026
    | SDS-S-052 | check-before-act-stated  | 10.5    |MUST  | REVIEW   |
    +-----------+--------------------------+---------+------+----------+
    | SDS-S-053 | two-phase-checkpoint     | 10.5    |MUST  | MACHINE  |
-
-
-
-Steele                    Expires 9 March 2027                 [Page 39]
-
-Internet-Draft                     SDS                    September 2026
-
-
    +-----------+--------------------------+---------+------+----------+
    | SDS-S-054 | compensating-label       | 10.5    |MUST  | MACHINE  |
    +-----------+--------------------------+---------+------+----------+
@@ -2213,6 +2234,14 @@ Internet-Draft                     SDS                    September 2026
    +-----------+--------------------------+---------+------+----------+
    | SDS-S-071 | references-one-level     | 10.7    |SHOULD| MACHINE  |
    +-----------+--------------------------+---------+------+----------+
+
+
+
+Steele                    Expires 9 March 2027                 [Page 40]
+
+Internet-Draft                     SDS                    September 2026
+
+
    | SDS-S-072 | references-conditional   | 10.7    |SHOULD| MACHINE  |
    +-----------+--------------------------+---------+------+----------+
    | SDS-S-073 | references-linked        | 10.7    |SHOULD| MACHINE  |
@@ -2234,14 +2263,6 @@ Internet-Draft                     SDS                    September 2026
    | SDS-S-094 | eval-fixed-point         | 10.9    |MUST  | MACHINE  |
    +-----------+--------------------------+---------+------+----------+
    | SDS-S-095 | eval-mutation-fixture    | 10.9    |MUST  | MACHINE  |
-
-
-
-Steele                    Expires 9 March 2027                 [Page 40]
-
-Internet-Draft                     SDS                    September 2026
-
-
    +-----------+--------------------------+---------+------+----------+
    | SDS-S-096 | fixtures-layout          | 10.9    |MUST  | MACHINE  |
    +-----------+--------------------------+---------+------+----------+
@@ -2261,6 +2282,27 @@ Internet-Draft                     SDS                    September 2026
                            Table 2: Rule Index
 
 Appendix C.  Change Log
+
+   *1.0-draft, revision 04 (2026-09-06):* Adds the eval runner.  SDS-
+   K-001 now requires kit/scripts/run-evals.py (MACHINE rule changed;
+   linter updated in the same change).  New SDS-K-072 (MUST, REVIEW):
+   the runner's contract — generators first, then every row with a
+   command, judged by expected.kind, exit code, failureCode on stderr,
+   and Shape validation; never the smoke section.  New SDS-F-054
+   (SHOULD, ADVISORY): the family runs its validation gate in continuous
+
+
+
+Steele                    Expires 9 March 2027                 [Page 41]
+
+Internet-Draft                     SDS                    September 2026
+
+
+   integration.  SDS-S-110 now cites the runner.  Introduced when the
+   first family-wide run of the runner found fifteen rows the linter
+   could not see — folded commands, undocumented failure codes on
+   stderr, one borrowed code, one mislabelled intermediate — all fixed
+   in the skills.
 
    *1.0-draft, revision 03 (2026-09-06):* Adds SDS-K-023 (SHOULD,
    REVIEW): a family carries a machine check that each registered Shape
@@ -2286,18 +2328,6 @@ Appendix C.  Change Log
    changed to match; one REVIEW rule was added to Appendix B; no MACHINE
    rule was added or removed.
 
-
-
-
-
-
-
-
-Steele                    Expires 9 March 2027                 [Page 41]
-
-Internet-Draft                     SDS                    September 2026
-
-
    *1.0-draft, editorial (2026-09-06):* SDS-S-100 now states that the
    family root is the skill family's own checkout, not the repository a
    skill operates on, and that a bundled checkpoint script must accept
@@ -2316,6 +2346,14 @@ Internet-Draft                     SDS                    September 2026
    mutating call, updated to completed after — and single-step Command
    Skills must checkpoint; (3) metadata has exactly seven string keys;
    (4) allowed-tools is required by rung, not kind, with two declared
+
+
+
+Steele                    Expires 9 March 2027                 [Page 42]
+
+Internet-Draft                     SDS                    September 2026
+
+
    sources; (5) tier vocabulary is pillar / situational; (6) a
    conditional Act path is a permitted Command form with Confirm/Act
    headings retained and Communicate/ Persist always present; (7) the
@@ -2346,45 +2384,7 @@ Internet-Draft                     SDS                    September 2026
 Author's Address
 
    Edison Steele
-
-
-
-Steele                    Expires 9 March 2027                 [Page 42]
-
-Internet-Draft                     SDS                    September 2026
-
-
    Email: edisonsteele@gmail.com
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
