@@ -148,7 +148,10 @@ def load_runs(path):
 
 def load_live(repo, since):
     q = f"repos/{{owner}}/{{repo}}/actions/runs?created=>={since.date().isoformat()}&per_page=100"
-    result = subprocess.run(["gh", "api", "-X", "GET", q, "--paginate", "--jq", ".workflow_runs"], cwd=repo, capture_output=True, text=True)
+    try:
+        result = subprocess.run(["gh", "api", "-X", "GET", q, "--paginate", "--jq", ".workflow_runs"], cwd=repo, capture_output=True, text=True, timeout=60)
+    except subprocess.TimeoutExpired:
+        sys.exit("ERROR: gh api actions/runs timed out after 60s (gh-unreachable)")
     if result.returncode != 0:
         sys.exit(f"ERROR: gh api actions/runs failed (gh-unreachable): {result.stderr.strip()}")
     runs = []
