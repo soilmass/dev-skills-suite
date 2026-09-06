@@ -123,6 +123,7 @@ SDS-K-010 | template-order | MUST | MACHINE | 9.2 | Template H2/H3 order equals 
 SDS-K-020 | shape-file | MUST | MACHINE | 9.3 | kit/shapes/<name>.schema.json is JSON Schema 2020-12 with title == name and $id https://skills.local/shapes/<name>.schema.json.
 SDS-K-021 | shape-registration | MUST | REVIEW | 9.3 | New shape carries a standards-first justification and a validating null-object instance.
 SDS-K-022 | shape-glossary | SHOULD | REVIEW | 9.3 | A shape introducing a term adds a glossary row.
+SDS-K-023 | shape-compat-check | SHOULD | REVIEW | 9.3 | A machine check keeps each registered shape backward compatible with its copy at the last tag (json-schema-compat-check's contract-with-family-shapes row).
 SDS-K-030 | gate-file | MUST | MACHINE | 9.4 | kit/shared/gates/<level>.md contains What, Why, and Reversible or Compensating action fields.
 SDS-K-031 | gate-rung | MUST | REVIEW | 9.4 | Each gate maps to exactly one rung.
 SDS-K-040 | profile-file | MUST | MACHINE | 9.5 | Tool profile YAML has name, effect-tier (enum), allowed-tools (list), notes.
@@ -217,7 +218,7 @@ REVIEW_ORDER = [
     "SDS-C-033", "SDS-C-031", "SDS-C-044", "SDS-C-045", "SDS-C-046",
     "SDS-C-047", "SDS-S-024", "SDS-S-042", "SDS-S-052", "SDS-S-055", "SDS-S-056",
     "SDS-S-060", "SDS-S-061", "SDS-S-064", "SDS-S-070", "SDS-S-082",
-    "SDS-S-101", "SDS-S-110",
+    "SDS-S-101", "SDS-S-110", "SDS-K-022", "SDS-K-023",
 ]
 
 # --------------------------------------------------------------------------
