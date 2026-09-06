@@ -3,7 +3,7 @@ name: large-file-splitter-advisor
 description: >-
   Finds Python modules over a line budget and proposes where each
   could be split — by building the reference graph between the
-  module's top-level definitions and reporting its independent
+  module's module-scope definitions and reporting its independent
   clusters as candidate seams, largest first — as a finding-list for
   human review; it advises, it never moves code. Use when a module
   has grown past what one reader holds in mind, when reviewers keep

@@ -214,7 +214,7 @@
     },
     {
       "name": "large-file-splitter-advisor",
-      "description": "Finds Python modules over a line budget and proposes where each could be split — by building the reference graph between the module's top-level definitions and reporting its independent clusters as candidate seams, largest first — as a finding-list for human review; it advises, it never moves code. Use when a module has grown past what one reader holds in mind, when reviewers keep asking \"where does this live\", or when asked how to break a file up.",
+      "description": "Finds Python modules over a line budget and proposes where each could be split — by building the reference graph between the module's module-scope definitions and reporting its independent clusters as candidate seams, largest first — as a finding-list for human review; it advises, it never moves code. Use when a module has grown past what one reader holds in mind, when reviewers keep asking \"where does this live\", or when asked how to break a file up.",
       "version": "0.1.0",
       "status": "built",
       "effect-tier": "local-read-only",
