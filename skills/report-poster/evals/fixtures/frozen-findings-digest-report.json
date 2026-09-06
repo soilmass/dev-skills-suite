@@ -1,0 +1,30 @@
+{
+  "summary": "20 finding(s) across 3 tool(s): 3 error(s) to fix first",
+  "generatedFrom": "evals/fixtures/frozen-dependency-audit-findings.json, evals/fixtures/frozen-ci-pipeline-audit-findings.json, evals/fixtures/frozen-retry-timeout-audit-findings.json",
+  "sections": [
+    {
+      "heading": "Totals",
+      "body": "20 finding(s) at or above info from 3 input(s) and 3 tool(s); 3 error(s), 10 warning(s), 7 info(s); 0 duplicate(s) merged."
+    },
+    {
+      "heading": "By tool",
+      "body": "- ci-pipeline-audit: 7\n- retry-timeout-audit: 7\n- dependency-audit: 6"
+    },
+    {
+      "heading": "By level",
+      "body": "- warning: 10\n- info: 7\n- error: 3"
+    },
+    {
+      "heading": "Top rules",
+      "body": "- ci/unpinned-action (ci-pipeline-audit): 2\n- net/constant-backoff (retry-timeout-audit): 2\n- net/no-timeout (retry-timeout-audit): 2\n- GHSA-29mw-wpgm-hmr9 (dependency-audit): 1\n- GHSA-35jh-r3h4-6jhm (dependency-audit): 1\n- GHSA-f23m-r3pf-42rh (dependency-audit): 1\n- GHSA-p6mc-m468-83gw (dependency-audit): 1\n- GHSA-r5fr-rjxr-66jc (dependency-audit): 1\n- GHSA-xxjr-mmjv-4gpg (dependency-audit): 1\n- ci/broad-permissions (ci-pipeline-audit): 1"
+    },
+    {
+      "heading": "Files with most findings",
+      "body": "- .github/workflows/ci.yml: 6\n- package.json: 6\n- app/poll.py: 3\n- app/fetch.py: 2\n- .github/workflows/pr-label.yml: 1\n- app/bounded.py: 1\n- app/run.py: 1"
+    },
+    {
+      "heading": "Errors",
+      "body": "- [dependency-audit] GHSA-35jh-r3h4-6jhm at package.json \u2014 lodash@4.17.15 (npm) is affected by GHSA-35jh-r3h4-6jhm (aka CVE-2021-23337, CVE-2026-4800, GHSA-r5fr-rjxr-66jc): Command Injection in lodash [NOTE: version is \n- [dependency-audit] GHSA-p6mc-m468-83gw at package.json \u2014 lodash@4.17.15 (npm) is affected by GHSA-p6mc-m468-83gw (aka CVE-2020-8203): Prototype Pollution in lodash [NOTE: version is an unresolved range from the manife\n- [dependency-audit] GHSA-r5fr-rjxr-66jc at package.json \u2014 lodash@4.17.15 (npm) is affected by GHSA-r5fr-rjxr-66jc (aka CVE-2021-23337, CVE-2026-4800, GHSA-35jh-r3h4-6jhm): lodash vulnerable to Code Injection via `_.tem"
+    }
+  ]
+}

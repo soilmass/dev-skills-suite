@@ -622,6 +622,16 @@
       "shape-out": "status-report",
       "shape-in": "finding-list",
       "status": "built"
+    },
+    {
+      "name": "report-poster",
+      "description": "Posts any family status-report as a comment on a pull request or GitHub issue — one section per heading, a footer naming what the report covers, and a hidden marker so a repeat run recognizes its own comment instead of posting a duplicate. Use after a status-report is produced, when asked to post it as a comment, or when a pull request or GitHub issue needs the report where its readers already are.",
+      "version": "0.1.0",
+      "effect-tier": "shared-write",
+      "tier": "situational",
+      "shape-out": "status-report",
+      "shape-in": "status-report",
+      "status": "built"
     }
   ]
 }
