@@ -1,0 +1,120 @@
+# Table-driven eval file for sla-error-budget-check (SDS-S-090).
+#
+# A rung-1 Query Skill over an OpenSLO file with three SLOs (and one
+# non-SLO document that must be ignored) and hand-built measurement
+# files: one planting every state — low, exhausted, burning — one
+# healthy, one missing an SLO, and malformed ones. Every count is
+# invented; every row is deterministic and offline.
+
+skill: sla-error-budget-check
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): every planted state is assigned and the worst decides.
+  - name: happy-path-freeze
+    input:
+      command: "python3 scripts/check_error_budget.py evals/fixtures/slos.yaml --measurements-json-file evals/fixtures/measurements-planted.json --as-of 2026-09-06T00:00:00Z"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "chosenOption is freeze; justification names api-latency and checkout-success as burning / exhausted"
+        - "decisionDrivers has three lines: api-availability low (SLI 99.9228%, remaining 22.8%, burn 1h 2.8x / 6h 0.9x); api-latency exhausted (remaining -254.9%); checkout-success burning (remaining 80.0%, burn 1h 20.0x >= 14.4 / 6h 3.3x); the kind: Service document is ignored"
+        - "consequences.negative has all three lines and consequences.positive is empty; contextAndProblemStatement carries as-of 2026-09-06T00:00:00Z and the states"
+
+  - name: happy-path-proceed
+    input:
+      command: "python3 scripts/check_error_budget.py evals/fixtures/slos.yaml --measurements-json-file evals/fixtures/measurements-healthy.json --as-of 2026-09-06T00:00:00Z"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "chosenOption is proceed; every driver says healthy (remaining 92.3%, 73.0%, 90.0%); consequences.negative is empty"
+
+  # The caution line is a parameter: at 0.1, api-availability's 22.8% is healthy (the decision stays freeze because of the others).
+  - name: boundary-caution-below
+    input:
+      command: "python3 scripts/check_error_budget.py evals/fixtures/slos.yaml --measurements-json-file evals/fixtures/measurements-planted.json --as-of 2026-09-06T00:00:00Z --caution-below 0.1"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "api-availability's driver says healthy; chosenOption is still freeze"
+
+  # A missing measurement is no-data -> caution, not a failure.
+  - name: boundary-missing-measurement
+    input:
+      command: "python3 scripts/check_error_budget.py evals/fixtures/slos.yaml --measurements-json-file evals/fixtures/measurements-partial.json --as-of 2026-09-06T00:00:00Z"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "chosenOption is caution; justification names checkout-success as no-data; the two measured SLOs are healthy with burn rates n/a (no 1h/6h windows)"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): a file with no SLO documents -> no-slos with empty drivers.
+  - name: boundary-empty-no-slos
+    input:
+      command: "python3 scripts/check_error_budget.py evals/fixtures/slos-none.yaml --measurements-json-file evals/fixtures/measurements-healthy.json --as-of 2026-09-06T00:00:00Z"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "chosenOption is no-slos; decisionDrivers is an empty array; the document still validates"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-slo-file
+    input:
+      command: "python3 scripts/check_error_budget.py evals/fixtures/slos-malformed.yaml --measurements-json-file evals/fixtures/measurements-healthy.json --as-of 2026-09-06T00:00:00Z"
+    expected:
+      kind: failure
+      failureCode: slo-unparseable
+      assertions:
+        - "exit code is 1 and stderr says slo-unparseable"
+
+  - name: boundary-invalid-target
+    input:
+      command: "python3 scripts/check_error_budget.py evals/fixtures/slos-bad-target.yaml --measurements-json-file evals/fixtures/measurements-healthy.json --as-of 2026-09-06T00:00:00Z"
+    expected:
+      kind: failure
+      failureCode: slo-invalid
+      assertions:
+        - "exit code is 1 — target 99.9 is not in (0, 1) — and stderr names bad-target and says slo-invalid"
+
+  - name: boundary-malformed-measurements
+    input:
+      command: "python3 scripts/check_error_budget.py evals/fixtures/slos.yaml --measurements-json-file evals/fixtures/measurements-malformed.json --as-of 2026-09-06T00:00:00Z"
+    expected:
+      kind: failure
+      failureCode: measurements-unparseable
+      assertions:
+        - "exit code is 1 — slos is an array, not an object — and stderr says measurements-unparseable"
+
+  - name: boundary-missing-as-of
+    input:
+      command: "python3 scripts/check_error_budget.py evals/fixtures/slos.yaml --measurements-json-file evals/fixtures/measurements-healthy.json"
+    expected:
+      kind: failure
+      failureCode: as-of-invalid
+      assertions:
+        - "exit code is 1 and stderr says --as-of is required (as-of-invalid)"
+
+  # N/A — shape-out is decision-doc, not finding-list (SDS-S-095).
+  - name: mutation-fixture
+    expected:
+      kind: not-applicable
+      reason: "sla-error-budget-check does not search for known problems; shape-out is decision-doc."
+
+  # N/A — shape-out decision-doc != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out decision-doc differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): the decision-doc release-publisher and pr-lifecycle-manager (shape-in decision-doc) can consume validates against the registered shape.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/check_error_budget.py evals/fixtures/slos.yaml --measurements-json-file evals/fixtures/measurements-planted.json --as-of 2026-09-06T00:00:00Z | python3 -c \"import json,sys,jsonschema; jsonschema.validate(json.load(sys.stdin), json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/decision-doc.schema.json'))); print('decision-doc OK')\""
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "the actual output validates against kit/shapes/decision-doc.schema.json"

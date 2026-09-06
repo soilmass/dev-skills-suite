@@ -1,0 +1,3 @@
+apiVersion: openslo/v1
+kind: SLO
+metadata: [name

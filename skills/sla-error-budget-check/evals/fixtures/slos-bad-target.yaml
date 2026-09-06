@@ -1,0 +1,9 @@
+apiVersion: openslo/v1
+kind: SLO
+metadata:
+  name: bad-target
+spec:
+  timeWindow:
+    - duration: 30d
+  objectives:
+    - target: 99.9

@@ -1,0 +1,7 @@
+{
+  "asOf": "2026-09-06T00:00:00Z",
+  "slos": {
+    "api-availability": { "windows": { "30d": { "good": 2591800, "total": 2592000 } } },
+    "api-latency":      { "windows": { "30d": { "good": 2585000, "total": 2592000 } } }
+  }
+}

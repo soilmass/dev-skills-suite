@@ -582,6 +582,16 @@
       "shape-out": "finding-list",
       "shape-in": "freeform",
       "status": "built"
+    },
+    {
+      "name": "sla-error-budget-check",
+      "description": "Answers one question before a release — do the error budgets allow it? — by reading the service's OpenSLO definitions and the measured good/total counts per window, computing each SLO's remaining budget and its 1h and 6h burn rates, and applying a fixed rule table (exhausted or fast-burning freezes; low or unmeasured cautions; all healthy proceeds) into a decision-doc that says which SLO decided it. Use before a deploy under an error-budget policy, when an SLO alert fired and someone asks whether to ship anyway, or when asked how much budget is left.",
+      "version": "0.1.0",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "decision-doc",
+      "shape-in": "freeform",
+      "status": "built"
     }
   ]
 }

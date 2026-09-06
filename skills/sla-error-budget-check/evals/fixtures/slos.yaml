@@ -1,0 +1,66 @@
+apiVersion: openslo/v1
+kind: SLO
+metadata:
+  name: api-availability
+  displayName: API availability
+spec:
+  description: Fraction of non-5xx responses at the edge
+  service: api
+  indicator:
+    metadata:
+      name: api-non-5xx
+    spec:
+      ratioMetric:
+        counter: true
+        good:
+          metricSource:
+            type: Prometheus
+            spec:
+              query: sum(rate(http_requests_total{code!~"5.."}[5m]))
+        total:
+          metricSource:
+            type: Prometheus
+            spec:
+              query: sum(rate(http_requests_total[5m]))
+  timeWindow:
+    - duration: 30d
+      isRolling: true
+  budgetingMethod: Occurrences
+  objectives:
+    - displayName: Three nines
+      target: 0.999
+---
+apiVersion: openslo/v1
+kind: SLO
+metadata:
+  name: api-latency
+spec:
+  description: Requests served under 300 ms
+  service: api
+  timeWindow:
+    - duration: 30d
+      isRolling: true
+  budgetingMethod: Occurrences
+  objectives:
+    - target: 0.99
+---
+apiVersion: openslo/v1
+kind: SLO
+metadata:
+  name: checkout-success
+spec:
+  description: Checkouts that complete without an error
+  service: checkout
+  timeWindow:
+    - duration: 28d
+      isRolling: true
+  budgetingMethod: Occurrences
+  objectives:
+    - target: 0.995
+---
+apiVersion: openslo/v1
+kind: Service
+metadata:
+  name: api
+spec:
+  description: Not an SLO; ignored

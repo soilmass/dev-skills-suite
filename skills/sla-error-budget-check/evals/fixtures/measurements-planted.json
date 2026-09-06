@@ -1,0 +1,9 @@
+{
+  "asOf": "2026-09-06T00:00:00Z",
+  "source": "hand-built to the measurements shape; counts are invented",
+  "slos": {
+    "api-availability": { "windows": { "30d": { "good": 2590000, "total": 2592000 }, "1h": { "good": 3590, "total": 3600 }, "6h": { "good": 21580, "total": 21600 } } },
+    "api-latency":      { "windows": { "30d": { "good": 2500000, "total": 2592000 }, "1h": { "good": 3560, "total": 3600 }, "6h": { "good": 21400, "total": 21600 } } },
+    "checkout-success": { "windows": { "28d": { "good": 99900, "total": 100000 }, "1h": { "good": 900, "total": 1000 }, "6h": { "good": 5900, "total": 6000 } } }
+  }
+}

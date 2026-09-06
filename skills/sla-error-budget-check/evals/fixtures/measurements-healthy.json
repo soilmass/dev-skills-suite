@@ -1,0 +1,8 @@
+{
+  "asOf": "2026-09-06T00:00:00Z",
+  "slos": {
+    "api-availability": { "windows": { "30d": { "good": 2591800, "total": 2592000 }, "1h": { "good": 3600, "total": 3600 }, "6h": { "good": 21599, "total": 21600 } } },
+    "api-latency":      { "windows": { "30d": { "good": 2585000, "total": 2592000 }, "1h": { "good": 3595, "total": 3600 }, "6h": { "good": 21550, "total": 21600 } } },
+    "checkout-success": { "windows": { "28d": { "good": 99950, "total": 100000 }, "1h": { "good": 999, "total": 1000 }, "6h": { "good": 5995, "total": 6000 } } }
+  }
+}
