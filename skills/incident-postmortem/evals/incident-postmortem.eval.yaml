@@ -1,0 +1,111 @@
+# Table-driven eval file for incident-postmortem (SDS-S-090).
+#
+# A rung-4 Command Skill whose only mutation is writing a markdown
+# record, so the Act path is exercised for real against a gitignored
+# output directory reset by a build script (SDS-S-096). The judgment —
+# reconstructing the timeline, deriving contributing factors, rewriting
+# blame — is the model's and is not asserted here; the rows cover what
+# is mechanical: shape, completeness, the blaming-phrase scan, and the
+# render.
+#
+# Before running: evals/fixtures/pm-out is generated, not checked in.
+#   evals/fixtures/build-pm-out.sh
+
+skill: incident-postmortem
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): a complete, blameless record renders with no warnings.
+  - name: happy-path-dry-run
+    input:
+      command: "python3 scripts/render_postmortem.py evals/fixtures/postmortem-example.json --out-dir evals/fixtures --dry-run"
+    expected:
+      kind: success
+      shape: status-report
+      assertions:
+        - "warnings is an empty list"
+        - "path ends with 2026-09-04-checkout-api-returned-502-….md (date taken from generatedFrom)"
+        - "rendered contains all five '## ' section headings in order and '- blameless: yes'"
+        - "nothing was written (dry run)"
+
+  # Happy path: real write into the generated output directory.
+  - name: happy-path-write-record
+    input:
+      command: "evals/fixtures/build-pm-out.sh && python3 scripts/render_postmortem.py evals/fixtures/postmortem-example.json --out-dir evals/fixtures/pm-out"
+    expected:
+      kind: success
+      shape: status-report
+      assertions:
+        - "a file matching evals/fixtures/pm-out/2026-09-04-*.md now exists and begins with '# Postmortem:'"
+        - "stdout JSON report equals the input document"
+
+  # Happy path: blaming phrases are reported as warnings, never as a failure (the judgment stays with the writer).
+  - name: happy-path-blame-warnings
+    input:
+      command: "python3 scripts/render_postmortem.py evals/fixtures/postmortem-blameful.json --out-dir evals/fixtures --dry-run"
+    expected:
+      kind: success
+      shape: status-report
+      assertions:
+        - "exit code is 0"
+        - "warnings contains at least three entries, all in section 'Contributing Factors': 'failed to', 'should have', 'human error'"
+        - "each warning carries a 'why' explaining what to describe instead"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): an explicit 'No action items: <reason>' is a complete record.
+  - name: boundary-none-explicit-no-action-items
+    input:
+      command: "python3 scripts/render_postmortem.py evals/fixtures/postmortem-empty-actions.json --out-dir evals/fixtures --dry-run"
+    expected:
+      kind: success
+      shape: status-report
+      assertions:
+        - "exit code is 0 — an explicitly stated empty action list with a reason is valid"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-postmortem
+    input:
+      command: "python3 scripts/render_postmortem.py evals/fixtures/postmortem-malformed.json --out-dir evals/fixtures --dry-run"
+    expected:
+      kind: failure
+      failureCode: postmortem-unparseable
+      assertions:
+        - "exit code is 1 and stderr says postmortem-unparseable"
+
+  - name: boundary-invalid-missing-sections
+    input:
+      command: "python3 scripts/render_postmortem.py evals/fixtures/postmortem-missing-sections.json --out-dir evals/fixtures --dry-run"
+    expected:
+      kind: failure
+      failureCode: postmortem-incomplete
+      assertions:
+        - "exit code is 1 and stderr lists the missing sections: Contributing Factors, What Went Well, Action Items"
+
+  - name: boundary-missing-out-dir
+    input:
+      command: "python3 scripts/render_postmortem.py evals/fixtures/postmortem-example.json --out-dir evals/fixtures/postmortem-example.json --dry-run"
+    expected:
+      kind: failure
+      failureCode: out-dir-missing
+      assertions:
+        - "exit code is 1 — the --out-dir argument is a file, not a directory"
+
+  # N/A — shape-out is status-report, not finding-list (SDS-S-095).
+  - name: mutation-fixture
+    expected:
+      kind: not-applicable
+      reason: "incident-postmortem does not search for known problems; shape-out is status-report, not finding-list."
+
+  # N/A — shape-out status-report != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out status-report differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): the returned status-report validates against the family shape.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/render_postmortem.py evals/fixtures/postmortem-example.json --out-dir evals/fixtures --dry-run | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin)['report']; jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/status-report.schema.json'))); print('status-report OK')\""
+    expected:
+      kind: success
+      shape: status-report
+      assertions:
+        - "the returned report validates against kit/shapes/status-report.schema.json"

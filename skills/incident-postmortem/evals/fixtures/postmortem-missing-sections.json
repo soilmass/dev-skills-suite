@@ -1,0 +1,8 @@
+{
+  "summary": "Search latency doubled for 20 minutes during an index rebuild",
+  "sections": [
+    { "heading": "Timeline", "body": "14:00 index rebuild starts\n14:20 rebuild finishes; latency recovers" },
+    { "heading": "Impact", "body": "p95 search latency 800ms instead of 400ms for 20 minutes." }
+  ],
+  "generatedFrom": "incident INC-2050, 2026-09-05"
+}

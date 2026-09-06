@@ -1,0 +1,11 @@
+{
+  "summary": "Status page showed degraded for 4 minutes during a provider blip with no customer impact",
+  "sections": [
+    { "heading": "Timeline", "body": "09:10 CDN provider reports an edge blip\n09:14 provider resolves; our synthetic checks never failed" },
+    { "heading": "Impact", "body": "None measured; the status page component turned amber automatically from the provider feed." },
+    { "heading": "Contributing Factors", "body": "The status page mirrors the provider's feed without our own confirmation." },
+    { "heading": "What Went Well", "body": "Synthetic checks stayed green throughout, which is how impact was ruled out quickly." },
+    { "heading": "Action Items", "body": "No action items: the provider feed mirroring is a deliberate choice reviewed in ADR-0007; revisit only if a blip ever coincides with real impact." }
+  ],
+  "generatedFrom": "incident INC-2052, 2026-09-02"
+}

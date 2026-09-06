@@ -1,0 +1,11 @@
+{
+  "summary": "Nightly report job skipped for one night after a cron edit",
+  "sections": [
+    { "heading": "Timeline", "body": "02:00 nightly job did not start\n08:15 missing report noticed by finance\n08:40 cron entry found commented out; restored and run manually" },
+    { "heading": "Impact", "body": "One nightly report delivered six hours late; no data lost." },
+    { "heading": "Contributing Factors", "body": "The engineer failed to uncomment the cron line after testing and should have double-checked. It was human error." },
+    { "heading": "What Went Well", "body": "Finance had a contact and the manual run path was documented." },
+    { "heading": "Action Items", "body": "Alert when the nightly job has not started by 02:15 — owner: data-team, due: 2026-09-20" }
+  ],
+  "generatedFrom": "incident INC-2051, 2026-09-03"
+}

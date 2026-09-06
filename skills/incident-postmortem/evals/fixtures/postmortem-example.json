@@ -1,0 +1,26 @@
+{
+  "summary": "Checkout API returned 502 for 38 minutes after a config deploy pointed the payment client at the staging gateway",
+  "sections": [
+    {
+      "heading": "Timeline",
+      "body": "10:31 config deploy v2026.09.04-3 rolls out (payment.gateway_url changed)\n10:33 first 502s on /checkout; error-rate alert fires at 10:36\n10:41 on-call engineer opens the incident channel and pages payments\n10:52 payments engineer notices gateway_url points at the staging host\n11:02 rollback of the config deploy completes\n11:09 error rate back to baseline; incident closed"
+    },
+    {
+      "heading": "Impact",
+      "body": "Roughly 2,400 checkout attempts failed over 38 minutes; carts were preserved, so most customers retried successfully after 11:09. No payments were double-charged."
+    },
+    {
+      "heading": "Contributing Factors",
+      "body": "The staging and production gateway URLs differ by one subdomain and the config diff showed only the new value, not the environment it applied to. No integration check exercises the payment path after a config deploy. The 502 alert threshold is five minutes, which delayed paging."
+    },
+    {
+      "heading": "What Went Well",
+      "body": "The rollback path worked first time and took under two minutes. Carts survived the outage because the cart service is independent of checkout. The incident channel had the right people within ten minutes."
+    },
+    {
+      "heading": "Action Items",
+      "body": "Config diffs show the target environment next to every changed key — owner: platform-team, due: 2026-09-19\nAdd a post-deploy synthetic checkout against the real gateway — owner: payments-team, due: 2026-09-26\nLower the /checkout 502 alert window from 5 minutes to 2 — owner: on-call-rotation, due: 2026-09-12"
+    }
+  ],
+  "generatedFrom": "incident INC-2041, 2026-09-04 10:31–11:09 UTC, incident channel export and deploy log"
+}

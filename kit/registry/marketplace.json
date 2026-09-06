@@ -54,9 +54,9 @@
     },
     {
       "name": "incident-postmortem",
-      "description": "Blameless postmortem template and facilitation instructions.",
+      "description": "Facilitates and writes a blameless incident postmortem — timeline, impact, contributing factors, what went well, owned and dated action items — as a status-report and a markdown record in the repository, with a mechanical check for completeness and blaming language. Use after an incident or outage is resolved, when asked to run a retro or postmortem, or when a review keeps turning into who-did-what.",
       "version": "0.1.0",
-      "status": "planned",
+      "status": "built",
       "effect-tier": "local-write",
       "tier": "pillar",
       "shape-out": "status-report",
