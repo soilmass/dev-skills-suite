@@ -361,6 +361,16 @@
       "tier": "situational",
       "shape-out": "finding-list",
       "shape-in": "freeform"
+    },
+    {
+      "name": "upgrade-risk-assessor",
+      "description": "Assesses how risky one dependency upgrade is for this repository — from the semver jump, every module that imports the package and every symbol it uses (found in the syntax tree, not guessed), and the changelog's breaking entries matched against those symbols — as a decision-doc rating the upgrade low, medium, or high, or flagging a downgrade or an unused dependency. Use before merging a dependency bump, when a bot opened a major-version pull request, or when asked whether an upgrade is safe.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "decision-doc",
+      "shape-in": "freeform"
     }
   ]
 }
