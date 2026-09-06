@@ -1,0 +1,215 @@
+{
+ "format_version": "1.2",
+ "terraform_version": "1.9.5",
+ "resource_changes": [
+  {
+   "address": "aws_s3_bucket.archive",
+   "mode": "managed",
+   "type": "aws_s3_bucket",
+   "name": "archive",
+   "provider_name": "registry.terraform.io/hashicorp/aws",
+   "change": {
+    "actions": [
+     "delete"
+    ],
+    "before": {
+     "bucket": "archive"
+    },
+    "after": null,
+    "after_unknown": {}
+   }
+  },
+  {
+   "address": "aws_db_instance.orders",
+   "mode": "managed",
+   "type": "aws_db_instance",
+   "name": "orders",
+   "provider_name": "registry.terraform.io/hashicorp/aws",
+   "change": {
+    "actions": [
+     "delete",
+     "create"
+    ],
+    "before": {
+     "engine_version": "14.9",
+     "deletion_protection": false,
+     "storage_encrypted": true
+    },
+    "after": {
+     "engine_version": "16.1",
+     "deletion_protection": false,
+     "storage_encrypted": true
+    },
+    "after_unknown": {}
+   }
+  },
+  {
+   "address": "aws_instance.canary",
+   "mode": "managed",
+   "type": "aws_instance",
+   "name": "canary",
+   "provider_name": "registry.terraform.io/hashicorp/aws",
+   "change": {
+    "actions": [
+     "delete"
+    ],
+    "before": {
+     "ami": "ami-1"
+    },
+    "after": null,
+    "after_unknown": {}
+   }
+  },
+  {
+   "address": "aws_instance.web",
+   "mode": "managed",
+   "type": "aws_instance",
+   "name": "web",
+   "provider_name": "registry.terraform.io/hashicorp/aws",
+   "change": {
+    "actions": [
+     "create",
+     "delete"
+    ],
+    "before": {
+     "ami": "ami-1"
+    },
+    "after": {
+     "ami": "ami-2"
+    },
+    "after_unknown": {}
+   }
+  },
+  {
+   "address": "aws_security_group.db",
+   "mode": "managed",
+   "type": "aws_security_group",
+   "name": "db",
+   "provider_name": "registry.terraform.io/hashicorp/aws",
+   "change": {
+    "actions": [
+     "update"
+    ],
+    "before": {
+     "ingress": [
+      {
+       "from_port": 3306,
+       "to_port": 3306,
+       "cidr_blocks": [
+        "10.0.0.0/8"
+       ]
+      }
+     ]
+    },
+    "after": {
+     "ingress": [
+      {
+       "from_port": 3306,
+       "to_port": 3306,
+       "cidr_blocks": [
+        "0.0.0.0/0"
+       ]
+      }
+     ]
+    },
+    "after_unknown": {}
+   }
+  },
+  {
+   "address": "aws_s3_bucket_public_access_block.assets",
+   "mode": "managed",
+   "type": "aws_s3_bucket_public_access_block",
+   "name": "assets",
+   "provider_name": "registry.terraform.io/hashicorp/aws",
+   "change": {
+    "actions": [
+     "update"
+    ],
+    "before": {
+     "block_public_acls": true
+    },
+    "after": {
+     "block_public_acls": false,
+     "block_public_policy": true
+    },
+    "after_unknown": {}
+   }
+  },
+  {
+   "address": "aws_ebs_volume.data",
+   "mode": "managed",
+   "type": "aws_ebs_volume",
+   "name": "data",
+   "provider_name": "registry.terraform.io/hashicorp/aws",
+   "change": {
+    "actions": [
+     "update"
+    ],
+    "before": {
+     "encrypted": true,
+     "size": 100
+    },
+    "after": {
+     "encrypted": false,
+     "size": 200
+    },
+    "after_unknown": {}
+   }
+  },
+  {
+   "address": "aws_iam_role.app",
+   "mode": "managed",
+   "type": "aws_iam_role",
+   "name": "app",
+   "provider_name": "registry.terraform.io/hashicorp/aws",
+   "change": {
+    "actions": [
+     "create"
+    ],
+    "before": null,
+    "after": {
+     "name": "app"
+    },
+    "after_unknown": {}
+   }
+  },
+  {
+   "address": "aws_lambda_function.api",
+   "mode": "managed",
+   "type": "aws_lambda_function",
+   "name": "api",
+   "provider_name": "registry.terraform.io/hashicorp/aws",
+   "change": {
+    "actions": [
+     "update"
+    ],
+    "before": {
+     "memory_size": 128
+    },
+    "after": {
+     "memory_size": 256
+    },
+    "after_unknown": {}
+   }
+  },
+  {
+   "address": "module.vpc.aws_subnet.a",
+   "mode": "managed",
+   "type": "aws_subnet",
+   "name": "a",
+   "provider_name": "registry.terraform.io/hashicorp/aws",
+   "change": {
+    "actions": [
+     "no-op"
+    ],
+    "before": {
+     "cidr_block": "10.0.1.0/24"
+    },
+    "after": {
+     "cidr_block": "10.0.1.0/24"
+    },
+    "after_unknown": {}
+   }
+  }
+ ]
+}

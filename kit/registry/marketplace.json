@@ -532,6 +532,16 @@
       "tier": "situational",
       "shape-out": "finding-list",
       "shape-in": "freeform"
+    },
+    {
+      "name": "terraform-plan-review",
+      "description": "Reviews a Terraform or OpenTofu plan — the JSON from `terraform show -json` — for the changes that lose data, expose resources, or weaken protection: destroys, replacements of stateful resources (databases, buckets, volumes, queues), rules opening 0.0.0.0/0, public access on storage or databases, encryption switched off, deletion protection off, and plans too large to apply in one go — as a finding-list, leaving the call on whether a destroy is a decommission or a mistake to a human. Use before `terraform apply`, in a plan-review step of CI, or when asked whether a plan is safe.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
     }
   ]
 }

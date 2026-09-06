@@ -1,0 +1,106 @@
+# Table-driven eval file for terraform-plan-review (SDS-S-090).
+#
+# A rung-1 Query Skill over hand-written `terraform show -json` plans:
+# one carrying every risky change beside safe creates and updates, one
+# purely additive, and malformed inputs. Every row is deterministic and
+# offline — no provider is contacted and nothing is applied.
+
+skill: terraform-plan-review
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): every planted change is reported by address; safe changes draw nothing.
+  - name: happy-path-planted-plan
+    input:
+      command: "python3 scripts/review_plan.py evals/fixtures/plan-planted.json"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "errors: tf/destroy for aws_s3_bucket.archive (stateful true); tf/replace-stateful for aws_db_instance.orders (delete+create) — which also draws tf/deletion-protection-off (deletion_protection false); tf/destroy for aws_instance.canary (stateful false)"
+        - "warnings: tf/replace for aws_instance.web (create+delete order); tf/public-exposure for aws_security_group.db (ingress 0.0.0.0/0 on 3306) and for aws_s3_bucket_public_access_block.assets (block_public_acls false); tf/encryption-off for aws_ebs_volume.data (encrypted true -> false)"
+        - "no finding for aws_iam_role.app (create), aws_lambda_function.api (update), or module.vpc.aws_subnet.a (no-op); tool.properties.counts: create 1, update 4, delete 2, replace 2, no-op 1; destructive 3; errors before warnings before infos"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted stateful replacement is found by address.
+  - name: mutation-fixture-replace-stateful
+    input:
+      command: "python3 scripts/review_plan.py evals/fixtures/plan-planted.json"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "a tf/replace-stateful result exists with properties.address aws_db_instance.orders, type aws_db_instance, actions [delete, create], stateful true, level error"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # The stateful list is a parameter: with an empty list the database replacement is only a plain replace and draws no deletion-protection info.
+  - name: boundary-custom-stateful-list
+    input:
+      command: "python3 scripts/review_plan.py evals/fixtures/plan-planted.json --stateful evals/fixtures/stateful-empty.json"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "no tf/replace-stateful and no tf/deletion-protection-off; aws_db_instance.orders appears as tf/replace (warning); both tf/destroy results now carry stateful false"
+
+  # The size threshold is a parameter: with --large 3 the planted plan (9 changes) draws tf/large-update.
+  - name: boundary-large-plan
+    input:
+      command: "python3 scripts/review_plan.py evals/fixtures/plan-planted.json --large 3"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "a tf/large-update result at level info with properties.changing 9 and limit 3"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): a plan of creates and safe updates -> empty results.
+  - name: boundary-empty-additive-plan
+    input:
+      command: "python3 scripts/review_plan.py evals/fixtures/plan-additive.json"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; tool.properties.destructive is 0; counts create 2, update 1"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-plan
+    input:
+      command: "python3 scripts/review_plan.py evals/fixtures/plan-malformed.json"
+    expected:
+      kind: failure
+      failureCode: plan-unparseable
+      assertions:
+        - "exit code is 1 and stderr says plan-unparseable"
+
+  - name: boundary-not-a-plan
+    input:
+      command: "python3 scripts/review_plan.py evals/fixtures/stateful-empty.json"
+    expected:
+      kind: failure
+      failureCode: plan-invalid
+      assertions:
+        - "exit code is 1 — valid JSON without resource_changes — and stderr says plan-invalid"
+
+  - name: boundary-invalid-stateful-list
+    input:
+      command: "python3 scripts/review_plan.py evals/fixtures/plan-planted.json --stateful evals/fixtures/plan-planted.json"
+    expected:
+      kind: failure
+      failureCode: stateful-invalid
+      assertions:
+        - "exit code is 1 and stderr says stateful-invalid"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/review_plan.py evals/fixtures/plan-planted.json | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"

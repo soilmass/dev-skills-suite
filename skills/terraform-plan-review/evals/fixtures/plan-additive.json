@@ -1,0 +1,59 @@
+{
+ "format_version": "1.2",
+ "terraform_version": "1.9.5",
+ "resource_changes": [
+  {
+   "address": "aws_iam_role.app",
+   "mode": "managed",
+   "type": "aws_iam_role",
+   "name": "app",
+   "provider_name": "registry.terraform.io/hashicorp/aws",
+   "change": {
+    "actions": [
+     "create"
+    ],
+    "before": null,
+    "after": {
+     "name": "app"
+    },
+    "after_unknown": {}
+   }
+  },
+  {
+   "address": "aws_s3_bucket.logs",
+   "mode": "managed",
+   "type": "aws_s3_bucket",
+   "name": "logs",
+   "provider_name": "registry.terraform.io/hashicorp/aws",
+   "change": {
+    "actions": [
+     "create"
+    ],
+    "before": null,
+    "after": {
+     "bucket": "logs"
+    },
+    "after_unknown": {}
+   }
+  },
+  {
+   "address": "aws_lambda_function.api",
+   "mode": "managed",
+   "type": "aws_lambda_function",
+   "name": "api",
+   "provider_name": "registry.terraform.io/hashicorp/aws",
+   "change": {
+    "actions": [
+     "update"
+    ],
+    "before": {
+     "memory_size": 128
+    },
+    "after": {
+     "memory_size": 256
+    },
+    "after_unknown": {}
+   }
+  }
+ ]
+}
