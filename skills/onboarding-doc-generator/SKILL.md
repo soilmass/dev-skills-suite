@@ -59,6 +59,9 @@ allowed-tools: >-
 - REQUIRED: the human facts the tree cannot show — who grants which
   access, who owns which area, what the first task is — from the
   driver, a team page, or the existing guide.
+- OPTIONAL: the env-var-inventory finding-list for the repository,
+  so every variable the code requires is checked against the guide's
+  access and setup steps (default: none).
 - OPTIONAL: `existing` — the current guide, when one exists
   (default: read from `<repo>/ONBOARDING.md` if present).
 
@@ -94,14 +97,15 @@ and the `command` when there is one, `firstTask` with `done`,
 `.skills-state/onboarding-doc-generator/`. Preview:
 
 ```
-python3 scripts/render_onboarding.py <onboarding.json> --out-dir <repo> --facts-file <facts.json> --dry-run
+python3 scripts/render_onboarding.py <onboarding.json> --out-dir <repo> --facts-file <facts.json> [--env-file <env-vars.json>] --dry-run
 ```
 
 The script refuses a step with no `verify` or an access grant from
 nobody in particular (`onboarding-incomplete`) and a command the
 tree does not declare (`command-undeclared`); it warns when the
-facts show tests no step runs, CI the guide never mentions, or no
-`lastVerified`.
+facts show tests no step runs, CI the guide never mentions, a
+required variable from env-var-inventory that no step hands over, or
+no `lastVerified`.
 
 **If the existing guide already equals the dry-run output: stop
 here** — there is nothing to write, say so.
@@ -169,6 +173,7 @@ existing guide already matched, which the result says.
 - `command-undeclared`: a setup command names a `make` target or npm
   script the repository's manifests do not declare.
 - `facts-unparseable`: the facts file is unreadable or not JSON.
+- `env-unparseable`: the env file is not env-var-inventory output.
 - `out-dir-missing`: the repository directory does not exist.
 
 ## @example

@@ -81,6 +81,18 @@ rows:
       assertions:
         - "exit code is 1 — valid JSON with no schema keywords — and stderr says schema-invalid"
 
+  # REQUIRED — consumer-driven contract with the family itself (SDS-C-063, SDS-F-051): the four registered shapes as
+  # recorded at tag v1.0.0-draft (frozen copies, evals/fixtures/frozen-kit-<shape>.json) must still be backward
+  # compatible with the current kit/shapes/*.json — a machine check that no shape broke its consumers since the tag.
+  - name: contract-with-family-shapes
+    input:
+      command: "python3 scripts/diff_json_schema.py evals/fixtures/frozen-kit-finding-list.json $(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json | python3 -c \"import json,sys; d=json.load(sys.stdin); assert d['runs'][0]['tool']['properties']['backwardCompatible'], d['runs'][0]['results']; print('finding-list compatible')\" && python3 scripts/diff_json_schema.py evals/fixtures/frozen-kit-decision-doc.json $(git rev-parse --show-toplevel)/kit/shapes/decision-doc.schema.json | python3 -c \"import json,sys; d=json.load(sys.stdin); assert d['runs'][0]['tool']['properties']['backwardCompatible'], d['runs'][0]['results']; print('decision-doc compatible')\" && python3 scripts/diff_json_schema.py evals/fixtures/frozen-kit-plan-doc.json $(git rev-parse --show-toplevel)/kit/shapes/plan-doc.schema.json | python3 -c \"import json,sys; d=json.load(sys.stdin); assert d['runs'][0]['tool']['properties']['backwardCompatible'], d['runs'][0]['results']; print('plan-doc compatible')\" && python3 scripts/diff_json_schema.py evals/fixtures/frozen-kit-status-report.json $(git rev-parse --show-toplevel)/kit/shapes/status-report.schema.json | python3 -c \"import json,sys; d=json.load(sys.stdin); assert d['runs'][0]['tool']['properties']['backwardCompatible'], d['runs'][0]['results']; print('status-report compatible')\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "each of the four shapes reports backwardCompatible true against its v1.0.0-draft recording"
+
   # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
   - name: fixed-point
     expected:

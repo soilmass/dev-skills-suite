@@ -2,7 +2,7 @@
 """Check an onboarding specification for completeness and render it.
 
 Usage:
-    render_onboarding.py <onboarding.json> --out-dir <dir> [--facts-file <orientation.json>] [--dry-run]
+    render_onboarding.py <onboarding.json> --out-dir <dir> [--facts-file <orientation.json>] [--env-file <env-var-inventory.json>] [--dry-run]
 
 The input conforms to assets/onboarding.schema.json, this skill's own
 intermediate shape (SDS-S-080). The model composes it in the Decide
@@ -19,9 +19,12 @@ stage; this script does only what is mechanical (SDS-S-060):
      npm script the manifests do not declare, and warns when the
      facts show tests but no setup step runs them, or CI the guide
      never mentions;
-  4. warns (never fails) when `lastVerified` is absent — nobody has
+  4. with --env-file (env-var-inventory's finding-list, injected),
+     warns for every variable the code requires that no access or
+     setup step mentions — the newcomer would hit it cold;
+  5. warns (never fails) when `lastVerified` is absent — nobody has
      followed the guide end to end;
-  5. renders <out-dir>/ONBOARDING.md (rung 4, local-write).
+  6. renders <out-dir>/ONBOARDING.md (rung 4, local-write).
 
 `--dry-run` prints everything and writes nothing. Output:
 {"path", "warnings", "setupSteps", "rendered"?}. Exit 1 with
@@ -29,7 +32,8 @@ stage; this script does only what is mechanical (SDS-S-060):
 (onboarding-unparseable), a spec failing the shape (onboarding-invalid),
 an unverifiable step or anonymous grantor (onboarding-incomplete), an
 undeclared command (command-undeclared), an unreadable facts file
-(facts-unparseable), or a missing output directory (out-dir-missing).
+(facts-unparseable), an env file that is not env-var-inventory output
+(env-unparseable), or a missing output directory (out-dir-missing).
 Requires the `jsonschema` package.
 """
 import json
@@ -95,16 +99,18 @@ def main():
     dry = "--dry-run" in args
     if dry:
         args.remove("--dry-run")
-    out_dir = facts_path = None
-    for flag in ("--out-dir", "--facts-file"):
+    out_dir = facts_path = env_path = None
+    for flag in ("--out-dir", "--facts-file", "--env-file"):
         if flag in args:
             i = args.index(flag)
             if i + 1 >= len(args):
                 sys.exit(f"ERROR: {flag} requires a value")
             if flag == "--out-dir":
                 out_dir = Path(args[i + 1])
-            else:
+            elif flag == "--facts-file":
                 facts_path = args[i + 1]
+            else:
+                env_path = args[i + 1]
             del args[i:i + 2]
     if len(args) != 1 or out_dir is None:
         sys.exit("ERROR: usage: render_onboarding.py <onboarding.json> --out-dir <dir> [--facts-file <orientation.json>] [--dry-run]")
@@ -142,6 +148,18 @@ def main():
             warnings.append("the repository has CI workflows the guide never mentions")
     else:
         warnings.append("no --facts-file given: setup commands were not checked against the repository's declared ones")
+    if env_path:
+        # env-var-inventory's finding-list (SDS-S-065: injected, never re-collected): every variable the code requires
+        # must be handed to the newcomer somewhere in the guide
+        env = load_json(env_path, "env-unparseable")
+        try:
+            variables = env["runs"][0]["tool"]["properties"]["variables"]
+        except (KeyError, IndexError, TypeError):
+            sys.exit(f"ERROR: {env_path} is not env-var-inventory output with tool.properties.variables (env-unparseable)")
+        guide_text = json.dumps(spec)
+        for v in variables:
+            if v.get("required") and v["variable"] not in guide_text:
+                warnings.append(f"required variable {v['variable']} (env-var-inventory) is mentioned in no access or setup step; the newcomer will hit it cold")
     if not spec.get("lastVerified"):
         warnings.append("lastVerified is absent: nobody has followed this guide end to end")
     rendered = render(spec)

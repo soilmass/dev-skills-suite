@@ -109,6 +109,25 @@ rows:
       assertions:
         - "exit code is 1 and stderr says facts-unparseable"
 
+  # REQUIRED — consumer-driven contract with a second upstream producer (SDS-C-063): env-var-inventory's real finding-list
+  # (frozen recording) names DATABASE_URL, API_BASE and SENTRY_DSN as required; the good guide mentions none, so the render warns for each.
+  - name: contract-with-env-var-inventory
+    input:
+      command: "python3 -c \"import json,jsonschema; jsonschema.validate(json.load(open('evals/fixtures/frozen-env-var-inventory-report.json')), json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('env report OK')\" && python3 scripts/render_onboarding.py evals/fixtures/onboarding-good.json --out-dir evals/fixtures --facts-file evals/fixtures/frozen-repository-orientation-facts.json --env-file evals/fixtures/frozen-env-var-inventory-report.json --dry-run | python3 -c \"import json,sys; w=json.load(sys.stdin)['warnings']; assert any('DATABASE_URL' in x for x in w) and not any('LOG_LEVEL' in x for x in w), w; print('pipe OK')\""
+    expected:
+      kind: success
+      assertions:
+        - "the frozen env-var-inventory report validates as finding-list; the render warns that DATABASE_URL (and the other required reads, API_BASE and SENTRY_DSN) is mentioned in no step, and not about LOG_LEVEL (it has a default)"
+
+  - name: boundary-malformed-env-file
+    input:
+      command: "python3 scripts/render_onboarding.py evals/fixtures/onboarding-good.json --out-dir evals/fixtures --env-file evals/fixtures/onboarding-good.json --dry-run"
+    expected:
+      kind: failure
+      failureCode: env-unparseable
+      assertions:
+        - "exit code is 1 — an onboarding spec is not env-var-inventory output — and stderr says env-unparseable"
+
   # N/A — shape-out is freeform, not finding-list (SDS-S-095).
   - name: mutation-fixture
     expected:

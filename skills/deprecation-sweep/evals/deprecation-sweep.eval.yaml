@@ -97,6 +97,18 @@ rows:
       assertions:
         - "exit code is 1 — the repository path is a file"
 
+  # REQUIRED — consumer-driven contract with an upstream producer (SDS-C-063): upgrade-risk-assessor's real decision-doc
+  # (frozen recording) supplies the deprecation list — every breaking line that named a used symbol becomes an entry —
+  # and the sweep must find each of those symbols in the same tree the assessor read.
+  - name: contract-with-upgrade-risk-assessor
+    input:
+      command: "evals/fixtures/build-state-scratch.sh && python3 -c \"import json; d=json.load(open('evals/fixtures/frozen-upgrade-risk-assessor-decision.json')); out={'deprecations':[{'symbol':s,'removedIn':'3.0.0','note':b['line']} for b in d['facts']['breakingLines'] for s in b['usedSymbols']]}; json.dump(out,open('evals/fixtures/state-scratch/derived-deprecations.json','w'))\" && python3 scripts/sweep_deprecations.py $(git rev-parse --show-toplevel)/skills/upgrade-risk-assessor/evals/fixtures/planted-repo --deprecations evals/fixtures/state-scratch/derived-deprecations.json --target-version 3.0.0 | python3 -c \"import json,sys; rs=json.load(sys.stdin)['runs'][0]['results']; syms={r['properties']['symbol'] for r in rs}; assert 'requests.Session.mount' in syms and all(r['level']=='error' for r in rs), syms; print('pipe OK', sorted(syms))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the frozen decision names requests.Session and requests.Session.mount as used symbols; the derived list makes the sweep report both as errors (target 3.0.0) in the assessor's own planted tree"
+
   # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
   - name: fixed-point
     expected:

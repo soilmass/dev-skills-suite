@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skills.local/shapes/status-report.schema.json",
+  "title": "status-report",
+  "description": "A narrative summary artifact — the shape for changelogs, release notes, incident postmortems, and Command Skills reporting what they did.",
+  "type": "object",
+  "required": ["summary", "sections"],
+  "properties": {
+    "summary": { "type": "string" },
+    "sections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["heading", "body"],
+        "properties": {
+          "heading": { "type": "string" },
+          "body": { "type": "string" }
+        }
+      }
+    },
+    "generatedFrom": {
+      "type": "string",
+      "description": "What this report covers, e.g. a git ref range or a time window. Required for reports that could otherwise be mistaken for covering more than they do."
+    }
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "status": "accepted",
+  "contextAndProblemStatement": "How risky is upgrading requests from 2.31.0 to 3.0.0 for this repository?",
+  "decisionDrivers": [
+    "jump: 2.31.0 -> 3.0.0 (major)",
+    "usage: imported by 2 module(s); 6 symbol(s) used",
+    "changelog: 3 breaking line(s), 1 naming a used symbol"
+  ],
+  "consideredOptions": [
+    "low",
+    "medium",
+    "high",
+    "downgrade",
+    "unused"
+  ],
+  "decisionOutcome": {
+    "chosenOption": "high",
+    "justification": "1 breaking change(s) name symbols this tree uses: requests.Session, requests.Session.mount"
+  },
+  "consequences": {
+    "positive": [],
+    "negative": [
+      "used symbol requests.Session is named in: - BREAKING: `Session.mount` removed; use the adapters mapping on the session ins",
+      "used symbol requests.Session.mount is named in: - BREAKING: `Session.mount` removed; use the adapters mapping on the session ins"
+    ]
+  },
+  "confirmation": "Run the importing modules' tests against the new version in a branch before merging the bump.",
+  "facts": {
+    "package": "requests",
+    "jump": "major",
+    "importingModules": [
+      "app/http.py",
+      "app/upload.py"
+    ],
+    "usedSymbols": [
+      "requests.Session",
+      "requests.Session.mount",
+      "requests.adapters",
+      "requests.adapters.HTTPAdapter",
+      "requests.get",
+      "requests.post"
+    ],
+    "breakingLines": [
+      {
+        "line": "- BREAKING: `Session.mount` removed; use the adapters mapping on the session instead.",
+        "usedSymbols": [
+          "requests.Session",
+          "requests.Session.mount"
+        ]
+      },
+      {
+        "line": "- BREAKING: the `timeout` argument no longer accepts a tuple.",
+        "usedSymbols": []
+      },
+      {
+        "line": "- Deprecated: `requests.utils.get_encodings_from_content` will be removed in 3.0.",
+        "usedSymbols": []
+      }
+    ]
+  }
+}

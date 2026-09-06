@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skills.local/shapes/plan-doc.schema.json",
+  "title": "plan-doc",
+  "description": "A multi-step plan. Every step MUST declare its rollback (compensating action, SDS-C-045) even in a Query Skill's plan-doc output — the plan is what a later Command Skill will execute, and the compensating action must be decided at planning time, not improvised at execution time.",
+  "type": "object",
+  "required": ["goal", "phases"],
+  "properties": {
+    "goal": { "type": "string" },
+    "phases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "steps"],
+        "properties": {
+          "name": { "type": "string" },
+          "steps": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["description", "riskIfFails", "rollback"],
+              "properties": {
+                "description": { "type": "string" },
+                "riskIfFails": {
+                  "enum": ["low", "medium", "high"]
+                },
+                "rollback": {
+                  "type": "string",
+                  "description": "The compensating action for this step (SDS-C-045). If none exists, this MUST say so explicitly, and the step must be sequenced last."
+                },
+                "checkpointAfter": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Whether a resumable checkpoint is persisted after this step (SDS-S-053)."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

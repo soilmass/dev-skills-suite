@@ -1,0 +1,250 @@
+{
+  "version": "sds-finding-list-1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "env-var-inventory",
+          "version": "0.1.0"
+        },
+        "properties": {
+          "exampleFile": ".env.example",
+          "variables": [
+            {
+              "variable": "API_BASE",
+              "reads": 1,
+              "files": [
+                "app/payments.py"
+              ],
+              "hasDefault": false,
+              "required": true,
+              "documented": true,
+              "exampleValueSet": true
+            },
+            {
+              "variable": "DATABASE_URL",
+              "reads": 2,
+              "files": [
+                "app/db.py",
+                "server.js"
+              ],
+              "hasDefault": false,
+              "required": true,
+              "documented": true,
+              "exampleValueSet": false
+            },
+            {
+              "variable": "FEATURE_FLAGS",
+              "reads": 1,
+              "files": [
+                "server.js"
+              ],
+              "hasDefault": true,
+              "required": false,
+              "documented": false,
+              "exampleValueSet": false
+            },
+            {
+              "variable": "LOG_LEVEL",
+              "reads": 1,
+              "files": [
+                "app/db.py"
+              ],
+              "hasDefault": true,
+              "required": false,
+              "documented": false,
+              "exampleValueSet": false
+            },
+            {
+              "variable": "PORT",
+              "reads": 1,
+              "files": [
+                "server.js"
+              ],
+              "hasDefault": true,
+              "required": false,
+              "documented": true,
+              "exampleValueSet": true
+            },
+            {
+              "variable": "SENTRY_DSN",
+              "reads": 1,
+              "files": [
+                "server.js"
+              ],
+              "hasDefault": false,
+              "required": true,
+              "documented": false,
+              "exampleValueSet": false
+            },
+            {
+              "variable": "STRIPE_API_KEY",
+              "reads": 1,
+              "files": [
+                "app/payments.py"
+              ],
+              "hasDefault": true,
+              "required": false,
+              "documented": true,
+              "exampleValueSet": true
+            }
+          ],
+          "documented": [
+            "API_BASE",
+            "DATABASE_URL",
+            "PORT",
+            "REDIS_URL",
+            "STRIPE_API_KEY"
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "env/secret-with-default",
+          "level": "warning",
+          "message": {
+            "text": "STRIPE_API_KEY looks like a secret and is read with a literal default 'sk_test_123'; a fallback credential ships in the code"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/payments.py"
+                },
+                "region": {
+                  "startLine": 9
+                }
+              }
+            }
+          ],
+          "properties": {
+            "variable": "STRIPE_API_KEY",
+            "default": "sk_test_123"
+          }
+        },
+        {
+          "ruleId": "env/undocumented",
+          "level": "warning",
+          "message": {
+            "text": "FEATURE_FLAGS is read in 1 place(s) but not documented in .env.example"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "server.js"
+                },
+                "region": {
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "properties": {
+            "variable": "FEATURE_FLAGS",
+            "reads": 1,
+            "files": [
+              "server.js"
+            ]
+          }
+        },
+        {
+          "ruleId": "env/undocumented",
+          "level": "warning",
+          "message": {
+            "text": "LOG_LEVEL is read in 1 place(s) but not documented in .env.example"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/db.py"
+                },
+                "region": {
+                  "startLine": 5
+                }
+              }
+            }
+          ],
+          "properties": {
+            "variable": "LOG_LEVEL",
+            "reads": 1,
+            "files": [
+              "app/db.py"
+            ]
+          }
+        },
+        {
+          "ruleId": "env/undocumented",
+          "level": "warning",
+          "message": {
+            "text": "SENTRY_DSN is read in 1 place(s) but not documented in .env.example"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "server.js"
+                },
+                "region": {
+                  "startLine": 3
+                }
+              }
+            }
+          ],
+          "properties": {
+            "variable": "SENTRY_DSN",
+            "reads": 1,
+            "files": [
+              "server.js"
+            ]
+          }
+        },
+        {
+          "ruleId": "env/required-no-example",
+          "level": "info",
+          "message": {
+            "text": "DATABASE_URL is required by every read and its example line is empty; show a sample value or say where it comes from"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".env.example"
+                },
+                "region": {
+                  "startLine": 2
+                }
+              }
+            }
+          ],
+          "properties": {
+            "variable": "DATABASE_URL"
+          }
+        },
+        {
+          "ruleId": "env/unused",
+          "level": "info",
+          "message": {
+            "text": "REDIS_URL is documented but read nowhere in the tree; stale, or read by a tool outside it"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".env.example"
+                },
+                "region": {
+                  "startLine": 6
+                }
+              }
+            }
+          ],
+          "properties": {
+            "variable": "REDIS_URL"
+          }
+        }
+      ]
+    }
+  ]
+}
