@@ -6,7 +6,7 @@ description: >-
   writes a Diataxis-style reference page in which anything the code
   does not state is marked undocumented rather than invented. Use when
   API docs are missing or stale, before publishing a library, or when
-  asked to document a module's public interface.
+  asked to write reference docs for a module's public interface.
 license: Apache-2.0
 compatibility: Requires the Python `jsonschema` package (the render
   script validates the extract against this skill's asset schema).

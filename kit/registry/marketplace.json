@@ -74,7 +74,7 @@
     },
     {
       "name": "api-doc-writer",
-      "description": "Extracts a Python package's public signatures and docstrings, detects drift between an existing reference page and the code, and writes a Diataxis-style reference page in which anything the code does not state is marked undocumented rather than invented. Use when API docs are missing or stale, before publishing a library, or when asked to document a module's public interface.",
+      "description": "Extracts a Python package's public signatures and docstrings, detects drift between an existing reference page and the code, and writes a Diataxis-style reference page in which anything the code does not state is marked undocumented rather than invented. Use when API docs are missing or stale, before publishing a library, or when asked to write reference docs for a module's public interface.",
       "version": "0.1.0",
       "status": "built",
       "effect-tier": "local-write",
