@@ -402,6 +402,16 @@
       "tier": "situational",
       "shape-out": "finding-list",
       "shape-in": "freeform"
+    },
+    {
+      "name": "schema-migration-review",
+      "description": "Reviews database migration files — Alembic, Django, or raw SQL — for the operations that lock tables, lose data, or cannot be undone: drops, NOT NULL columns without a default, in-place type changes, indexes built without CONCURRENTLY, migrations with no downgrade, and DDL and data changes mixed in one file — as a finding-list judged against the expand, migrate, contract order, leaving the call on which finding is acceptable for this table to a human. Use before merging a migration, when a deploy will run one against a large table, or when asked whether a migration is safe.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
     }
   ]
 }

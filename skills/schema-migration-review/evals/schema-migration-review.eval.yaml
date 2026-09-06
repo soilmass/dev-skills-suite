@@ -1,0 +1,89 @@
+# Table-driven eval file for schema-migration-review (SDS-S-090).
+#
+# A rung-1 Query Skill over a planted migrations tree in all three
+# dialects — an Alembic revision, a Django migration, and a SQL pair —
+# each carrying the risky operations, beside safe migrations that must
+# stay silent. Every row is deterministic and offline.
+
+skill: schema-migration-review
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): every planted operation is reported at its file and line; the safe files draw nothing.
+  - name: happy-path-planted-migrations
+    input:
+      command: "python3 scripts/review_migrations.py evals/fixtures/planted-migrations"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "alembic/0007_currency.py: migration/not-null-no-default (add_column nullable=False, no server_default), migration/destructive (drop_column), migration/type-change (alter_column type_=), migration/index-not-concurrent (create_index without postgresql_concurrently), migration/irreversible (empty downgrade), migration/ddl-with-dml (op.execute UPDATE beside DDL)"
+        - "django/0003_status.py: migration/destructive (RemoveField), migration/not-null-no-default (AddField non-null, no default), migration/type-change (AlterField), migration/index-not-concurrent (AddIndex), migration/irreversible (RunPython without reverse_code), migration/ddl-with-dml"
+        - "sql/002_drop_legacy.sql: migration/destructive (DROP COLUMN), migration/not-null-no-default (ADD COLUMN NOT NULL without DEFAULT), migration/type-change (ALTER COLUMN TYPE), migration/index-not-concurrent (CREATE INDEX without CONCURRENTLY), migration/irreversible (no _down.sql, no -- down); its UPDATE beside DDL gives migration/ddl-with-dml"
+        - "no finding for alembic/0006_safe.py (nullable add, concurrent index, real downgrade), django/0002_safe.py, or sql/001_add_column.sql (paired with 001_add_column_down.sql, CONCURRENTLY, DEFAULT); tool.properties.files is 8 (down files and __init__.py are listed; __init__ is skipped), blocking 6"
+        - "errors before warnings before infos"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted NOT NULL without default is found at its line.
+  - name: mutation-fixture-not-null-no-default
+    input:
+      command: "python3 scripts/review_migrations.py evals/fixtures/planted-migrations"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "a migration/not-null-no-default result exists at alembic/0007_currency.py line 14 with properties.dialect alembic, level error"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # A subdirectory can be excluded: without the sql/ tree the SQL findings disappear.
+  - name: boundary-exclude-dialect
+    input:
+      command: "python3 scripts/review_migrations.py evals/fixtures/planted-migrations --exclude sql"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "no result whose properties.dialect is sql; tool.properties.files is 5"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): only safe migrations -> empty results.
+  - name: boundary-empty-safe-migrations
+    input:
+      command: "python3 scripts/review_migrations.py evals/fixtures/safe-migrations"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; tool.properties.blocking is 0"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-migration
+    input:
+      command: "python3 scripts/review_migrations.py evals/fixtures/broken-migrations"
+    expected:
+      kind: failure
+      failureCode: migration-unparseable
+      assertions:
+        - "exit code is 1 and stderr names 0001_broken.py and says migration-unparseable"
+
+  - name: boundary-invalid-path
+    input:
+      command: "python3 scripts/review_migrations.py evals/fixtures/planted-migrations/alembic/0007_currency.py"
+    expected:
+      kind: failure
+      failureCode: migrations-dir-invalid
+      assertions:
+        - "exit code is 1 — the path is a file, not a directory"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/review_migrations.py evals/fixtures/planted-migrations | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"

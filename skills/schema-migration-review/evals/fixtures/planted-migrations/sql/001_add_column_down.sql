@@ -1,0 +1,2 @@
+DROP INDEX CONCURRENTLY ix_orders_region;
+ALTER TABLE orders DROP COLUMN region;
