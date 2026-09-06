@@ -1014,18 +1014,6 @@ def c_s038(ctx):
     return out
 
 
-def throws_codes(ctx: SkillCtx) -> list[str]:
-    h = ctx.h2("@throws")
-    if h is None:
-        return []
-    codes = []
-    for b in bullets(ctx.section_text(h)):
-        m = re.match(r"^`([a-z0-9]+(?:-[a-z0-9]+)*)`:", b)
-        if m:
-            codes.append(m.group(1))
-    return codes
-
-
 def eval_rows(ctx: SkillCtx) -> list[dict]:
     rows = (ctx.eval_doc or {}).get("rows")
     return [r for r in rows if isinstance(r, dict)] if isinstance(rows, list) else []
