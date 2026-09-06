@@ -35,7 +35,7 @@ rows:
         - "no comment step mentions 'no activity'; the other comments are unchanged"
 
   # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): every issue triaged -> a valid 'nothing to do' plan.
-  - name: boundary-all-triaged
+  - name: boundary-empty-untriaged-set
     input:
       command: "python3 scripts/propose_triage.py . --issues-json-file evals/fixtures/issues-triaged.json --as-of 2026-09-05T12:00:00Z"
     expected:
