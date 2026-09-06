@@ -1,5 +1,7 @@
 # dev-skills-suite
 
+[![Conformance](https://github.com/soilmass/dev-skills-suite/actions/workflows/conformance.yml/badge.svg)](https://github.com/soilmass/dev-skills-suite/actions/workflows/conformance.yml)
+
 A family of portable [Agent Skills](https://agentskills.io/specification)
 for the software-development lifecycle, built to the Skill Design
 Specification (SDS 1.0-draft) in `docs/superpowers/specs/`.

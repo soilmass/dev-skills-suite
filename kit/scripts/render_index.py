@@ -27,6 +27,8 @@ RUNG = {
 
 HEADER = """# {family}
 
+[![Conformance](https://github.com/soilmass/dev-skills-suite/actions/workflows/conformance.yml/badge.svg)](https://github.com/soilmass/dev-skills-suite/actions/workflows/conformance.yml)
+
 A family of portable [Agent Skills](https://agentskills.io/specification)
 for the software-development lifecycle, built to the Skill Design
 Specification (SDS {sds}) in `docs/superpowers/specs/`.

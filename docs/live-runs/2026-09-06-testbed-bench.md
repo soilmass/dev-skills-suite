@@ -96,3 +96,17 @@ to fold, three scripts that omitted their documented failure code
 from stderr, one borrowed failure code, and one intermediate output
 mislabelled with a registered shape — all fixed in the skills, not
 the rows' expectations.
+
+## CI (added later the same day)
+
+`.github/workflows/conformance.yml` runs the validation gate on every
+push and pull request: `lint-skill.py --all --strict`, the registry
+against its schema, the generated README and plugin manifests against
+the registry, and `run-evals.py --all`. The first run on a clean
+Ubuntu runner with Python 3.12 passed every step, which also proves
+the fixtures and generators are hermetic outside this machine. The
+workflow was itself audited with `ci-pipeline-audit` (three infos:
+no timeout, two tag-pinned actions) and fixed before the push — a
+20-minute bound and commit-SHA pins. With a run on record,
+`ci-status-gate` live against the family repository's `HEAD`
+returned `pass` with the driver `conformance: success`.
