@@ -1,0 +1,108 @@
+# Table-driven eval file for query-plan-review (SDS-S-090).
+#
+# A rung-1 Query Skill over hand-written PostgreSQL EXPLAIN (FORMAT
+# JSON) plans: an analyzed plan carrying one node per slow shape, the
+# same query's plan without ANALYZE (only the structural rules can
+# fire), a healthy index-scan plan that must stay silent, and a
+# malformed file. Every row is deterministic and offline.
+
+skill: query-plan-review
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): every planted shape is reported at its node.
+  - name: happy-path-analyzed-slow-plan
+    input:
+      command: "python3 scripts/review_plan.py evals/fixtures/plan-slow-analyzed.json"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "plan/seq-scan-large at Plan/Plans[0]/Plans[0] on orders with rows 1200000 and removedByFilter 1199950; plan/nested-loop-large at Plan/Plans[0] with outerRows 1200000 and innerRelation customers"
+        - "plan/estimate-off at Plan/Plans[0]/Plans[0] (planned 120 rows, got 1200000, ratio 10000.0); plan/sort-on-disk at Plan/Plans[1] with sortKey [customers.name]; plan/hash-batches at Plan/Plans[1]/Plans[0]/Plans[1] with batches 4"
+        - "plan/heap-fetches at Plan/Plans[1]/Plans[0]/Plans[0] (heapFetches 900 for 1000 rows); plan/lossy-bitmap at Plan/Plans[2] with lossyBlocks 12"
+        - "tool.properties.analyzed is true, executionTimeMs 8421.5; warnings are ordered before infos"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted large sequential scan is found at its node.
+  - name: mutation-fixture-seq-scan
+    input:
+      command: "python3 scripts/review_plan.py evals/fixtures/plan-slow-analyzed.json"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "a plan/seq-scan-large result exists with properties.nodePath Plan/Plans[0]/Plans[0], relation orders, filter (customer_id = 42), level warning"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # Without ANALYZE only the structural rules fire.
+  - name: boundary-plain-explain
+    input:
+      command: "python3 scripts/review_plan.py evals/fixtures/plan-slow-plain.json"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "exactly two results: plan/seq-scan-large and plan/nested-loop-large; no estimate, sort, hash, heap, or bitmap finding; tool.properties.analyzed is false"
+
+  # The threshold is a parameter: above the plan's row counts nothing structural fires.
+  - name: boundary-high-threshold
+    input:
+      command: "python3 scripts/review_plan.py evals/fixtures/plan-slow-plain.json --large-rows 5000000"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): a healthy plan -> empty results.
+  - name: boundary-empty-healthy-plan
+    input:
+      command: "python3 scripts/review_plan.py evals/fixtures/plan-healthy.json"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; tool.properties.nodes is 2"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-plan
+    input:
+      command: "python3 scripts/review_plan.py evals/fixtures/plan-malformed.json"
+    expected:
+      kind: failure
+      failureCode: plan-unparseable
+      assertions:
+        - "exit code is 1 and stderr says plan-unparseable"
+
+  - name: boundary-not-a-plan
+    input:
+      command: "python3 scripts/review_plan.py evals/fixtures/not-a-plan.json"
+    expected:
+      kind: failure
+      failureCode: plan-unparseable
+      assertions:
+        - "exit code is 1 — valid JSON without a Plan — and stderr says plan-unparseable"
+
+  - name: boundary-invalid-threshold
+    input:
+      command: "python3 scripts/review_plan.py evals/fixtures/plan-healthy.json --large-rows 0"
+    expected:
+      kind: failure
+      failureCode: threshold-invalid
+      assertions:
+        - "exit code is 1 and stderr says threshold-invalid"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/review_plan.py evals/fixtures/plan-slow-analyzed.json | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"

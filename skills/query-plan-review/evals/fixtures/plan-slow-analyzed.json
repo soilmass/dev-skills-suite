@@ -1,0 +1,171 @@
+[
+ {
+  "Plan": {
+   "Node Type": "Append",
+   "Startup Cost": 0.0,
+   "Total Cost": 3109160.0,
+   "Plan Rows": 87000,
+   "Plan Width": 48,
+   "Actual Startup Time": 0.05,
+   "Actual Total Time": 8400.0,
+   "Actual Rows": 87000,
+   "Actual Loops": 1,
+   "Plans": [
+    {
+     "Node Type": "Nested Loop",
+     "Join Type": "Inner",
+     "Startup Cost": 0.0,
+     "Total Cost": 3100000.0,
+     "Plan Rows": 6000,
+     "Plan Width": 80,
+     "Actual Startup Time": 0.05,
+     "Actual Total Time": 8000.0,
+     "Actual Rows": 6000,
+     "Actual Loops": 1,
+     "Plans": [
+      {
+       "Node Type": "Seq Scan",
+       "Relation Name": "orders",
+       "Alias": "orders",
+       "Startup Cost": 0.0,
+       "Total Cost": 25000.0,
+       "Plan Rows": 120,
+       "Plan Width": 48,
+       "Actual Startup Time": 0.02,
+       "Actual Total Time": 3100.0,
+       "Actual Rows": 1200000,
+       "Actual Loops": 1,
+       "Filter": "(customer_id = 42)",
+       "Rows Removed by Filter": 1199950
+      },
+      {
+       "Node Type": "Seq Scan",
+       "Relation Name": "customers",
+       "Alias": "c",
+       "Startup Cost": 0.0,
+       "Total Cost": 80.0,
+       "Plan Rows": 50,
+       "Plan Width": 32,
+       "Actual Startup Time": 0.01,
+       "Actual Total Time": 0.5,
+       "Actual Rows": 50,
+       "Actual Loops": 1200000
+      }
+     ]
+    },
+    {
+     "Node Type": "Sort",
+     "Sort Key": [
+      "customers.name"
+     ],
+     "Sort Method": "external merge",
+     "Sort Space Used": 20480,
+     "Sort Space Type": "Disk",
+     "Startup Cost": 150.0,
+     "Total Cost": 160.0,
+     "Plan Rows": 1000,
+     "Plan Width": 48,
+     "Actual Startup Time": 25.0,
+     "Actual Total Time": 30.0,
+     "Actual Rows": 1000,
+     "Actual Loops": 1,
+     "Plans": [
+      {
+       "Node Type": "Hash Join",
+       "Join Type": "Inner",
+       "Hash Cond": "(c2.region_id = r.id)",
+       "Startup Cost": 30.0,
+       "Total Cost": 120.0,
+       "Plan Rows": 1000,
+       "Plan Width": 48,
+       "Actual Startup Time": 2.5,
+       "Actual Total Time": 20.0,
+       "Actual Rows": 1000,
+       "Actual Loops": 1,
+       "Plans": [
+        {
+         "Node Type": "Index Only Scan",
+         "Index Name": "customers_name_idx",
+         "Relation Name": "customers",
+         "Alias": "c2",
+         "Startup Cost": 0.3,
+         "Total Cost": 40.0,
+         "Plan Rows": 1000,
+         "Plan Width": 32,
+         "Actual Startup Time": 0.1,
+         "Actual Total Time": 12.0,
+         "Actual Rows": 1000,
+         "Actual Loops": 1,
+         "Heap Fetches": 900
+        },
+        {
+         "Node Type": "Hash",
+         "Startup Cost": 30.0,
+         "Total Cost": 30.0,
+         "Plan Rows": 2000,
+         "Plan Width": 16,
+         "Actual Startup Time": 2.0,
+         "Actual Total Time": 2.0,
+         "Actual Rows": 2000,
+         "Actual Loops": 1,
+         "Hash Buckets": 1024,
+         "Hash Batches": 4,
+         "Original Hash Batches": 1,
+         "Peak Memory Usage": 4096,
+         "Plans": [
+          {
+           "Node Type": "Seq Scan",
+           "Relation Name": "regions",
+           "Alias": "r",
+           "Startup Cost": 0.0,
+           "Total Cost": 30.0,
+           "Plan Rows": 2000,
+           "Plan Width": 16,
+           "Actual Startup Time": 0.01,
+           "Actual Total Time": 1.0,
+           "Actual Rows": 2000,
+           "Actual Loops": 1
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "Node Type": "Bitmap Heap Scan",
+     "Relation Name": "orders",
+     "Alias": "o2",
+     "Recheck Cond": "(status = 'open')",
+     "Exact Heap Blocks": 4000,
+     "Lossy Heap Blocks": 12,
+     "Startup Cost": 500.0,
+     "Total Cost": 9000.0,
+     "Plan Rows": 80000,
+     "Plan Width": 48,
+     "Actual Startup Time": 6.0,
+     "Actual Total Time": 300.0,
+     "Actual Rows": 80000,
+     "Actual Loops": 1,
+     "Plans": [
+      {
+       "Node Type": "Bitmap Index Scan",
+       "Index Name": "orders_status_idx",
+       "Index Cond": "(status = 'open')",
+       "Startup Cost": 0.0,
+       "Total Cost": 500.0,
+       "Plan Rows": 80000,
+       "Plan Width": 0,
+       "Actual Startup Time": 5.0,
+       "Actual Total Time": 5.0,
+       "Actual Rows": 80000,
+       "Actual Loops": 1
+      }
+     ]
+    }
+   ]
+  },
+  "Planning Time": 0.9,
+  "Execution Time": 8421.5
+ }
+]

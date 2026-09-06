@@ -1,0 +1,115 @@
+[
+ {
+  "Plan": {
+   "Node Type": "Append",
+   "Startup Cost": 0.0,
+   "Total Cost": 3109160.0,
+   "Plan Rows": 87000,
+   "Plan Width": 48,
+   "Plans": [
+    {
+     "Node Type": "Nested Loop",
+     "Join Type": "Inner",
+     "Startup Cost": 0.0,
+     "Total Cost": 3100000.0,
+     "Plan Rows": 6000,
+     "Plan Width": 80,
+     "Plans": [
+      {
+       "Node Type": "Seq Scan",
+       "Relation Name": "orders",
+       "Alias": "orders",
+       "Startup Cost": 0.0,
+       "Total Cost": 25000.0,
+       "Plan Rows": 1200000,
+       "Plan Width": 48,
+       "Filter": "(customer_id = 42)"
+      },
+      {
+       "Node Type": "Seq Scan",
+       "Relation Name": "customers",
+       "Alias": "c",
+       "Startup Cost": 0.0,
+       "Total Cost": 80.0,
+       "Plan Rows": 50,
+       "Plan Width": 32
+      }
+     ]
+    },
+    {
+     "Node Type": "Sort",
+     "Sort Key": [
+      "customers.name"
+     ],
+     "Startup Cost": 150.0,
+     "Total Cost": 160.0,
+     "Plan Rows": 1000,
+     "Plan Width": 48,
+     "Plans": [
+      {
+       "Node Type": "Hash Join",
+       "Join Type": "Inner",
+       "Hash Cond": "(c2.region_id = r.id)",
+       "Startup Cost": 30.0,
+       "Total Cost": 120.0,
+       "Plan Rows": 1000,
+       "Plan Width": 48,
+       "Plans": [
+        {
+         "Node Type": "Index Only Scan",
+         "Index Name": "customers_name_idx",
+         "Relation Name": "customers",
+         "Alias": "c2",
+         "Startup Cost": 0.3,
+         "Total Cost": 40.0,
+         "Plan Rows": 1000,
+         "Plan Width": 32
+        },
+        {
+         "Node Type": "Hash",
+         "Startup Cost": 30.0,
+         "Total Cost": 30.0,
+         "Plan Rows": 2000,
+         "Plan Width": 16,
+         "Plans": [
+          {
+           "Node Type": "Seq Scan",
+           "Relation Name": "regions",
+           "Alias": "r",
+           "Startup Cost": 0.0,
+           "Total Cost": 30.0,
+           "Plan Rows": 2000,
+           "Plan Width": 16
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "Node Type": "Bitmap Heap Scan",
+     "Relation Name": "orders",
+     "Alias": "o2",
+     "Recheck Cond": "(status = 'open')",
+     "Startup Cost": 500.0,
+     "Total Cost": 9000.0,
+     "Plan Rows": 80000,
+     "Plan Width": 48,
+     "Plans": [
+      {
+       "Node Type": "Bitmap Index Scan",
+       "Index Name": "orders_status_idx",
+       "Index Cond": "(status = 'open')",
+       "Startup Cost": 0.0,
+       "Total Cost": 500.0,
+       "Plan Rows": 80000,
+       "Plan Width": 0
+      }
+     ]
+    }
+   ]
+  },
+  "Planning Time": 0.9
+ }
+]

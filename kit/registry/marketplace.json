@@ -371,6 +371,16 @@
       "tier": "situational",
       "shape-out": "decision-doc",
       "shape-in": "freeform"
+    },
+    {
+      "name": "query-plan-review",
+      "description": "Reviews a PostgreSQL `EXPLAIN` plan, in its `FORMAT JSON` output, for the shapes that make queries slow — a sequential scan with a filter over a large table, a nested loop re-scanning its inner side, row estimates ten times off the actuals, sorts and hashes spilling to disk, index-only scans fetching from the heap, lossy bitmaps — as a finding-list located at the plan node, leaving the call on which shape matters and what to change (an index, statistics, work_mem, the query) to a human. Use when a query is slow, before adding an index, or when asked to read an explain plan.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
     }
   ]
 }
