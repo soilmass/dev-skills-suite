@@ -1,0 +1,7 @@
+{
+  "name": "@acme/shared",
+  "version": "1.0.0",
+  "dependencies": {
+    "@acme/b": "^2.0.0"
+  }
+}

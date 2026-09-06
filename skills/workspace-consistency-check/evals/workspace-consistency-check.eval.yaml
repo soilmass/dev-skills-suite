@@ -1,0 +1,112 @@
+# Table-driven eval file for workspace-consistency-check (SDS-S-090).
+#
+# Five planted trees: planted-npm (an npm workspace where every rule
+# fires at least once — a declared member with no manifest, an
+# undeclared apps/web package, a and c both named @acme/shared, a
+# requiring sibling b at a range b's version doesn't satisfy, two
+# root lockfiles, and c's own nested lockfile), planted-cargo (a
+# Cargo workspace with one missing crate), clean-pnpm (a consistent
+# pnpm workspace, one lockfile), no-workspace (a plain package.json,
+# no workspaces key), and broken-npm (invalid JSON at the root). Every
+# row is deterministic and offline.
+
+skill: workspace-consistency-check
+
+rows:
+  # REQUIRED — happy path, npm: every planted rule fires exactly once.
+  - name: happy-path-planted-npm
+    input:
+      command: "python3 scripts/check_workspaces.py evals/fixtures/planted-npm"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "mono/member-missing error for pattern 'tools/cli', located at package.json"
+        - "mono/orphan-package warning for path apps/web, located at apps/web/package.json"
+        - "mono/duplicate-name error for name @acme/shared, properties.paths [packages/a/package.json, packages/c/package.json], located at packages/a/package.json"
+        - "mono/internal-version-mismatch warning: from @acme/shared, to @acme/b, required '^2.0.0', actual 1.4.0, located at packages/a/package.json"
+        - "mono/mixed-lockfiles warning: properties.lockfiles [package-lock.json, yarn.lock], located at package-lock.json"
+        - "mono/nested-lockfile info for path packages/c/package-lock.json, located at packages/c/package-lock.json"
+        - "tool.properties: kind npm, members 3, declared 2, orphans 1, lockfiles [package-lock.json, yarn.lock]; results sorted errors (duplicate-name before member-missing), then warnings (internal-version-mismatch, mixed-lockfiles, orphan-package), then info"
+
+  # REQUIRED — happy path, Cargo: a different manifest kind, same
+  # member-missing rule.
+  - name: happy-path-planted-cargo
+    input:
+      command: "python3 scripts/check_workspaces.py evals/fixtures/planted-cargo"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "one mono/member-missing error, properties.pattern crates/b, located at Cargo.toml"
+        - "tool.properties: kind cargo, members 1, declared 2, orphans 0, lockfiles []"
+
+  # REQUIRED — boundary: empty/minimal input (SDS-C-005, SDS-C-033): a
+  # consistent pnpm workspace draws nothing.
+  - name: boundary-empty-clean-pnpm
+    input:
+      command: "python3 scripts/check_workspaces.py evals/fixtures/clean-pnpm"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; tool.properties is kind pnpm, members 2, declared 1, orphans 0, lockfiles [pnpm-lock.yaml] — a well-formed, zero-entry finding-list, not null or omitted"
+
+  # Boundary: no recognised workspace declaration is not a failure
+  # (SDS-C-033) — empty results, kind null.
+  - name: boundary-empty-no-workspace
+    input:
+      command: "python3 scripts/check_workspaces.py evals/fixtures/no-workspace"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; tool.properties is kind null, members 0, declared 0, orphans 0, lockfiles []"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-manifest
+    input:
+      command: "python3 scripts/check_workspaces.py evals/fixtures/broken-npm"
+    expected:
+      kind: failure
+      failureCode: manifest-unparseable
+      assertions:
+        - "exit code is 1 and stderr names broken-npm/package.json and says manifest-unparseable"
+
+  - name: boundary-invalid-path
+    input:
+      command: "python3 scripts/check_workspaces.py evals/fixtures/no-workspace/package.json"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 and stderr says repo-invalid — the repository path is a file"
+
+  # REQUIRED for audit/finder skills (SDS-S-095): the planted missing
+  # member is found, with its pattern.
+  - name: mutation-fixture
+    input:
+      command: "python3 scripts/check_workspaces.py evals/fixtures/planted-npm"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "a mono/member-missing result exists with level error, properties.pattern exactly 'tools/cli', located at package.json"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any
+  # downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/check_workspaces.py evals/fixtures/planted-npm | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"

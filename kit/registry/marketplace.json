@@ -652,6 +652,16 @@
       "shape-out": "finding-list",
       "shape-in": "freeform",
       "status": "built"
+    },
+    {
+      "name": "workspace-consistency-check",
+      "description": "Checks a monorepo's declared workspace members against its directory tree across npm/yarn, pnpm, Cargo, Go, and uv workspaces — a declared member with no manifest, a manifest under packages/, apps/, libs/, crates/, or services/ that no declaration covers, two members sharing one package name, a member depending on a sibling at a range the sibling's own version does not satisfy, more than one lockfile kind at the root, and a member with its own nested lockfile — as a finding-list with the member and declaration counts attached. Use when a monorepo grows a member nobody declared, a workspace dependency fails to resolve, or when asked whether the workspace layout still matches its manifests.",
+      "version": "0.1.0",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform",
+      "status": "built"
     }
   ]
 }
