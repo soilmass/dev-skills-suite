@@ -1,0 +1,107 @@
+# Table-driven eval file for accessibility-audit (SDS-S-090).
+#
+# A rung-1 Query Skill over hand-written axe-core results in the shape
+# axe.run() and the CLI emit: one page with a violation per impact plus
+# an incomplete check, a directory of two pages, a clean page, and
+# malformed inputs. Every row is deterministic and offline — no page is
+# loaded.
+
+skill: accessibility-audit
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): every violation becomes a levelled finding with its WCAG criteria; the incomplete check is kept apart.
+  - name: happy-path-planted-results
+    input:
+      command: "python3 scripts/audit_axe_results.py evals/fixtures/axe-checkout.json"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "a11y/color-contrast at level error (serious) with wcag [1.4.3], level AA, nodes 4, elements listing .btn-primary; a11y/image-alt at level error (critical) with wcag [1.1.1], level A; a11y/landmark-one-main at level warning (moderate, best practice, wcag empty); a11y/region at level info (minor)"
+        - "a11y/needs-review for color-contrast's incomplete node (info, rule color-contrast, nodes 1)"
+        - "tool.properties: pages [https://shop.example/checkout], violations 4, affectedElements 8, byImpact critical 1 / serious 1 / moderate 1 / minor 1, byWcagLevel A 1 / AA 1 / best practice 2, axeVersion 4.10.2; errors before warnings before infos, and within errors critical before serious"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted contrast violation is found with its criteria.
+  - name: mutation-fixture-color-contrast
+    input:
+      command: "python3 scripts/audit_axe_results.py evals/fixtures/axe-checkout.json"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "an a11y/color-contrast result exists at https://shop.example/checkout with properties.impact serious, wcag [1.4.3], level AA, nodes 4, level error"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # The impact floor is a parameter: at serious only the two errors remain (plus needs-review, which is not impact-filtered).
+  - name: boundary-min-impact
+    input:
+      command: "python3 scripts/audit_axe_results.py evals/fixtures/axe-checkout.json --min-impact serious"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "exactly three results: a11y/image-alt, a11y/color-contrast, and a11y/needs-review; tool.properties.violations is still 4 (totals count everything)"
+
+  # A directory is read as one file per page.
+  - name: boundary-directory-of-pages
+    input:
+      command: "python3 scripts/audit_axe_results.py evals/fixtures/axe-pages"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "tool.properties.pages has two entries; a11y/color-contrast appears for both https://shop.example/ and https://shop.example/cart"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): a clean page -> empty results.
+  - name: boundary-empty-clean-page
+    input:
+      command: "python3 scripts/audit_axe_results.py evals/fixtures/axe-clean.json"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; tool.properties.violations is 0"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-results
+    input:
+      command: "python3 scripts/audit_axe_results.py evals/fixtures/axe-malformed.json"
+    expected:
+      kind: failure
+      failureCode: results-unparseable
+      assertions:
+        - "exit code is 1 and stderr says results-unparseable"
+
+  - name: boundary-not-axe-results
+    input:
+      command: "python3 scripts/audit_axe_results.py evals/fixtures/not-axe.json"
+    expected:
+      kind: failure
+      failureCode: results-invalid
+      assertions:
+        - "exit code is 1 — valid JSON without a violations array — and stderr says results-invalid"
+
+  - name: boundary-invalid-impact
+    input:
+      command: "python3 scripts/audit_axe_results.py evals/fixtures/axe-clean.json --min-impact severe"
+    expected:
+      kind: failure
+      failureCode: impact-invalid
+      assertions:
+        - "exit code is 1 and stderr says impact-invalid"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/audit_axe_results.py evals/fixtures/axe-checkout.json | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"

@@ -1,0 +1,11 @@
+{
+ "url": "https://shop.example/about",
+ "violations": [],
+ "incomplete": [],
+ "passes": [
+  {
+   "id": "document-title"
+  }
+ ],
+ "inapplicable": []
+}

@@ -542,6 +542,16 @@
       "tier": "situational",
       "shape-out": "finding-list",
       "shape-in": "freeform"
+    },
+    {
+      "name": "accessibility-audit",
+      "description": "Turns axe-core accessibility results — from the browser extension, the CLI, Playwright, or Lighthouse — into a finding-list a team can triage: one finding per violated rule per page, graded by impact, with the WCAG success criteria and conformance (A, AA, AAA) carried through, the affected elements listed, and axe's \"needs review\" items kept apart for a human; then judges which findings block a release and how to fix them in this repository's components. Use before a release with a conformance target, when an accessibility report arrives as raw JSON, or when asked what WCAG conformance a page meets.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
     }
   ]
 }
