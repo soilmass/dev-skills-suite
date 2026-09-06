@@ -1,0 +1,30 @@
+{
+  "summary": "2 added, 1 changed, 1 deprecated, 1 fixed, 1 security since log-file:evals/fixtures/git-log-sample.txt (+2 uncategorized, appended from the producer's non-conventional fixture)",
+  "sections": [
+    {
+      "heading": "Added",
+      "body": "- api: add retry helper with exponential backoff (a1b2c3d)\n- **BREAKING:** drop Python 3.8 support (c3d4e5f)"
+    },
+    {
+      "heading": "Changed",
+      "body": "- parser: stream large manifests instead of loading them (d4e5f6a)"
+    },
+    {
+      "heading": "Deprecated",
+      "body": "- mark legacy_fetch for removal in 2.0 (b8c9d0e)"
+    },
+    {
+      "heading": "Fixed",
+      "body": "- silently dropped last record without trailing newline (b2c3d4e)"
+    },
+    {
+      "heading": "Security",
+      "body": "- security: reject path traversal in artifact names (e5f6a7b)"
+    },
+    {
+      "heading": "Uncategorized",
+      "body": "- Update stuff (1111111)\n- WIP (3333333)"
+    }
+  ],
+  "generatedFrom": "log-file:evals/fixtures/git-log-sample.txt"
+}

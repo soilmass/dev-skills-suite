@@ -111,6 +111,16 @@
       "tier": "situational",
       "shape-out": "status-report",
       "shape-in": "freeform"
+    },
+    {
+      "name": "release-notes-writer",
+      "description": "Turns a changelog status-report into release notes for people who use the software rather than build it: breaking changes first, security fixes next, commit hashes stripped, categories ordered by impact, and commits the changelog could not classify set aside for review instead of published. Use when publishing a release, when asked for user-facing release notes, or when a changelog entry needs rewriting for customers.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "status-report",
+      "shape-in": "status-report"
     }
   ]
 }

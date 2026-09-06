@@ -1,0 +1,84 @@
+# Table-driven eval file for release-notes-writer (SDS-S-090).
+#
+# A rung-1 Query Skill whose shape-in and shape-out are the SAME
+# registered shape (status-report), so for the first time in the family
+# the fixed-point row (SDS-S-094) is required as a real, passing test:
+# feeding the script's output back in must change nothing.
+#
+# The upstream contract is real, too: evals/fixtures/frozen-changelog-
+# writer-report.json is changelog-writer's actual output for its own
+# sample log (recorded once, SDS-S-093), with the producer's
+# Uncategorized shape appended.
+
+skill: release-notes-writer
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): the producer's real report is prepared as predicted.
+  - name: happy-path-prepare
+    input:
+      command: "python3 scripts/prepare_notes.py evals/fixtures/frozen-changelog-writer-report.json --product acme-cli --version 1.2.0"
+    expected:
+      kind: success
+      shape: status-report
+      assertions:
+        - "section headings, in order, are Breaking changes, Security, Added, Changed, Fixed, Deprecated"
+        - "Breaking changes contains exactly '- drop Python 3.8 support' (prefix removed) and Added no longer contains it"
+        - "no line anywhere ends with a '(hash)' and no line begins with a 'scope: ' label"
+        - "needsReview is ['- Update stuff', '- WIP'] and no Uncategorized section is present"
+        - "summary begins 'acme-cli 1.2.0: 1 breaking changes, 1 security, 1 added'"
+
+  # REQUIRED — fixed-point (SDS-S-094, SDS-C-017): shape-in == shape-out == status-report, so the output fed back in must be unchanged.
+  - name: fixed-point
+    input:
+      command: "python3 -c \"import subprocess,tempfile,os; a=['python3','scripts/prepare_notes.py','--product','acme-cli','--version','1.2.0']; p1=subprocess.run(a+['evals/fixtures/frozen-changelog-writer-report.json'],capture_output=True,text=True,check=True).stdout; f=tempfile.NamedTemporaryFile('w',suffix='.json',delete=False); f.write(p1); f.close(); p2=subprocess.run(a+[f.name],capture_output=True,text=True,check=True).stdout; os.unlink(f.name); assert p1==p2, 'second pass differs'; print('fixed point holds')\""
+    expected:
+      kind: success
+      shape: status-report
+      assertions:
+        - "the second pass is byte-identical to the first — stripped hashes, moved breaking lines, and the fixed order are all fixed points"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): a report with no sections yields a report with no sections and a summary that says so.
+  - name: boundary-empty-report
+    input:
+      command: "python3 scripts/prepare_notes.py evals/fixtures/report-empty.json --product acme-cli --version 1.2.1"
+    expected:
+      kind: success
+      shape: status-report
+      assertions:
+        - "sections is an empty array, needsReview is empty, and summary is 'acme-cli 1.2.1: no user-facing changes'"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-report
+    input:
+      command: "python3 scripts/prepare_notes.py evals/fixtures/report-malformed.json"
+    expected:
+      kind: failure
+      failureCode: report-unparseable
+      assertions:
+        - "exit code is 1 and stderr says report-unparseable"
+
+  - name: boundary-invalid-report-shape
+    input:
+      command: "python3 scripts/prepare_notes.py evals/fixtures/report-invalid.json"
+    expected:
+      kind: failure
+      failureCode: report-invalid
+      assertions:
+        - "exit code is 1 and stderr says report-invalid, naming the missing 'sections' property"
+
+  # N/A — shape-out is status-report, not finding-list (SDS-S-095).
+  - name: mutation-fixture
+    expected:
+      kind: not-applicable
+      reason: "release-notes-writer does not search for known problems; shape-out is status-report, not finding-list."
+
+  # REQUIRED — consumer-driven contract with the upstream producer (SDS-C-063, SDS-S-093):
+  # changelog-writer's recorded real output validates as this skill's shape-in and is consumed without error.
+  - name: contract-with-upstream-producer
+    input:
+      command: "python3 -c \"import json,jsonschema,subprocess; jsonschema.validate(json.load(open('evals/fixtures/frozen-changelog-writer-report.json')), json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/status-report.schema.json'))); subprocess.run(['python3','scripts/prepare_notes.py','evals/fixtures/frozen-changelog-writer-report.json'],capture_output=True,check=True); print('upstream status-report OK and consumed')\""
+    expected:
+      kind: success
+      shape: status-report
+      assertions:
+        - "changelog-writer's actual output validates against kit/shapes/status-report.schema.json and is accepted by this skill unchanged"
