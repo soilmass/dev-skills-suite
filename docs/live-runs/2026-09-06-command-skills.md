@@ -1,6 +1,4 @@
-# Live run — findings-to-issues, findings-to-code-scanning,
-# report-poster on `soilmass/sds-skill-testbed` and the family repo
-# (2026-09-06)
+# Live run — findings-to-issues, findings-to-code-scanning, report-poster on `soilmass/sds-skill-testbed` and the family repo (2026-09-06)
 
 Third live exercise of the family: the three ready Command Skills
 from Task 19's list, up to and through their Confirm gates and Act.
@@ -36,7 +34,7 @@ run (see Left as is).
 | Analyze | Result count (55) matches the family's own lint INFO rows exactly — expected, not a surprise; `--ref` matches `main`. |
 | Decide | No completed checkpoint existed yet for this commit_sha + ref + tool_name. |
 | Confirm | Medium gate shown; user answered *proceed: upload the analysis*. |
-| Act | Pending checkpoint → payload (results stripped) written to `.skills-state/findings-to-code-scanning/4e8201c-payload.json` → `gh api -X POST repos/soilmass/dev-skills-suite/code-scanning/sarifs` → **sarif_id `1c0fb1d6-a9e1-11f1-957e-0474ebf55efe`** → `gh api -X GET .../sarifs/<id>` on the first poll already returned `processing_status: complete` (no retry needed) → completed, with the GET response recorded as `postState`. |
+| Act | Pending checkpoint → payload (results stripped) written to `.skills-state/findings-to-code-scanning/4e8201c-payload.json` → `gh api -X POST repos/soilmass/dev-skills-suite/code-scanning/sarifs` → **sarif_id `1c0fb1d6-a9e1-11f1-957e-0474ebf55efe`** → `gh api -X GET .../sarifs/<id>` on the first poll already returned `processing_status: complete` (no retry needed) → step marked `completed` via `checkpoint.py`, then `postState` was added by hand-editing `.skills-state/findings-to-code-scanning/4e8201c.json` with the GET response after the fact, `completedAt` unchanged, because the script refuses `--post-state-file` on an already-completed step (see "What the skills' text got wrong"). |
 | Persist | Status-report at `.skills-state/findings-to-code-scanning/4e8201c-report.json`, validated against `status-report`. |
 | Idempotency | `checkpoint.py findings-to-code-scanning 4e8201c --show` reports the step `completed` — a second run stops at Decide per SDS-C-004, without a second upload. |
 
@@ -54,23 +52,32 @@ run (see Left as is).
 
 ## What the skills' text got wrong
 
-`checkpoint.py`'s own usage-error message (printed on any malformed
-invocation, including `--help`) named only `--step`, `--status`, and
-`--state-dir` — omitting `--pre-state-file`, `--compensating-action`,
-and, critically, `--post-state-file`, all three of which the script's
-own docstring documents and fully supports. Two of the three `Act`
-sections above ("mark the step `completed` with that response as
-`postState`", findings-to-code-scanning) are unreachable by an
-operator reading only the short usage string: nothing in it suggests
-`postState` can be attached at completion time. Fixed in this commit
-across all seven identical copies of the script
-(`skills/{findings-to-code-scanning,findings-to-issues,issue-triage,
-pr-lifecycle-manager,project-board-sync,release-publisher,
-report-poster}/scripts/checkpoint.py`, previously byte-identical at
-md5 `2ac94d48c2492e683a9f0ae0f9485aa8`) — the usage string now lists
-all three optional flags per mode. The findings-to-code-scanning
-run's `postState` was patched in after the fact once this was
-noticed (a local `.skills-state/` file edit, not a second API call).
+- `checkpoint.py`'s own usage-error message (printed on any malformed
+  invocation, including `--help`) named only `--step`, `--status`,
+  and `--state-dir` — omitting `--pre-state-file`,
+  `--compensating-action`, and, critically, `--post-state-file`, all
+  three of which the script's own docstring documents and fully
+  supports. Nothing in the short usage string suggested `postState`
+  could be attached at completion time, which is exactly what
+  findings-to-code-scanning's Act needed and did not get in the live
+  run above (see that row). Fixed in this commit across all seven
+  identical copies of the script
+  (`skills/{findings-to-code-scanning,findings-to-issues,issue-triage,
+  pr-lifecycle-manager,project-board-sync,release-publisher,
+  report-poster}/scripts/checkpoint.py`, previously byte-identical at
+  md5 `2ac94d48c2492e683a9f0ae0f9485aa8`) — the usage string now lists
+  all three optional flags per mode.
+- `findings-to-code-scanning/SKILL.md`'s Act paragraph said to
+  "confirm the upload landed with `gh api -X GET ...`" and then "mark
+  the step `completed` with that response as `postState`" without
+  saying how — it read as if `postState` attached itself, or could be
+  added on a later, separate call. The correct sequence is: save the
+  GET response to a file, then pass that file with
+  `--post-state-file <path>` on the very `--status completed` call
+  that marks the step done — `checkpoint.py` has no way to attach
+  `postState` to a step once it is already `completed`. That gap is
+  why the live run's `postState` above had to be added by a hand
+  edit of the checkpoint record instead. Fixed in this commit.
 
 ## Left as is
 

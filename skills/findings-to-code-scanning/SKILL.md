@@ -147,8 +147,10 @@ Check-before-act is the checkpoint record read in Decide, since
 GitHub offers no way to check an analysis's presence before it
 exists (SDS-C-046). After success, confirm the upload landed with
 `gh api -X GET repos/<owner>/<repo>/code-scanning/sarifs/<id>` (the
-`id` the POST response returned) and mark the step `completed` with
-that response as `postState`.
+`id` the POST response returned), save that response to a file, and
+mark the step `completed` with `checkpoint.py findings-to-code-scanning
+<sha7> --step upload-<sha7> --status completed --post-state-file
+<path>` so the response is recorded as `postState`.
 
 **Compensating action** (SDS-S-054): no compensating action — this
 step must be last; an uploaded analysis cannot be deleted through
