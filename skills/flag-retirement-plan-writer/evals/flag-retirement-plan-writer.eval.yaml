@@ -53,6 +53,23 @@ rows:
         - "phases has exactly one phase named 'nothing to do' with exactly one step"
         - "that step's rollback says none is needed and checkpointAfter is false"
 
+  # A finding-list whose only retirement candidate is flag/unreferenced
+  # (no fully-rolled-out or permanently-off flag): the "remove dead
+  # branches" phase must be omitted entirely, not emitted with an
+  # empty steps array (kit/shapes/plan-doc.schema.json requires
+  # steps minItems 1 on every phase).
+  - name: boundary-unreferenced-only
+    input:
+      command: "python3 scripts/plan_flag_retirement.py evals/fixtures/findings-unreferenced-only.json --as-of 2026-09-06T12:00:00Z | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/plan-doc.schema.json'))); print('plan-doc OK', len(d['phases']), 'phases')\""
+    expected:
+      kind: success
+      shape: plan-doc
+      assertions:
+        - "no phase named 'remove dead branches' is present"
+        - "phase 'delete flag definitions' has exactly 1 step (legacy-export)"
+        - "phase 'clean the flag provider/config' has exactly 1 step, last"
+        - "the output validates against kit/shapes/plan-doc.schema.json"
+
   # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
   - name: boundary-malformed-findings
     input:

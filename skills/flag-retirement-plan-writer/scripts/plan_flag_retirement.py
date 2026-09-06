@@ -39,11 +39,17 @@ whose inventory `ageDays` is below it — a flag reported stale by a run
 with a shorter `--stale-days` window than the caller wants to act on
 yet.
 
-The plan has three phases, in order:
+The plan has up to three phases, in order:
 
     remove dead branches       one step per fully-rolled-out or
                                 permanently-off flag; riskIfFails low;
-                                rollback "git revert <commit>"
+                                rollback "git revert <commit>"; OMITTED
+                                entirely when every retirement
+                                candidate is flag/unreferenced (no
+                                code branch to remove) -- a plan-doc
+                                phase MUST have at least one step
+                                (kit/shapes/plan-doc.schema.json), so
+                                an empty phase is never emitted
     delete flag definitions    one step per retired flag, including
                                 unreferenced ones; riskIfFails medium;
                                 rollback re-adds the definition from
@@ -190,11 +196,11 @@ def main():
             }],
         }]
     else:
-        phases = [
-            {"name": "remove dead branches", "steps": [branch_step(rule, flag, files) for rule, flag, files in branch_flags]},
-            {"name": "delete flag definitions", "steps": [definition_step(flag) for flag in retired_flags]},
-            {"name": "clean the flag provider/config", "steps": [cleanup_step(retired_flags)]},
-        ]
+        phases = []
+        if branch_flags:
+            phases.append({"name": "remove dead branches", "steps": [branch_step(rule, flag, files) for rule, flag, files in branch_flags]})
+        phases.append({"name": "delete flag definitions", "steps": [definition_step(flag) for flag in retired_flags]})
+        phases.append({"name": "clean the flag provider/config", "steps": [cleanup_step(retired_flags)]})
 
     if retired_flags:
         goal = (f"Retire {len(retired_flags)} dead flag(s) ({', '.join(retired_flags)}) as of "

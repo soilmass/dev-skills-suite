@@ -100,6 +100,10 @@ deletion next (for all three retirement rule IDs, including
 unreferenced ones with no branch step), and the flag
 provider/configuration cleanup last, because it must not run before
 the code and the definitions it is cleaning up for are already gone.
+Every phase in the plan-doc shape requires at least one step
+(`kit/shapes/plan-doc.schema.json`), so the dead-branch phase is
+omitted entirely — not emitted with zero steps — when every candidate
+is `flag/unreferenced` and none guards a code branch.
 
 ### Synthesize
 

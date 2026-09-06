@@ -1,0 +1,50 @@
+{
+  "version": "sds-finding-list-1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "feature-flag-inventory",
+          "version": "0.1.0"
+        },
+        "properties": {
+          "asOf": "2026-09-06T12:00:00+00:00",
+          "staleDays": 30,
+          "flags": [
+            {
+              "flag": "legacy-export",
+              "checks": 0,
+              "files": [],
+              "configured": true,
+              "enabled": true,
+              "rollout": null,
+              "ageDays": 248,
+              "owner": null
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "flag/unreferenced",
+          "level": "info",
+          "message": {
+            "text": "legacy-export is configured but checked nowhere in the tree; stale, or read by another repository"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "flags.json"
+                }
+              }
+            }
+          ],
+          "properties": {
+            "flag": "legacy-export"
+          }
+        }
+      ]
+    }
+  ]
+}
