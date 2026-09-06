@@ -36,18 +36,23 @@ usage or setup error. `--verbose` prints the stderr of failed rows.
 to stdout instead — driver name `run-evals` — with one result per FAILED
 row: `ruleId` `eval/<row-name>`, `level` `error`, `message.text` the same
 failure reason the text mode prints, `locations[0]` pointing at the
-skill's eval YAML file and the row's `- name:` line, and
-`properties.skill` naming the skill. The usual per-row/per-skill text
-goes to stderr instead of stdout so stdout is the one JSON document; the
-document is self-validated against the schema before printing (exit 2
-if it does not validate); the exit code otherwise stays 1 on any row
-failure. `--sarif` (only meaningful with `--json`) emits the SARIF-2.1.0
-variant of that document instead: `version` becomes `"2.1.0"` and a
-top-level `$schema` of `https://json.schemastore.org/sarif-2.1.0.json`
-is added, for upload to GitHub Code Scanning.
+skill's eval YAML file and the row's exact `- name:` line, and
+`properties.skill` naming the skill. A generator (`GEN FAIL`) or setup
+(`SETUP FAIL`, e.g. a missing eval file) failure also gets one result —
+`ruleId` `eval/generator/<script-name>` or `eval/setup`, located at the
+generator script or the eval file — so `--json` never exits 1 with an
+empty `results` array. The usual per-row/per-skill text goes to stderr
+instead of stdout so stdout is the one JSON document; the document is
+self-validated against the schema before printing (exit 2 if it does
+not validate); the exit code otherwise stays 1 on any failure.
+`--sarif` (only meaningful with `--json`) emits the SARIF-2.1.0 variant
+of that document instead: `version` becomes `"2.1.0"` and a top-level
+`$schema` of `https://json.schemastore.org/sarif-2.1.0.json` is added,
+for upload to GitHub Code Scanning.
 """
 import argparse
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -73,15 +78,24 @@ def load_rows(skill: Path):
     return (table or {}).get("rows") or [], None
 
 
-def run_generators(skill: Path, timeout: int, verbose: bool, out=sys.stdout):
+def run_generators(skill: Path, timeout: int, verbose: bool, out=sys.stdout, findings=None):
     ok = True
     for gen in sorted((skill / "evals" / "fixtures").glob("build-*.sh")):
         r = subprocess.run(["bash", str(gen)], cwd=skill, capture_output=True, text=True, timeout=timeout)
         if r.returncode != 0:
             ok = False
-            print(f"  GEN  FAIL {gen.relative_to(skill)} (exit {r.returncode})", file=out)
+            reason = f"exit {r.returncode}"
+            print(f"  GEN  FAIL {gen.relative_to(skill)} ({reason})", file=out)
             if verbose:
                 print("       " + r.stderr.strip().replace("\n", "\n       "), file=out)
+            if findings is not None:
+                findings.append({
+                    "ruleId": f"eval/generator/{gen.name}",
+                    "level": "error",
+                    "message": {"text": reason},
+                    "locations": [{"physicalLocation": {"artifactLocation": {"uri": str(gen.relative_to(FAMILY_ROOT))}}}],
+                    "properties": {"skill": str(skill.relative_to(FAMILY_ROOT))},
+                })
     return ok
 
 
@@ -126,15 +140,16 @@ def judge(row, r, shape_ok):
 
 
 def find_row_line(eval_lines, name):
-    """Best-effort line number of a row's `- name: <name>` line: scan the
-    eval file's text for a line containing `name: <name>` (SDS-K row IDs
-    aren't unique-quoting-sensitive; "good enough" per the row's own
-    `- name:` convention)."""
+    """Line number of a row's `- name: <name>` line: match the YAML value
+    exactly (optionally quoted, optional trailing `# comment`), anchored
+    to the end of the line, so a lookup for `foo` cannot match a `foo-bar`
+    row that happens to appear first in the file. `None` if no row
+    declares this exact name."""
     if eval_lines is None:
         return None
-    needle = f"name: {name}"
+    pat = re.compile(r"^\s*-\s*name:\s*['\"]?" + re.escape(name) + r"['\"]?\s*(#.*)?$")
     for i, line in enumerate(eval_lines):
-        if needle in line:
+        if pat.match(line):
             return i + 1
     return None
 
@@ -154,14 +169,22 @@ def make_finding(skill: Path, eval_file: Path, eval_lines, name: str, message: s
 
 
 def run_skill(skill: Path, args, out=sys.stdout, findings=None):
+    eval_file = skill / "evals" / f"{skill.name}.eval.yaml"
     rows, err = load_rows(skill)
     print(f"== {skill.relative_to(FAMILY_ROOT)}", file=out)
     if err:
         print(f"  SETUP FAIL {err}", file=out)
+        if findings is not None:
+            findings.append({
+                "ruleId": "eval/setup",
+                "level": "error",
+                "message": {"text": err},
+                "locations": [{"physicalLocation": {"artifactLocation": {"uri": str(eval_file.relative_to(FAMILY_ROOT))}}}],
+                "properties": {"skill": str(skill.relative_to(FAMILY_ROOT))},
+            })
         return 0, 1, 0
-    if not args.skip_generators and not run_generators(skill, args.timeout, args.verbose, out=out):
+    if not args.skip_generators and not run_generators(skill, args.timeout, args.verbose, out=out, findings=findings):
         return 0, 1, 0
-    eval_file = skill / "evals" / f"{skill.name}.eval.yaml"
     eval_lines = eval_file.read_text(encoding="utf-8").splitlines() if findings is not None and eval_file.is_file() else None
     passed = failed = skipped = 0
     for row in rows:
