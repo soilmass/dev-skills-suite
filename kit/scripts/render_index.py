@@ -37,6 +37,23 @@ performs an effect behind a confirmation gate, with a compensating action
 and a two-phase checkpoint). Skills compose by agreeing on artifact
 shapes (`kit/shapes/`), never by calling each other.
 
+## Install
+
+The family ships as one Claude Code plugin whose manifests
+(`.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`) are
+generated from the registry by `kit/scripts/render_plugin.py`:
+
+```
+/plugin marketplace add soilmass/dev-skills-suite
+/plugin install dev-skills-suite@dev-skills-suite
+```
+
+Every skill is then available as `/dev-skills-suite:<skill>`. A
+skill's commands are skill-relative (`scripts/<file>`, SDS-F-031) and
+run from the skill's own directory — `${{CLAUDE_SKILL_DIR}}` once
+installed — addressing any repository or external system explicitly
+(SDS-S-056).
+
 ## Skills
 
 _This table is generated from `kit/registry/marketplace.json` by

@@ -1,0 +1,43 @@
+{
+  "name": "dev-skills-suite",
+  "description": "The dev-skills-suite family: one plugin bundling every built skill.",
+  "owner": {
+    "name": "soilmass",
+    "url": "https://github.com/soilmass"
+  },
+  "plugins": [
+    {
+      "name": "dev-skills-suite",
+      "source": "./",
+      "description": "38 SDS-conformant skills for software development; install once, invoke as /dev-skills-suite:<skill>.",
+      "version": "1.0.0-draft",
+      "author": {
+        "name": "soilmass",
+        "url": "https://github.com/soilmass"
+      },
+      "homepage": "https://github.com/soilmass/dev-skills-suite",
+      "repository": "https://github.com/soilmass/dev-skills-suite",
+      "license": "Apache-2.0",
+      "category": "development",
+      "keywords": [
+        "skills",
+        "software-development",
+        "github",
+        "code-quality",
+        "testing",
+        "ci",
+        "documentation",
+        "observability",
+        "sds"
+      ],
+      "tags": [
+        "domain-read-only",
+        "external-read-only",
+        "irreversible",
+        "local-read-only",
+        "local-write",
+        "shared-write"
+      ]
+    }
+  ]
+}

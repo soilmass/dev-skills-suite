@@ -4,9 +4,16 @@
   "title": "Family Registry File",
   "description": "The single source of truth for a Skill Family (SDS-F-010, SDS-F-014). Any human-facing index or table MUST be generated from this file, never hand-maintained separately.",
   "type": "object",
-  "required": ["family", "sds", "skills"],
+  "required": [
+    "family",
+    "sds",
+    "version",
+    "skills"
+  ],
   "properties": {
-    "family": { "type": "string" },
+    "family": {
+      "type": "string"
+    },
     "sds": {
       "type": "string",
       "description": "The SDS conformance target this family declares, e.g. \"1.0-draft\" (SDS-F-042)."
@@ -15,13 +22,30 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["name", "description", "version", "effect-tier", "tier", "shape-out", "shape-in"],
+        "required": [
+          "name",
+          "description",
+          "version",
+          "effect-tier",
+          "tier",
+          "shape-out",
+          "shape-in"
+        ],
         "properties": {
-          "name": { "type": "string" },
-          "description": { "type": "string" },
-          "version": { "type": "string" },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
           "status": {
-            "enum": ["planned", "built"],
+            "enum": [
+              "planned",
+              "built"
+            ],
             "description": "built requires skills/<name>/ to exist; planned entries may have no directory yet (SDS-F-015)."
           },
           "effect-tier": {
@@ -34,11 +58,25 @@
               "irreversible"
             ]
           },
-          "tier": { "enum": ["pillar", "situational"] },
-          "shape-out": { "type": "string" },
-          "shape-in": { "type": "string" }
+          "tier": {
+            "enum": [
+              "pillar",
+              "situational"
+            ]
+          },
+          "shape-out": {
+            "type": "string"
+          },
+          "shape-in": {
+            "type": "string"
+          }
         }
       }
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?$",
+      "description": "The family's release version (semver, prerelease allowed); rendered into the plugin manifests by kit/scripts/render_plugin.py. Bump it when the family is tagged."
     }
   }
 }

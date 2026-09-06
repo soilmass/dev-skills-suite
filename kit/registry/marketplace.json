@@ -1,6 +1,7 @@
 {
   "family": "dev-skills-suite",
   "sds": "1.0-draft",
+  "version": "1.0.0-draft",
   "skills": [
     {
       "name": "tech-debt-inventory",

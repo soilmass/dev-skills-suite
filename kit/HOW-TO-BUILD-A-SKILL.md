@@ -228,7 +228,12 @@ Add one entry to `kit/registry/marketplace.json` with `name`,
 `version`, `status: built`, `effect-tier`, `tier`, `shape-out`,
 `shape-in` (SDS-F-012, SDS-F-013). This file is the only place a
 human-facing skill index may be generated from — never hand-maintain a
-separate list (SDS-F-014).
+separate list (SDS-F-014). Then regenerate what is derived from it:
+`python3 kit/scripts/render_index.py` (the README) and
+`python3 kit/scripts/render_plugin.py` (the Claude Code plugin and
+marketplace manifests under `.claude-plugin/`); both have a `--check`
+mode that fails when stale, and `claude plugin validate .` checks the
+manifests against Claude Code's own schema.
 
 ## Step 11 — Validate before calling it done (SDS-S-110)
 
