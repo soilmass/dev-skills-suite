@@ -1,0 +1,12 @@
+{
+  "branch": "feature/shared-work",
+  "base": "origin/main",
+  "baseRefPresent": true,
+  "upstream": "origin/feature/shared-work",
+  "aheadUpstream": 2,
+  "behindUpstream": 1,
+  "aheadBase": 5,
+  "behindBase": 0,
+  "conflictsPredicted": false,
+  "dirtyWorkTree": false
+}

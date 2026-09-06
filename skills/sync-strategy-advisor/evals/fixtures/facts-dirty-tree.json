@@ -1,0 +1,12 @@
+{
+  "branch": "feature/in-progress",
+  "base": "origin/main",
+  "baseRefPresent": true,
+  "upstream": "origin/feature/in-progress",
+  "aheadUpstream": 0,
+  "behindUpstream": 0,
+  "aheadBase": 1,
+  "behindBase": 3,
+  "conflictsPredicted": false,
+  "dirtyWorkTree": true
+}

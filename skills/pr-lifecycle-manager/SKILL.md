@@ -44,9 +44,9 @@ allowed-tools: >-
   `pr-description-writer`'s job; this skill delegates to it on the
   no-PR path and never drafts prose itself.
 - Deciding whether a branch should be rebased or merged against its
-  base before the PR — that is `sync-strategy-advisor` (situational,
-  not yet built); this skill assumes the branch is already pushed and
-  up to date.
+  base before the PR — that is `sync-strategy-advisor`'s decision-doc;
+  this skill assumes the branch is already pushed and up to date, and
+  will not open a PR from a branch that advisor says is behind.
 - Reviewing the code. This skill checks review *state*, never review
   *content*.
 

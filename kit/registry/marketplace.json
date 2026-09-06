@@ -84,9 +84,9 @@
     },
     {
       "name": "sync-strategy-advisor",
-      "description": "Assesses a branch's state versus remote/upstream and recommends pull/rebase/merge, flagging conflict risk.",
+      "description": "Assesses a branch against its base and upstream — ahead/behind counts, predicted conflicts, whether the branch is already shared — and recommends exactly one sync action (rebase, merge, pull, push, resolve conflicts, fetch first, or nothing) as a decision-doc without performing any of them. Use when a branch is behind main, before opening a PR, when asked whether to rebase or merge, or when git reports divergence.",
       "version": "0.1.0",
-      "status": "planned",
+      "status": "built",
       "effect-tier": "domain-read-only",
       "tier": "pillar",
       "shape-out": "decision-doc",

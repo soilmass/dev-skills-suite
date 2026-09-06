@@ -1,0 +1,159 @@
+# Table-driven eval file for sync-strategy-advisor (SDS-S-090).
+#
+# Everything here runs offline: the git scenarios live in a generated
+# fixture (a bare "origin" plus a clone with one branch per rule-table
+# outcome), and the states that are awkward to build in a repository —
+# a branch diverged from its own upstream, a dirty tree — are injected
+# through the --facts-file flag (SDS-S-065). No row touches the network.
+#
+# Before running: the git fixtures are generated, not checked in
+# (SDS-S-096). Rebuild them first:
+#   evals/fixtures/build-sync-fixtures.sh
+
+skill: sync-strategy-advisor
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): behind base with unpublished work -> rebase.
+  - name: happy-path-rebase-onto-base
+    input:
+      command: "python3 scripts/assess_sync_state.py evals/fixtures/sync-work --branch feature/behind-unpushed --base origin/main"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "decisionOutcome.chosenOption is 'rebase-onto-base'"
+        - "facts.behindBase is 1 and facts.aheadUpstream is 1 (the local commit is unpublished)"
+
+  - name: happy-path-merge-base-when-shared
+    input:
+      command: "python3 scripts/assess_sync_state.py evals/fixtures/sync-work --branch feature/behind --base origin/main"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "decisionOutcome.chosenOption is 'merge-base' (fully pushed branch is treated as shared)"
+        - "decisionDrivers contains 'treated as shared (heuristic)'"
+
+  - name: happy-path-resolve-conflicts
+    input:
+      command: "python3 scripts/assess_sync_state.py evals/fixtures/sync-work --branch feature/conflict --base origin/main"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "decisionOutcome.chosenOption is 'resolve-conflicts'"
+        - "facts.conflictsPredicted is true (both sides changed line2)"
+
+  - name: happy-path-push
+    input:
+      command: "python3 scripts/assess_sync_state.py evals/fixtures/sync-work --branch feature/unpushed --base origin/main"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "decisionOutcome.chosenOption is 'push'"
+        - "facts.behindBase is 0 and facts.aheadUpstream is 1"
+
+  - name: happy-path-diverged-upstream-via-facts-file
+    input:
+      command: "python3 scripts/assess_sync_state.py . --facts-file evals/fixtures/facts-diverged-upstream.json"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "decisionOutcome.chosenOption is 'reconcile-upstream'"
+
+  # REQUIRED — boundary: empty/nothing-to-do — the branch is current with base and upstream (SDS-C-033: still a full decision-doc).
+  - name: boundary-none-up-to-date
+    input:
+      command: "python3 scripts/assess_sync_state.py evals/fixtures/sync-work --branch feature/up-to-date --base origin/main"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "decisionOutcome.chosenOption is 'up-to-date'"
+        - "the output is a complete, schema-valid decision-doc, not an empty object"
+
+  # Boundary: no upstream at all -> publish-branch.
+  - name: boundary-no-upstream-publish
+    input:
+      command: "python3 scripts/assess_sync_state.py evals/fixtures/sync-work --branch feature/local-only --base origin/main"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "decisionOutcome.chosenOption is 'publish-branch'"
+        - "facts.upstream is null"
+
+  # Boundary: dirty working tree blocks everything (via facts file).
+  - name: boundary-dirty-tree-blocks
+    input:
+      command: "python3 scripts/assess_sync_state.py . --facts-file evals/fixtures/facts-dirty-tree.json"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "decisionOutcome.chosenOption is 'stash-or-commit-first' even though behindBase is 3"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-facts-file
+    input:
+      command: "python3 scripts/assess_sync_state.py . --facts-file evals/fixtures/facts-malformed.json"
+    expected:
+      kind: failure
+      failureCode: facts-unparseable
+      assertions:
+        - "exit code is 1"
+        - "stderr names the facts file and says facts-unparseable"
+
+  - name: boundary-missing-branch
+    input:
+      command: "python3 scripts/assess_sync_state.py evals/fixtures/sync-work --branch feature/does-not-exist --base origin/main"
+    expected:
+      kind: failure
+      failureCode: branch-missing
+      assertions:
+        - "exit code is 1"
+        - "stderr names the branch and says branch-missing"
+
+  - name: boundary-missing-base-ref
+    input:
+      command: "python3 scripts/assess_sync_state.py evals/fixtures/sync-work --branch feature/up-to-date --base origin/never-fetched"
+    expected:
+      kind: failure
+      failureCode: refs-missing
+      assertions:
+        - "exit code is 1"
+        - "stderr says refs-missing and tells the user to fetch"
+
+  - name: boundary-invalid-repo-root
+    input:
+      command: "python3 scripts/assess_sync_state.py evals/fixtures --branch main"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 — evals/fixtures is inside a repository but is not its root"
+
+  # N/A — shape-out is decision-doc, not finding-list (SDS-S-095).
+  - name: mutation-fixture
+    expected:
+      kind: not-applicable
+      reason: "sync-strategy-advisor does not search for known problems; shape-out is decision-doc, not finding-list."
+
+  # N/A — shape-out decision-doc != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out decision-doc differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — consumer-driven contract (SDS-C-063): pr-lifecycle-manager
+  # declares shape-in decision-doc; this skill's real output must validate.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/assess_sync_state.py evals/fixtures/sync-work --branch feature/behind-unpushed --base origin/main | python3 -c \"import json,sys,jsonschema; jsonschema.validate(json.load(sys.stdin), json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/decision-doc.schema.json'))); print('decision-doc OK')\""
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "the actual output validates against kit/shapes/decision-doc.schema.json, which pr-lifecycle-manager consumes"
