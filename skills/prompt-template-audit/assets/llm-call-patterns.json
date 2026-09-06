@@ -1,0 +1,9 @@
+{
+  "description": "Call shapes that count as an LLM call: a method named in callMethods carrying a keyword from modelKeywords or promptKeywords. Vendor-agnostic by design; add a team's wrapper method names. pinnedModelPattern is the regex a pinned model id must match (a digit: a date or version).",
+  "callMethods": ["create", "generate", "complete", "completion", "invoke", "chat", "messages", "generate_content", "converse"],
+  "modelKeywords": ["model", "model_id", "modelId", "deployment"],
+  "promptKeywords": ["messages", "prompt", "input", "contents"],
+  "maxTokensKeywords": ["max_tokens", "max_output_tokens", "max_completion_tokens", "maxTokens"],
+  "pinnedModelPattern": "\\d",
+  "reportTemperature": false
+}

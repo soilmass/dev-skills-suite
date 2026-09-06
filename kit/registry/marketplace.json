@@ -462,6 +462,16 @@
       "tier": "situational",
       "shape-out": "finding-list",
       "shape-in": "freeform"
+    },
+    {
+      "name": "prompt-template-audit",
+      "description": "Audits the LLM calls in a Python repository — found by call shape, not vendor — for the prompt-engineering mistakes that cost the most in production: model ids that are aliases or carry no version, no token ceiling, user-supplied text interpolated into a prompt with no delimiter around it, no system prompt, and long prompts written inline at the call site instead of in a versioned template — as a finding-list with the call inventory attached. Use before shipping an LLM feature, when evals started drifting, or when asked to review how a service prompts a model.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
     }
   ]
 }

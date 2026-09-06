@@ -1,0 +1,97 @@
+# Table-driven eval file for prompt-template-audit (SDS-S-090).
+#
+# A rung-1 Query Skill over a planted tree with LLM calls in two vendor
+# shapes and a home-grown wrapper, carrying one instance of each defect
+# beside a well-formed call that must stay silent. Every row is
+# deterministic and offline — no model is called.
+
+skill: prompt-template-audit
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): exactly the planted defects are reported at their lines; the good call draws nothing.
+  - name: happy-path-planted-calls
+    input:
+      command: "python3 scripts/audit_prompts.py evals/fixtures/planted-src"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "app/summarise.py: prompt/unpinned-model for claude-latest (line 7), prompt/user-input-interpolated for user_text (line 9, f-string with no delimiter), prompt/no-max-tokens and prompt/no-system-prompt (line 7)"
+        - "app/classify.py: prompt/unpinned-model because the model is not a literal (line 8), prompt/inline-template for the 400+ character literal (line 12); its user text sits after a <document> tag so no interpolation finding; it has a system message and max_tokens"
+        - "app/wrapper.py (home-grown generate(model=..., prompt=...)): prompt/user-input-interpolated for question via %-format (line 6); app/good.py draws nothing (pinned dated model, system=, max_tokens, user text inside triple-quoted delimiters)"
+        - "tool.properties: calls 4, models includes claude-latest and claude-sonnet-4-5-20250929, callsWithSystemPrompt 3; warnings before infos"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted undelimited interpolation is found at its line.
+  - name: mutation-fixture-user-input-interpolated
+    input:
+      command: "python3 scripts/audit_prompts.py evals/fixtures/planted-src"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "a prompt/user-input-interpolated result exists at app/summarise.py line 9 with properties.expression user_text, level warning"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # The inline limit is a parameter: raised past the long literal, the inline-template finding disappears.
+  - name: boundary-inline-limit
+    input:
+      command: "python3 scripts/audit_prompts.py evals/fixtures/planted-src --inline-limit 1000"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "no prompt/inline-template result; every other finding is unchanged"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): a tree with no LLM calls -> empty results, calls 0.
+  - name: boundary-empty-no-llm-calls
+    input:
+      command: "python3 scripts/audit_prompts.py evals/fixtures/no-llm-src"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; tool.properties.calls is 0 (an unrelated .create(name=...) call does not count)"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-source
+    input:
+      command: "python3 scripts/audit_prompts.py evals/fixtures/broken-src"
+    expected:
+      kind: failure
+      failureCode: source-unparseable
+      assertions:
+        - "exit code is 1 and stderr names broken.py and says source-unparseable"
+
+  - name: boundary-invalid-patterns
+    input:
+      command: "python3 scripts/audit_prompts.py evals/fixtures/planted-src --patterns evals/fixtures/planted-src/app/good.py"
+    expected:
+      kind: failure
+      failureCode: patterns-invalid
+      assertions:
+        - "exit code is 1 and stderr says patterns-invalid"
+
+  - name: boundary-invalid-path
+    input:
+      command: "python3 scripts/audit_prompts.py evals/fixtures/planted-src/app/good.py"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 — the path is a file, not a directory"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/audit_prompts.py evals/fixtures/planted-src | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"
