@@ -1,0 +1,79 @@
+# Table-driven eval file for code-comment-audit (SDS-S-090).
+#
+# A rung-1 Query Skill over a planted module carrying one of each drift
+# kind (a stale documented parameter, a comment citing a deleted
+# helper, a commented-out implementation) beside a clean module whose
+# accurate comments must stay silent. Every row is deterministic and
+# offline.
+
+skill: code-comment-audit
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): the planted drift is reported and the clean module is not.
+  - name: happy-path-planted-drift
+    input:
+      command: "python3 scripts/audit_comments.py evals/fixtures/planted-src"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "exactly one comment/stale-param: load_order documents 'timeout', actual [fresh, order_id]"
+        - "comment/dangling-reference findings name normalize_rows (the total() comment) and fetch_all (inside the commented-out block); none name clamp or total"
+        - "exactly one comment/commented-out-code finding, 4 lines, starting at the 'rows = fetch_all()' comment"
+        - "no finding points at clean.py; warnings are ordered before infos"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted stale parameter is found on the function's line.
+  - name: mutation-fixture-planted-stale-param
+    input:
+      command: "python3 scripts/audit_comments.py evals/fixtures/planted-src"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "a comment/stale-param result exists with properties.function load_order, documented timeout, at drifted.py line 4, level warning"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): no Python files -> empty results.
+  - name: boundary-empty-tree
+    input:
+      command: "python3 scripts/audit_comments.py evals/fixtures/empty-src"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; the document is otherwise complete and schema-valid"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast): a syntax error stops the scan.
+  - name: boundary-malformed-source
+    input:
+      command: "python3 scripts/audit_comments.py evals/fixtures/broken-src"
+    expected:
+      kind: failure
+      failureCode: source-unparseable
+      assertions:
+        - "exit code is 1 and stderr names broken.py and says source-unparseable"
+
+  - name: boundary-invalid-path
+    input:
+      command: "python3 scripts/audit_comments.py evals/fixtures/planted-src/clean.py"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 — the path is a file, not a directory"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/audit_comments.py evals/fixtures/planted-src | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"

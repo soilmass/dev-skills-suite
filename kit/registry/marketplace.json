@@ -191,6 +191,16 @@
       "tier": "situational",
       "shape-out": "finding-list",
       "shape-in": "freeform"
+    },
+    {
+      "name": "code-comment-audit",
+      "description": "Finds comments and docstrings that no longer match the Python code beside them — documented parameters the function does not take, comments naming identifiers that no longer exist in the repository, and commented-out code — as a finding-list, leaving the call on whether a comment misleads to a human. Use during a cleanup, when a module's comments feel unreliable, or when asked to audit documentation drift inside the code.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
     }
   ]
 }
