@@ -6,6 +6,8 @@ allowed-tools:
   - "Bash(git log:*)"
   - "Bash(git diff:*)"
   - "Bash(git show:*)"
+  - "Bash(git describe:*)"
+  - "Bash(git tag -l:*)"
   - "Bash(git fetch:*)"
 notes: >
   Read-only against local and remote git state. Deliberately excludes

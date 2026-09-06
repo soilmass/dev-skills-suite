@@ -1,0 +1,9 @@
+a1b2c3d	feat(api): add retry helper with exponential backoff	<<END>>
+b2c3d4e	fix: silently dropped last record without trailing newline	<<END>>
+c3d4e5f	feat!: drop Python 3.8 support	BREAKING CHANGE: the minimum supported Python is now 3.9
+<<END>>
+d4e5f6a	perf(parser): stream large manifests instead of loading them	<<END>>
+e5f6a7b	fix(security): reject path traversal in artifact names	<<END>>
+f6a7b8c	docs: expand README quickstart	<<END>>
+a7b8c9d	chore(ci): bump actions/checkout to v4	<<END>>
+b8c9d0e	deprecate: mark legacy_fetch for removal in 2.0	<<END>>

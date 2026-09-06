@@ -101,6 +101,16 @@
       "tier": "pillar",
       "shape-out": "status-report",
       "shape-in": "decision-doc"
+    },
+    {
+      "name": "changelog-writer",
+      "description": "Collects the Conventional Commits since the last tag, groups them into Keep a Changelog categories as a status-report, and inserts the entry at the top of CHANGELOG.md, refusing to write a version that already exists. Use when cutting a release, when asked to update or generate the changelog, or when a PR needs a changelog entry from its commits.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-write",
+      "tier": "situational",
+      "shape-out": "status-report",
+      "shape-in": "freeform"
     }
   ]
 }
