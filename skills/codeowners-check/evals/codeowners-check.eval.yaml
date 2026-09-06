@@ -1,0 +1,97 @@
+# Table-driven eval file for codeowners-check (SDS-S-090).
+#
+# A rung-1 Query Skill over a planted tree and CODEOWNERS carrying one
+# instance of each defect beside correct rules, a members list, a
+# complete file that must stay silent, and a tree with no file. Every
+# row is deterministic and offline.
+
+skill: codeowners-check
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): every planted defect is reported at its line; owned paths and correct rules draw nothing.
+  - name: happy-path-planted-codeowners
+    input:
+      command: "python3 scripts/check_codeowners.py evals/fixtures/planted-repo"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "owners/unowned-path for infra (4 of 4 files) only — src, docs, and the root files are owned; owners/rule-matches-nothing at line 8 (/services/legacy/); owners/no-owner at line 9 (/scripts/); owners/invalid-owner at line 10 (owner 'platform-team' without @)"
+        - "owners/shadowed-rule at line 4 (/src/api/ @shop/api, shadowed by line 5's /src/ @shop/core); no shadow finding for line 3 (*.md) because CHANGELOG.md stays with it after docs/ and /README.md re-own the rest; tool.properties: rules 9, ownedFiles 11 of 15 files"
+        - "warnings are ordered before infos"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted unowned directory is found.
+  - name: mutation-fixture-unowned-path
+    input:
+      command: "python3 scripts/check_codeowners.py evals/fixtures/planted-repo"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "an owners/unowned-path result exists with properties.path infra, unownedFiles 4, files 4, level warning"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # A members list flags handles outside the organisation.
+  - name: boundary-members-list
+    input:
+      command: "python3 scripts/check_codeowners.py evals/fixtures/planted-repo --members evals/fixtures/members.txt"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "owners/unknown-owner for @shop/legacy-team (line 8) and @contractor (line 11); @shop/core, @shop/api, @shop/docs and @priya are listed and draw nothing"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): a complete file -> empty results.
+  - name: boundary-empty-findings-complete-file
+    input:
+      command: "python3 scripts/check_codeowners.py evals/fixtures/complete-repo"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; tool.properties.ownedFiles equals files"
+
+  # No CODEOWNERS at all is informational, not an error.
+  - name: boundary-missing-file
+    input:
+      command: "python3 scripts/check_codeowners.py evals/fixtures/no-codeowners-repo"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "exactly one result, owners/missing-file at level info; tool.properties.codeowners is null"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast): an unreadable members file.
+  - name: boundary-malformed-unreadable-members
+    input:
+      command: "python3 scripts/check_codeowners.py evals/fixtures/planted-repo --members evals/fixtures/planted-repo"
+    expected:
+      kind: failure
+      failureCode: members-unreadable
+      assertions:
+        - "exit code is 1 — a directory cannot be read as the members list — and stderr says members-unreadable"
+
+  - name: boundary-invalid-path
+    input:
+      command: "python3 scripts/check_codeowners.py evals/fixtures/members.txt"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 — the path is a file, not a directory"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/check_codeowners.py evals/fixtures/planted-repo | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"

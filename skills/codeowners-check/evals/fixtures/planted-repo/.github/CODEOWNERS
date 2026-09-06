@@ -1,0 +1,11 @@
+# Planted CODEOWNERS: one defect per rule beside correct ones
+# (no catch-all, so unowned paths can exist)
+*.md @shop/docs
+/src/api/ @shop/api
+/src/ @shop/core
+docs/ @shop/docs
+/README.md @priya
+/services/legacy/ @shop/legacy-team
+/scripts/
+/tools/ platform-team
+/pyproject.toml @contractor

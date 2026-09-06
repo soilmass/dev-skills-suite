@@ -1,0 +1,4 @@
+@shop/core
+@shop/api
+@shop/docs
+@priya

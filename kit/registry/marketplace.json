@@ -502,6 +502,16 @@
       "tier": "situational",
       "shape-out": "finding-list",
       "shape-in": "freeform"
+    },
+    {
+      "name": "codeowners-check",
+      "description": "Checks a repository's CODEOWNERS file against its tree the way GitHub reads it — last matching rule wins, gitignore-style patterns — and reports top-level paths no rule owns, rules that match nothing any more, lines with no owner, owners that are not a valid handle or are absent from a members list, and rules a later broader rule shadows completely — as a finding-list, leaving the call on who should own what to a human. Use when reviews are not being requested, after a directory moves, or when asked whether ownership is complete.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
     }
   ]
 }
