@@ -5,7 +5,7 @@
     "isDraft": false,
     "mergeable": "MERGEABLE",
     "mergeStateStatus": "BLOCKED",
-    "reviewDecision": "",
+    "reviewDecision": "REVIEW_REQUIRED",
     "statusCheckRollup": [],
     "baseRefName": "main",
     "headRefName": "feature/empty-checks",

@@ -36,13 +36,23 @@ Rule table (first match wins):
     any check FAILURE/ERROR/CANCELLED  -> fix-failing-checks
     any check pending/in progress      -> wait-for-checks
     reviewDecision == CHANGES_REQUESTED-> address-review
-    reviewDecision != APPROVED         -> request-review
-    otherwise                          -> merge  (strategy: squash if
-                                          allowed, else merge, else
-                                          rebase)
+    reviewDecision == REVIEW_REQUIRED  -> request-review
+    otherwise (APPROVED, or "" meaning -> merge  (strategy: squash if
+      no branch-protection rule requires   allowed, else merge, else
+      a review; recorded as a driver)      rebase)
+
+GitHub sets reviewDecision to "" when no protection rule requires a
+review and none was given, and to REVIEW_REQUIRED when one is required
+and absent. Only the latter blocks; the former is recorded in
+decisionDrivers as "no review required by branch protection" so the
+Confirm gate can state it plainly (refined after the first live run,
+which could never reach merge on a repository without required
+reviews).
 
 Prints one decision-doc JSON object to stdout (status "proposed"). The
-`facts` object carries the raw inputs the orchestrator needs for Act.
+`facts` object carries the raw inputs the orchestrator needs for Act,
+including `defaultBranch` (the base to open a PR against when none
+exists yet).
 
 Exit 1 with "ERROR: ..." on stderr when: the repo path is not a
 directory (repo-invalid); the fixture file is missing or not valid JSON
@@ -59,7 +69,8 @@ PR_FIELDS = (
     "statusCheckRollup,baseRefName,headRefName,title,url"
 )
 REPO_FIELDS = (
-    "mergeCommitAllowed,squashMergeAllowed,rebaseMergeAllowed,deleteBranchOnMerge"
+    "mergeCommitAllowed,squashMergeAllowed,rebaseMergeAllowed,deleteBranchOnMerge,"
+    "defaultBranchRef"
 )
 OPTIONS = [
     "open-pr", "already-merged", "closed", "mark-ready", "resolve-conflicts",
@@ -151,8 +162,10 @@ def decide(pr, repo_info):
     drivers.append(f"reviewDecision={review or 'none'}")
     if review == "CHANGES_REQUESTED":
         return "address-review", drivers, None
-    if review != "APPROVED":
+    if review == "REVIEW_REQUIRED":
         return "request-review", drivers, None
+    if review != "APPROVED":
+        drivers.append("no review required by branch protection — merging without an approving review")
     strategy = merge_strategy(repo_info)
     drivers.append(f"merge strategy={strategy} (repo settings)")
     return "merge", drivers, strategy
@@ -168,7 +181,7 @@ JUSTIFICATION = {
     "wait-for-checks": "Checks are still running; the tree has not been judged yet.",
     "address-review": "A reviewer requested changes; merging would override review.",
     "request-review": "No approving review exists; request one before merging.",
-    "merge": "Checks are green, review is approved, and the branch is mergeable.",
+    "merge": "Checks are green (or none are required), review is approved (or none is required by branch protection — see drivers), and the branch is mergeable.",
 }
 
 
@@ -225,6 +238,7 @@ def main():
             "prUrl": pr.get("url") if pr else None,
             "headRefName": pr.get("headRefName") if pr else None,
             "baseRefName": pr.get("baseRefName") if pr else None,
+            "defaultBranch": (repo_info.get("defaultBranchRef") or {}).get("name"),
             "mergeStrategy": strategy,
             "deleteBranchOnMerge": bool(repo_info.get("deleteBranchOnMerge")),
         },

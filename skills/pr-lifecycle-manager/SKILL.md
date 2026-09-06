@@ -79,7 +79,13 @@ emits a `decision-doc` (`kit/shapes/decision-doc.schema.json`) — the
 `shape-in` this skill consumes. A nonzero exit maps to `@throws`
 (`repo-invalid`, `pr-state-unparseable`, `gh-unreachable`); surface
 its stderr verbatim. "No pull request exists" is not a failure: the
-decision-doc's `chosenOption` is `open-pr`.
+decision-doc's `chosenOption` is `open-pr`, and `facts.defaultBranch`
+is the base to open it against.
+
+Review policy, fixed in the script's rule table: `CHANGES_REQUESTED`
+and `REVIEW_REQUIRED` block; an empty `reviewDecision` means no branch
+protection requires a review, so it does not block but is recorded as
+a driver and stated at the merge gate.
 
 If `chosenOption` is `open-pr` and no `description` input was given,
 delegate to `pr-description-writer` for the drafted body text
@@ -132,8 +138,9 @@ Ask for reviewers here if `reviewers` was not supplied.
 Only reached when `chosenOption` is `open-pr` or `merge`, and only for
 the steps the user confirmed. This is a multi-step sequence, so the
 checkpoint record is kept by `scripts/checkpoint.py` (SDS-S-055),
-keyed by the PR number (or the branch name until a PR exists), at
-`.skills-state/pr-lifecycle-manager/<key>.json`. Before every step,
+keyed by the head branch name for the whole lifecycle (a PR number
+does not exist yet at step 1, and one lifecycle must have one record),
+at `.skills-state/pr-lifecycle-manager/<branch>.json`. Before every step,
 `checkpoint.py <skill> <key> --show`: a `completed` step is skipped; a
 `pending` step is treated as possibly-applied and re-checked before
 retrying (SDS-C-046).
@@ -146,10 +153,16 @@ a script referenced by `allowed-tools`, SDS-S-051):
 ```
 python3 scripts/checkpoint.py pr-lifecycle-manager <branch> --step open-pr --status pending \
   --compensating-action "gh pr close <number> --delete-branch=false"
-gh pr create --base <base> --title "<title>" --body-file <drafted-body>
+gh pr create --base <facts.defaultBranch> --title "<title>" --body-file <drafted-body>
 python3 scripts/checkpoint.py pr-lifecycle-manager <branch> --step open-pr --status completed \
   --post-state-file <json with the new PR number and url>
 ```
+
+Write `<drafted-body>` inside the repository or under `$HOME`, never
+in a session scratch directory: a sandboxed `gh` (e.g. a snap) cannot
+read it there, the create fails after the pending record is written,
+and the next invocation must recover via check-before-act (observed
+in the first live run).
 
 **Compensating action** (SDS-S-054): `gh pr close <number>` — closing
 is reversible (the PR can be reopened), so opening is safe to undo.
@@ -172,10 +185,10 @@ after the high-risk gate from Confirm has been shown and answered
 must be `OPEN`. Pending record, then the direct call:
 
 ```
-python3 scripts/checkpoint.py pr-lifecycle-manager <number> --step merge --status pending \
+python3 scripts/checkpoint.py pr-lifecycle-manager <branch> --step merge --status pending \
   --compensating-action "none — this step must be last"
 gh pr merge <number> --<facts.mergeStrategy>
-python3 scripts/checkpoint.py pr-lifecycle-manager <number> --step merge --status completed
+python3 scripts/checkpoint.py pr-lifecycle-manager <branch> --step merge --status completed
 ```
 
 **Compensating action**: none — a merge is irreversible (rung 6), so

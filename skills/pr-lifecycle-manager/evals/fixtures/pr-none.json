@@ -4,6 +4,7 @@
     "mergeCommitAllowed": true,
     "squashMergeAllowed": true,
     "rebaseMergeAllowed": false,
-    "deleteBranchOnMerge": true
+    "deleteBranchOnMerge": true,
+    "defaultBranchRef": { "name": "main" }
   }
 }

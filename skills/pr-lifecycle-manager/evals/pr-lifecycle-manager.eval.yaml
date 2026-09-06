@@ -37,6 +37,7 @@ rows:
       assertions:
         - "decisionOutcome.chosenOption is 'open-pr'"
         - "facts.prNumber is null"
+        - "facts.defaultBranch is 'main' (the base to open the PR against)"
 
   # Happy path: the checkpoint store round-trips pending -> completed -> show.
   - name: happy-path-checkpoint-round-trip
@@ -64,7 +65,8 @@ rows:
       assertions:
         - "evals/fixtures/example-status-report.json validates against kit/shapes/status-report.schema.json"
 
-  # REQUIRED — boundary: empty input — no checks reported and no review yet (SDS-C-005, SDS-C-033).
+  # REQUIRED — boundary: empty input — no checks reported, and a review
+  # is REQUIRED by branch protection but absent (SDS-C-005, SDS-C-033).
   - name: boundary-no-checks-no-reviews
     input:
       command: "python3 scripts/assess_pr_readiness.py . --pr-json-file evals/fixtures/pr-no-checks-no-reviews.json"
@@ -72,8 +74,20 @@ rows:
       kind: success
       shape: decision-doc
       assertions:
-        - "decisionOutcome.chosenOption is 'request-review' — an empty check list does not block, a missing approval does"
+        - "decisionOutcome.chosenOption is 'request-review' — an empty check list does not block; a required-but-absent review (REVIEW_REQUIRED) does"
         - "decisionDrivers records 'checks=0'"
+
+  # Boundary: no review is required by branch protection (reviewDecision ""), everything else green -> merge, with the driver stated.
+  # Fixture reuse: pr-mergeable.json with reviewDecision blanked via a one-line rewrite is not a separate file, so this row derives it inline.
+  - name: boundary-no-review-required
+    input:
+      command: "python3 -c \"import json; d=json.load(open('evals/fixtures/pr-mergeable.json')); d['pr']['reviewDecision']=''; print(json.dumps(d))\" > evals/fixtures/state-scratch/pr-no-review-required.json && python3 scripts/assess_pr_readiness.py . --pr-json-file evals/fixtures/state-scratch/pr-no-review-required.json"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "decisionOutcome.chosenOption is 'merge'"
+        - "decisionDrivers contains 'no review required by branch protection'"
 
   # REQUIRED — boundary: malformed PR state (SDS-C-019 fail-fast).
   - name: boundary-malformed-pr-state
