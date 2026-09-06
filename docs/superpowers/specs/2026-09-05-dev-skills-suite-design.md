@@ -59,11 +59,19 @@ with cross-bench contract rows pinned by frozen producer output:
 | AI Feature Engineering | prompt-template-audit |
 | Monorepo Coordination | affected-packages-finder, cross-package-version-drift |
 
-**Third bench (2026-09-06, being built):** ten more, same rhythm —
-commit-message-lint, codeowners-check, retry-timeout-audit,
-docker-compose-review, terraform-plan-review, accessibility-audit,
-i18n-string-inventory, test-data-pii-scan, github-actions-cost-audit,
-sla-error-budget-check.
+**Third bench (2026-09-06, built — tag v1.2.0-draft):** ten more, same
+rhythm, each hanging off an existing cluster and pinned to a standard
+(Conventional Commits, GitHub CODEOWNERS, Compose Spec, `terraform show
+-json`, axe-core, OpenSLO, the Actions runs API):
+
+| Cluster | Skills |
+|---|---|
+| Code Quality & Hygiene | commit-message-lint, codeowners-check |
+| Performance & Observability | retry-timeout-audit, sla-error-budget-check |
+| Local Dev & Environment | docker-compose-review |
+| Release & Operations | terraform-plan-review, github-actions-cost-audit |
+| Collaboration & Docs | accessibility-audit, i18n-string-inventory |
+| Testing & Verification | test-data-pii-scan |
 
 ## Core Model: a skill is a function
 
