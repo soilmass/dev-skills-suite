@@ -492,6 +492,16 @@
       "tier": "situational",
       "shape-out": "finding-list",
       "shape-in": "freeform"
+    },
+    {
+      "name": "commit-message-lint",
+      "description": "Checks every commit message in a range against Conventional Commits — subjects that do not parse as `type(scope)!: description`, types outside the allowed set, a breaking bang with no BREAKING CHANGE footer, over-long or capitalised subjects, empty descriptions, and fixup! commits that were never squashed — as a finding-list, so the changelog and the version bump that read those messages stay correct. Use before merging a branch, when a changelog came out wrong, or when asked whether commits follow the convention.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "domain-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
     }
   ]
 }

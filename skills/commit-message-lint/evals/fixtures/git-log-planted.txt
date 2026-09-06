@@ -1,0 +1,11 @@
+a1	Fix the thing	<<END>>
+b2	feat(api)!: drop v1 endpoints	The v1 endpoints are gone.<<END>>
+c3	chore:	<<END>>
+d4	fixup! feat(api): retry helper	<<END>>
+e5	deps: bump requests to 2.32	<<END>>
+f6	fix(checkout): handle the case where the cart is empty and the coupon is expired at once	<<END>>
+g7	fix: Handle empty cart	<<END>>
+h8	docs: update readme.	<<END>>
+i9	feat(core)!: new pricing engine	BREAKING CHANGE: the price() signature changed.<<END>>
+j0	fix: handle empty cart	<<END>>
+k1	Merge pull request #12 from shop/feature	<<END>>

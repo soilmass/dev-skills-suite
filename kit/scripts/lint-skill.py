@@ -198,7 +198,7 @@ SDS-S-082 | assets-injection | MUST | REVIEW | 10.8 | Per-installation configura
 SDS-S-090 | eval-structure | MUST | MACHINE | 10.9 | Eval file parses; skill == name; rows non-empty with unique names; expected.kind in {success, failure, not-applicable}; not-applicable has reason; failure has failureCode; extra YAML documents are empty.
 SDS-S-091 | eval-assertions | SHOULD | MACHINE | 10.9 | Success rows have >= 1 assertion and, for registered shapes, a shape field ("runs without erroring" is not a pass).
 SDS-S-092 | eval-open-world | MUST | MACHINE | 10.9 | Rung >= 3: no required row invokes a live external system (curl, wget, http(s)://, gh api, pip/npm install); live checks live after the `---` separator asserting shape only.
-SDS-S-093 | frozen-fixture-naming | SHOULD | MACHINE | 10.9 | Frozen recordings are evals/fixtures/frozen-<source>-<what>.json.
+SDS-S-093 | frozen-fixture-naming | SHOULD | MACHINE | 10.9 | Frozen recordings are evals/fixtures/frozen-<source>-<what>.json, or .txt/.log/.yaml/.xml/.md when the source's native form is text.
 SDS-S-094 | eval-fixed-point | MUST | MACHINE | 10.9 | fixed-point row is success iff shape-out == shape-in and registered; otherwise not-applicable with reason.
 SDS-S-095 | eval-mutation-fixture | MUST | MACHINE | 10.9 | mutation-fixture row is success with an evals/fixtures/ path iff shape-out == finding-list; otherwise not-applicable with reason.
 SDS-S-096 | fixtures-layout | MUST | MACHINE | 10.9 | Static fixtures in evals/fixtures/<case>/ (.gitkeep when empty); generated fixtures listed in evals/fixtures/.gitignore with an executable evals/fixtures/build-<name>.sh; nested .git directories are gitignored; every referenced fixture exists or is generated.
@@ -1348,8 +1348,9 @@ def c_s093(ctx):
     d = ctx.dir / "evals" / "fixtures"
     if not d.is_dir():
         return []
-    return [F(ctx, "SDS-S-093", f"frozen fixture {p.name!r} should be named frozen-<source>-<what>.json", f"evals/fixtures/{p.name}")
-            for p in d.glob("frozen*") if not re.match(r"^frozen-[a-z0-9]+-[a-z0-9-]+\.json$", p.name)]
+    # .json unless the source's native form is text (a git log, a build log, a YAML rules file)
+    return [F(ctx, "SDS-S-093", f"frozen fixture {p.name!r} should be named frozen-<source>-<what>.<json|txt|log|yaml|yml|xml|md>", f"evals/fixtures/{p.name}")
+            for p in d.glob("frozen*") if not re.match(r"^frozen-[a-z0-9]+-[a-z0-9-]+\.(json|txt|log|yaml|yml|xml|md)$", p.name)]
 
 
 @check("SDS-S-094")

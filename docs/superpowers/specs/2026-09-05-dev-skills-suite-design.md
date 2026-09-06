@@ -59,6 +59,12 @@ with cross-bench contract rows pinned by frozen producer output:
 | AI Feature Engineering | prompt-template-audit |
 | Monorepo Coordination | affected-packages-finder, cross-package-version-drift |
 
+**Third bench (2026-09-06, being built):** ten more, same rhythm —
+commit-message-lint, codeowners-check, retry-timeout-audit,
+docker-compose-review, terraform-plan-review, accessibility-audit,
+i18n-string-inventory, test-data-pii-scan, github-actions-cost-audit,
+sla-error-budget-check.
+
 ## Core Model: a skill is a function
 
 ```

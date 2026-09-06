@@ -1388,7 +1388,10 @@ metadata:
         <t anchor="SDS-S-093"><strong>SDS-S-093</strong> (SHOULD, MACHINE)
         A frozen recording of a real external response
         <bcp14>SHOULD</bcp14> be named
-        <tt>evals/fixtures/frozen-&lt;source&gt;-&lt;what&gt;.json</tt>,
+        <tt>evals/fixtures/frozen-&lt;source&gt;-&lt;what&gt;.json</tt> —
+        or the source's native text extension (<tt>.txt</tt>,
+        <tt>.log</tt>, <tt>.yaml</tt>, <tt>.xml</tt>, <tt>.md</tt>)
+        when the response is not JSON, such as a recorded git log —
         captured once and never refreshed by the evals.</t>
         <t anchor="SDS-S-094"><strong>SDS-S-094</strong> (MUST, MACHINE)
         A row named <tt>fixed-point</tt> <bcp14>MUST</bcp14> exist. It
@@ -2065,7 +2068,9 @@ metadata:
       — introduced when <tt>json-schema-compat-check</tt> made it a
       one-row eval against frozen copies of the four shapes at
       v1.0.0-draft. One REVIEW rule added to Appendix B; no MACHINE rule
-      changed.</t>
+      changed. Editorial: SDS-S-093 admits a native text extension for
+      a frozen recording that is not JSON (a git log shared by
+      changelog-writer and commit-message-lint).</t>
       <t><strong>1.0-draft, revision 02 (2026-09-06):</strong> Folds in
       what building the twenty-eight situational skills and two more
       live runs taught. SDS-F-061 now exempts a glossary term that is

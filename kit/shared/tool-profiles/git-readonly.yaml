@@ -11,6 +11,7 @@ allowed-tools:
   - "Bash(git for-each-ref:*)"
   - "Bash(git branch --merged:*)"
   - "Bash(git worktree list:*)"
+  - "Bash(git symbolic-ref:*)"
   - "Bash(git fetch:*)"
 notes: >
   Read-only against local and remote git state. Deliberately excludes

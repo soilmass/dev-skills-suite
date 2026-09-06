@@ -1,0 +1,98 @@
+# Table-driven eval file for commit-message-lint (SDS-S-090).
+#
+# A rung-2 Query Skill exercised offline through --log-file recordings in
+# the %h<TAB>%s<TAB>%b<<END>> format changelog-writer records (SDS-S-065):
+# a planted range carrying one commit per defect beside conformant ones
+# and a merge commit, a clean range, and a frozen copy of
+# changelog-writer's own sample log (the shared recording convention,
+# SDS-C-063). Every row is deterministic and offline.
+
+skill: commit-message-lint
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): every planted defect is reported at its hash; conformant commits and the merge draw nothing.
+  - name: happy-path-planted-range
+    input:
+      command: "python3 scripts/lint_commits.py . --log-file evals/fixtures/git-log-planted.txt"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "warnings: commit/not-conventional at a1 ('Fix the thing'), commit/breaking-no-footer at b2 (feat(api)!: with no footer), commit/empty-description at c3 ('chore:'), commit/fixup-left at d4"
+        - "infos: commit/unknown-type at e5 (type deps), commit/subject-too-long at f6 (73+ characters), commit/subject-style at g7 (capitalised) and h8 (trailing period)"
+        - "no finding for i9 (feat(core)!: with a BREAKING CHANGE: footer) or j0 (fix: lowercase, short); the merge commit is skipped: tool.properties.commits 11, mergeCommitsSkipped 1, conventional 8 (fixup! and the merge do not parse); warnings before infos"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted breaking bang without footer is found at its hash.
+  - name: mutation-fixture-breaking-no-footer
+    input:
+      command: "python3 scripts/lint_commits.py . --log-file evals/fixtures/git-log-planted.txt"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "a commit/breaking-no-footer result exists at b2 with properties.type feat, scope api, breaking true, level warning"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # The allowed types are a parameter: with deps allowed, the unknown-type info disappears.
+  - name: boundary-custom-types
+    input:
+      command: "python3 scripts/lint_commits.py . --log-file evals/fixtures/git-log-planted.txt --types feat,fix,chore,deps"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "no commit/unknown-type result for e5; every other finding is unchanged"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): a clean range -> empty results.
+  - name: boundary-empty-clean-range
+    input:
+      command: "python3 scripts/lint_commits.py . --log-file evals/fixtures/git-log-clean.txt"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; tool.properties.commits equals conventional"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast): an unreadable log file.
+  - name: boundary-malformed-unreadable-log
+    input:
+      command: "python3 scripts/lint_commits.py . --log-file evals/fixtures"
+    expected:
+      kind: failure
+      failureCode: log-unreadable
+      assertions:
+        - "exit code is 1 — a directory cannot be read as a log — and stderr says log-unreadable"
+
+  - name: boundary-invalid-max-subject
+    input:
+      command: "python3 scripts/lint_commits.py . --log-file evals/fixtures/git-log-clean.txt --max-subject many"
+    expected:
+      kind: failure
+      failureCode: git-failed
+      assertions:
+        - "exit code is 1 and stderr says git-failed"
+
+  - name: boundary-invalid-repo-path
+    input:
+      command: "python3 scripts/lint_commits.py evals/fixtures/git-log-clean.txt --log-file evals/fixtures/git-log-clean.txt"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 — the repository path is a file"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): the recording convention is changelog-writer's; its own sample log (frozen copy) parses here, and the output is SARIF-compatible.
+  - name: contract-with-changelog-writer
+    input:
+      command: "python3 scripts/lint_commits.py . --log-file evals/fixtures/frozen-changelog-writer-git-log.txt | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); p=d['runs'][0]['tool']['properties']; assert p['commits']>0 and p['conventional']>0, p; print('finding-list OK; commits', p['commits'])\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "changelog-writer's recording parses (commits > 0, some conventional) and the output validates against kit/shapes/finding-list.schema.json"
