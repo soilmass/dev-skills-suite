@@ -1,0 +1,63 @@
+# Live run — issue-triage and release-publisher on `soilmass/sds-skill-testbed` (2026-09-06)
+
+Second live exercise of the family on the throwaway testbed (the first
+was `pr-lifecycle-manager`, whose merged PR #1 is the testbed's only
+history). Purpose: exercise the paths no eval row can — the Confirm
+gates and the direct mutations — for the two bench skills whose
+`gh` scopes we hold. `project-board-sync` was not run: the tokens lack
+the `project` scope (`gh auth refresh -s project` is interactive).
+
+## Setup (not a skill's Act)
+
+- Created the eight taxonomy labels from `skills/issue-triage/assets/taxonomy.json`.
+- Opened four issues mirroring the eval fixture: #2 crash, #3 feature,
+  #4 docs typo (pre-labelled `kind/docs`), #5 "Thoughts".
+- Cloned to `~/sds-skill-testbed` (the snap `gh` cannot read the
+  session scratch directory).
+
+## issue-triage (rung 5)
+
+| Stage | What happened |
+|---|---|
+| Gather | Live `gh issue list` through `propose_triage.py`; plan: 4 labels, 2 comments, #4 skipped. Matched the eval fixture's outcome exactly. |
+| Analyze | Nothing to revise. |
+| Decide | Plan persisted to `.skills-state/issue-triage/2026-09-06-plan.json`, validated against `plan-doc`. |
+| Confirm | Medium gate shown once for the plan; answered *proceed with all 6*. |
+| Act | Each step: pending checkpoint → `gh issue view` check-before-act → direct `gh issue edit -R` / `gh issue comment -R` → completed. 6/6 applied, none skipped. |
+| Persist | Status-report at `.skills-state/issue-triage/2026-09-06-report.json`. |
+| Idempotency | Second Gather proposed **nothing to do** (4 already triaged) — `idempotent: "true"` holds. |
+
+## release-publisher (rung 6) via changelog-writer → release-notes-writer → ci-status-gate
+
+| Stage | What happened |
+|---|---|
+| Upstream | `collect_commits.py --include-all` → `prepare_notes.py --product sds-skill-testbed --version 0.1.0` → 2 sections, nothing withheld. `evaluate_checks.py --ref HEAD` live → **no check runs on the squash-merge commit** (the workflow ran on the PR head), returned `wait`. |
+| Analyze | Dropped "initial commit" from the user-facing notes. |
+| Decide | With the CI decision: `wait-for-ci` (stop path, correct). Without it: `publish`, justification saying CI was not consulted. |
+| Confirm | High gate shown with **CI: NOT consulted** stated; answered *proceed*. |
+| Act | Re-assessed (`publish`), pending checkpoint, `gh release create v0.1.0 --target abe5a19` — succeeded. The **completed record was not written**: a `cd` into the repository between the calls broke the relative path to `checkpoint.py`. |
+| Resume | `--show` → `pending`; re-assessment → `already-published` (the check-before-act the SKILL.md prescribes); completed written with the release URL as `postState`. The documented recovery path, exercised for real. |
+| Persist | Status-report at `.skills-state/release-publisher/v0.1.0-report.json`. |
+
+## Audit findings → fixes committed with this note
+
+1. **ci-status-gate**: "no check runs and no required set" produced a
+   permanent `wait`. Added a distinct `no-checks` outcome; the Analyze
+   text now says what it usually means (workflow runs only on pull
+   requests). `release-publisher` treats `no-checks` like "not
+   consulted" and says so in the gate.
+2. **release-publisher**: `wait-for-ci` / `fix-ci` justifications
+   invented a reason ("a required check is still running"); they now
+   carry the CI decision's own justification through.
+3. **release-publisher, issue-triage**: Act text assumed the repository
+   as cwd for `gh` while the scripts assume the skill directory. Act
+   commands now use `-R <owner/repo>` from the skill directory, never a
+   `cd`. (The lost `completed` record above was the orchestration's
+   mistake, and the skill's recovery path handled it — but the text
+   invited the mistake.)
+
+## Left as is
+
+- The testbed keeps issues #2–#5 (labelled and commented) and release
+  `v0.1.0`; the user asked that the repository not be deleted.
+- `project-board-sync` awaits a token with the `project` scope.

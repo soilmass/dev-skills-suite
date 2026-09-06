@@ -122,9 +122,10 @@ For each step, in plan order: write the `pending` checkpoint
 pending --compensating-action "<rollback>"`), check-before-act
 (SDS-C-046: `gh issue view N --json labels,comments` — a label
 already present or an identical comment already posted is a skip),
-issue the mutation as a direct tool call — `gh issue edit N
---add-label <label>` or `gh issue comment N --body <text>` — then
-mark the step `completed`.
+issue the mutation as a direct tool call — `gh issue edit N -R
+<owner/repo> --add-label <label>` or `gh issue comment N -R
+<owner/repo> --body <text>`, from the skill directory, never by
+changing into the repository — then mark the step `completed`.
 
 **Compensating action** (SDS-S-054): per step, the plan's `rollback`
 — `gh issue edit N --remove-label <label>` for a label; for a

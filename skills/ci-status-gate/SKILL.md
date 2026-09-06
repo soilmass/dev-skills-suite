@@ -96,7 +96,9 @@ that it must be re-run before acting; check runs can be re-triggered.
 
 Shape: `decision-doc` — see `kit/shapes/decision-doc.schema.json`.
 
-`chosenOption` is `pass`, `wait`, or `fail`; `justification` names
+`chosenOption` is `pass`, `wait`, `fail`, or `no-checks` (no check
+runs exist for the ref and none were required — there is no CI to
+gate on, which is not the same as waiting); `justification` names
 the deciding check; `decisionDrivers` lists every required check
 with its state; `consequences.negative` lists failing non-required
 checks. Nothing was modified and no mutating call was made.
@@ -122,6 +124,6 @@ checks. Nothing was modified and no mutating call was made.
   "status": "accepted",
   "decisionOutcome": { "chosenOption": "fail", "justification": "required check 'test' concluded failure" },
   "decisionDrivers": ["build: success", "test: failure — https://github.com/o/r/actions/runs/7/job/2"],
-  "consideredOptions": ["pass", "wait", "fail"]
+  "consideredOptions": ["pass", "wait", "fail", "no-checks"]
 }
 ```

@@ -31,12 +31,14 @@ Rule table (first match wins):
       run longer than --stale-minutes (default 60)    -> fail   (stale)
     a required check is queued/in_progress            -> wait
     otherwise (success/neutral/skipped)               -> pass
+    no check runs at all and no --required            -> no-checks (there
+                                                         is no CI to gate on;
+                                                         distinct from wait)
 Non-required checks never change the outcome; a failing one is
 listed under consequences.negative so the reader sees it.
 
 Prints one decision-doc; an empty check-runs set with no --required
-is a valid `wait` (nothing has reported yet), not an error
-(SDS-C-033). Exit 1 with "ERROR: ..." on stderr for a path that is
+is a valid `no-checks` decision, not an error (SDS-C-033). Exit 1 with "ERROR: ..." on stderr for a path that is
 not a directory (repo-invalid), a fixture that does not parse or lacks
 check_runs (checks-unparseable), a missing --as-of with a fixture or
 an unparseable timestamp (as-of-invalid), or a live call that fails
@@ -50,7 +52,7 @@ from pathlib import Path
 
 FAILED = {"failure", "cancelled", "timed_out", "action_required", "startup_failure"}
 PENDING = {"queued", "in_progress", "waiting", "requested", "pending"}
-OPTIONS = ["pass", "wait", "fail"]
+OPTIONS = ["pass", "wait", "fail", "no-checks"]
 
 
 def parse_ts(value, what):
@@ -121,7 +123,7 @@ def decide(runs, required, stale_minutes, as_of):
     if verdict == "pass":
         reason = f"all {len(req)} required check(s) concluded successfully" if req else "no checks have reported and none are required; nothing gates this ref"
         if not req:
-            verdict, reason = "wait", "no checks have reported yet and no required set was given"
+            verdict, reason = "no-checks", "no check runs exist for this ref and no required set was given; there is no CI to gate on — say so rather than wait"
     for name, r in sorted(by_name.items()):
         if name not in req and (r.get("conclusion") or "").lower() in FAILED:
             negative.append(f"non-required check {name!r} concluded {r['conclusion']}; it does not gate but someone should look")

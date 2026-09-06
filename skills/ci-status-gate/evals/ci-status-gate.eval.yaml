@@ -70,7 +70,7 @@ rows:
       assertions:
         - "chosenOption is pass; consequences.negative has one entry naming non-required check 'test'"
 
-  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): no check runs and no required set -> wait, a valid decision-doc.
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): no check runs and no required set -> no-checks, a valid decision-doc (live run 2026-09-06: a squash-merge commit with no CI produced a permanent wait until this outcome existed).
   - name: boundary-empty-check-runs
     input:
       command: "python3 scripts/evaluate_checks.py . --checks-json-file evals/fixtures/checks-empty.json --as-of 2026-09-05T12:00:00Z"
@@ -78,7 +78,7 @@ rows:
       kind: success
       shape: decision-doc
       assertions:
-        - "chosenOption is wait; justification says no checks have reported yet; decisionDrivers is empty"
+        - "chosenOption is no-checks; justification says no check runs exist for this ref; decisionDrivers is empty"
 
   # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
   - name: boundary-malformed-checks

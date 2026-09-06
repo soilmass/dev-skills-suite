@@ -124,7 +124,7 @@ Use the high-risk gate (`kit/shared/gates/high.md`):
 > leaves both.
 > - **What:** `gh release create <tag> --title <tag> --notes-file <body> [--prerelease]`
 > - **Why:** the assessment at `.skills-state/release-publisher/<tag>.json`
->   (notes complete and reviewed; CI: <passed | not consulted>)
+>   (notes complete and reviewed; CI: <passed | no check runs on this commit | not consulted>)
 > - **Compensating action if this turns out wrong:** none that
 >   un-sends it — a follow-up release `<tag>+1` with corrected notes,
 >   and `gh release delete` only for a release nobody could have seen.
@@ -139,17 +139,20 @@ created.
 Only reached when the assessment says `publish` or `finalize-draft`.
 Re-run the assessment immediately before acting (its `confirmation`
 field requires it); continue only if the option is unchanged.
-Pending record, then the direct call:
+Pending record, then the direct call — all three from the skill
+directory, addressing the repository with `-R` rather than by
+changing directory (the live run of 2026-09-06 lost its `completed`
+record to a `cd` between the calls):
 
 ```
 python3 scripts/checkpoint.py release-publisher <tag> --step publish --status pending \
   --compensating-action "none — this step must be last"
-gh release create <tag> --title <tag> --notes-file .skills-state/release-publisher/<tag>-notes.md [--prerelease] [--target <head>]
+gh release create <tag> -R <owner/repo> --title <tag> --notes-file <family-root>/.skills-state/release-publisher/<tag>-notes.md [--prerelease] [--target <head>]
 python3 scripts/checkpoint.py release-publisher <tag> --step publish --status completed
 ```
 
-For `finalize-draft` the call is `gh release edit <tag> --draft=false`
-under the same record. A `gh release create` failure after the
+For `finalize-draft` the call is `gh release edit <tag> -R <owner/repo>
+--draft=false` under the same record. A `gh release create` failure after the
 `pending` record leaves the release possibly created: re-run the
 assessment; `already-published` means it succeeded.
 

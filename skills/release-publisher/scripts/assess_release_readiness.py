@@ -36,7 +36,7 @@ Rule table (first match wins):
     notes.summary does not start with version -> notes-mismatch
     ci decision given and chosenOption == wait-> wait-for-ci
     ci decision given and chosenOption == fail-> fix-ci
-    otherwise                                 -> publish
+    otherwise (pass, no-checks, or no decision)-> publish, saying which
 
 `facts` carries the tag state, HEAD, whether the tag would be created
 by the release, and `body`, the markdown rendered from the notes'
@@ -125,11 +125,12 @@ def decide(tag, notes, ci, state, as_of):
         elif not re.match(rf"^\S+\s+v?{re.escape(version)}\b", notes.get("summary", "")) and not notes.get("summary", "").startswith(("v" + version, version)):
             chosen, why = "notes-mismatch", f"the notes' summary {notes.get('summary', '')[:40]!r} does not name version {version}; they may belong to another release"
         elif ci and ci["decisionOutcome"]["chosenOption"] == "wait":
-            chosen, why = "wait-for-ci", "ci-status-gate says a required check is still running"
+            chosen, why = "wait-for-ci", f"ci-status-gate says wait: {ci['decisionOutcome']['justification']}"
         elif ci and ci["decisionOutcome"]["chosenOption"] == "fail":
-            chosen, why = "fix-ci", "ci-status-gate says a required check failed or is missing"
+            chosen, why = "fix-ci", f"ci-status-gate says fail: {ci['decisionOutcome']['justification']}"
         else:
-            chosen, why = "publish", f"no release for {tag} exists, the notes are complete and name {version}, and CI {'passed' if ci else 'was not consulted (say so in the gate)'}"
+            ci_state = "passed" if ci and ci["decisionOutcome"]["chosenOption"] == "pass" else "reported no check runs for this commit (say so in the gate)" if ci else "was not consulted (say so in the gate)"
+            chosen, why = "publish", f"no release for {tag} exists, the notes are complete and name {version}, and CI {ci_state}"
     return {
         "status": "accepted",
         "contextAndProblemStatement": f"Should {tag} be published as a GitHub release as of {as_of.isoformat()}?",
