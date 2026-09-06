@@ -2,3 +2,6 @@
 # data) — machine state for a specific run, not project content.
 # See kit/PRIMITIVES.md Section 7.
 .skills-state/
+
+# superpowers scratch workspace (SDD ledgers, briefs, reports)
+.superpowers/
