@@ -1,0 +1,145 @@
+# Table-driven eval file for findings-to-issues (SDS-S-090).
+#
+# A rung-5 Command Skill, the first Command consumer of the family's
+# finding-list shape. The planner is exercised offline through
+# --issues-json-file fixtures in `gh issue list --json` shape; the
+# checkpoint store runs against the gitignored
+# evals/fixtures/state-scratch/ (reset by build-state-scratch.sh,
+# SDS-S-096). The mutation — gh issue create — is never run by this
+# suite in any capacity (SDS-S-092).
+
+skill: findings-to-issues
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): dependency-audit's six findings
+  # group into six rules; one (GHSA-p6mc-m468-83gw) is already open in
+  # #40 and is skipped. Numbers recorded from a hand run of the script.
+  - name: happy-path-planted-findings
+    input:
+      command: "python3 scripts/plan_issues.py . evals/fixtures/frozen-dependency-audit-findings.json --issues-json-file evals/fixtures/frozen-gh-issues-open.json"
+    expected:
+      kind: success
+      shape: plan-doc
+      assertions:
+        - "goal says 'File 5 issue(s) for 6 finding group(s) at or above warning (1 already open, skipped)'"
+        - "the 'create' phase has exactly 5 steps, one per rule other than GHSA-p6mc-m468-83gw (already tracked by #40)"
+        - "every step's description ends its body with the marker <!-- sds-finding-group: dependency-audit/<ruleId> --> for its own group"
+        - "every step has riskIfFails low, checkpointAfter true, and a rollback naming a rung-6 gh issue close"
+
+  # Min-level is a parameter: at error, only the three error-level rules
+  # group, and the already-open one (an error) is still skipped.
+  - name: boundary-min-level-error
+    input:
+      command: "python3 scripts/plan_issues.py . evals/fixtures/frozen-dependency-audit-findings.json --issues-json-file evals/fixtures/frozen-gh-issues-open.json --min-level error"
+    expected:
+      kind: success
+      shape: plan-doc
+      assertions:
+        - "goal says 'File 2 issue(s) for 3 finding group(s) at or above error (1 already open, skipped)'"
+        - "the two steps are for GHSA-35jh-r3h4-6jhm and GHSA-r5fr-rjxr-66jc; no warning-level rule appears"
+
+  # REQUIRED — boundary: every group already tracked (SDS-C-005, SDS-C-033) -> a valid 'nothing to do' plan.
+  - name: boundary-empty-all-open
+    input:
+      command: "python3 scripts/plan_issues.py . evals/fixtures/frozen-dependency-audit-findings.json --issues-json-file evals/fixtures/frozen-gh-issues-all-open.json"
+    expected:
+      kind: success
+      shape: plan-doc
+      assertions:
+        - "phases has one entry named 'nothing to do' with one low-risk step whose rollback says none needed"
+        - "goal says 'File 0 issue(s) for 6 finding group(s) at or above warning (6 already open, skipped)'"
+
+  # Boundary: an empty finding-list -> nothing to file, no groups at all.
+  - name: boundary-empty-no-findings
+    input:
+      command: "python3 scripts/plan_issues.py . evals/fixtures/findings-empty.json --issues-json-file evals/fixtures/issues-none.json"
+    expected:
+      kind: success
+      shape: plan-doc
+      assertions:
+        - "phases has one entry named 'nothing to do'"
+        - "goal says 'File 0 issue(s) for 0 finding group(s) at or above warning (0 already open, skipped)'"
+
+  # REQUIRED — boundary: malformed findings input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-findings
+    input:
+      command: "python3 scripts/plan_issues.py . evals/fixtures/findings-malformed.json --issues-json-file evals/fixtures/issues-none.json"
+    expected:
+      kind: failure
+      failureCode: findings-invalid
+      assertions:
+        - "exit code is 1 and stderr says findings-invalid"
+
+  - name: boundary-malformed-issues
+    input:
+      command: "python3 scripts/plan_issues.py . evals/fixtures/frozen-dependency-audit-findings.json --issues-json-file evals/fixtures/issues-unparseable.json"
+    expected:
+      kind: failure
+      failureCode: issues-unparseable
+      assertions:
+        - "exit code is 1 and stderr says issues-unparseable — the issues file is an object, not an array"
+
+  - name: boundary-invalid-level
+    input:
+      command: "python3 scripts/plan_issues.py . evals/fixtures/frozen-dependency-audit-findings.json --issues-json-file evals/fixtures/issues-none.json --min-level critical"
+    expected:
+      kind: failure
+      failureCode: level-invalid
+      assertions:
+        - "exit code is 1 and stderr says level-invalid"
+
+  - name: boundary-invalid-repo-path
+    input:
+      command: "python3 scripts/plan_issues.py evals/fixtures/issues-none.json evals/fixtures/frozen-dependency-audit-findings.json --issues-json-file evals/fixtures/issues-none.json"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 — the repository path is a file"
+
+  # Checkpoint round trip (SDS-S-053): pending before, completed after, per create step.
+  - name: happy-path-checkpoint-round-trip
+    input:
+      command: >-
+        evals/fixtures/build-state-scratch.sh &&
+        python3 scripts/checkpoint.py findings-to-issues 2026-09-05 --step dependency-audit-GHSA-35jh-create --status pending
+          --compensating-action "gh issue close <number> --reason 'not planned'" --state-dir evals/fixtures/state-scratch &&
+        python3 scripts/checkpoint.py findings-to-issues 2026-09-05 --step dependency-audit-GHSA-35jh-create --status completed --state-dir evals/fixtures/state-scratch &&
+        python3 scripts/checkpoint.py findings-to-issues 2026-09-05 --show --state-dir evals/fixtures/state-scratch
+    expected:
+      kind: success
+      assertions:
+        - "the record at evals/fixtures/state-scratch/findings-to-issues/2026-09-05.json has one step, dependency-audit-GHSA-35jh-create, status completed, with startedAt and completedAt and the compensating action"
+
+  # N/A — shape-out is status-report, not finding-list (SDS-S-095).
+  - name: mutation-fixture
+    expected:
+      kind: not-applicable
+      reason: "findings-to-issues does not search for known problems; shape-out is status-report, not finding-list."
+
+  # N/A — shape-out status-report != shape-in finding-list (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out status-report differs from shape-in finding-list; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): the frozen finding-list this suite feeds in validates
+  # against this skill's own shape-in, and the plan the planner produces from it validates
+  # against plan-doc, the shape a Decide-stage artifact must take (SDS-C-060).
+  - name: contract-with-upstream-producer
+    input:
+      command: >-
+        python3 -c "import json,jsonschema; jsonschema.validate(json.load(open('evals/fixtures/frozen-dependency-audit-findings.json')), json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK')" &&
+        python3 scripts/plan_issues.py . evals/fixtures/frozen-dependency-audit-findings.json --issues-json-file evals/fixtures/frozen-gh-issues-open.json | python3 -c "import json,sys,jsonschema; jsonschema.validate(json.load(sys.stdin), json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/plan-doc.schema.json'))); print('plan-doc OK')"
+    expected:
+      kind: success
+      assertions:
+        - "the frozen finding-list this skill consumes validates against kit/shapes/finding-list.schema.json"
+        - "the actual plan the planner produces from it validates against kit/shapes/plan-doc.schema.json"
+
+---
+# Non-executed by design: gh issue create is never run by this suite
+# (SDS-S-092). A live, read-only smoke check of the live gh issue list
+# read the planner uses when --issues-json-file is omitted:
+#   python3 scripts/plan_issues.py . evals/fixtures/frozen-dependency-audit-findings.json --limit 5 | python3 -c "import json,sys,jsonschema; jsonschema.validate(json.load(sys.stdin), json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/plan-doc.schema.json')))"
+# requires gh auth against a real repository and is not a gate.

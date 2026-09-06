@@ -1,0 +1,14 @@
+[
+  {
+    "number": 40,
+    "title": "[dependency-audit] GHSA-p6mc-m468-83gw: 1 location(s)",
+    "body": "lodash@4.17.15 (npm) is affected by GHSA-p6mc-m468-83gw (aka CVE-2020-8203): Prototype Pollution in lodash\n\nLocations:\n- `package.json`\n\nSeverity: error. Filed by findings-to-issues.\n<!-- sds-finding-group: dependency-audit/GHSA-p6mc-m468-83gw -->",
+    "labels": [{ "name": "audit" }]
+  },
+  {
+    "number": 41,
+    "title": "Update the contributor guide's setup section",
+    "body": "The setup steps in CONTRIBUTING.md are out of date after the tooling switch.",
+    "labels": [{ "name": "docs" }]
+  }
+]

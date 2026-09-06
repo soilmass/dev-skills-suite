@@ -602,6 +602,16 @@
       "shape-out": "status-report",
       "shape-in": "finding-list",
       "status": "built"
+    },
+    {
+      "name": "findings-to-issues",
+      "description": "Turns the findings an audit skill produced into a plan of GitHub issues — one per (tool, rule) group, skipping any group an open issue already tracks by its fingerprint marker — then files each issue only after a medium-risk confirmation, one issue at a time, with every filing checkpointed and reversible only by a human's rung-6 close. Use after an audit, when findings should become tracked work, or when asked to file the findings.",
+      "version": "0.1.0",
+      "effect-tier": "shared-write",
+      "tier": "situational",
+      "shape-out": "status-report",
+      "shape-in": "finding-list",
+      "status": "built"
     }
   ]
 }

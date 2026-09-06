@@ -1,0 +1,8 @@
+[
+  { "number": 40, "title": "[dependency-audit] GHSA-p6mc-m468-83gw: 1 location(s)", "body": "Severity: error. Filed by findings-to-issues.\n<!-- sds-finding-group: dependency-audit/GHSA-p6mc-m468-83gw -->", "labels": [{ "name": "audit" }] },
+  { "number": 42, "title": "[dependency-audit] GHSA-29mw-wpgm-hmr9: 1 location(s)", "body": "Severity: warning. Filed by findings-to-issues.\n<!-- sds-finding-group: dependency-audit/GHSA-29mw-wpgm-hmr9 -->", "labels": [{ "name": "audit" }] },
+  { "number": 43, "title": "[dependency-audit] GHSA-35jh-r3h4-6jhm: 1 location(s)", "body": "Severity: error. Filed by findings-to-issues.\n<!-- sds-finding-group: dependency-audit/GHSA-35jh-r3h4-6jhm -->", "labels": [{ "name": "audit" }] },
+  { "number": 44, "title": "[dependency-audit] GHSA-f23m-r3pf-42rh: 1 location(s)", "body": "Severity: warning. Filed by findings-to-issues.\n<!-- sds-finding-group: dependency-audit/GHSA-f23m-r3pf-42rh -->", "labels": [{ "name": "audit" }] },
+  { "number": 45, "title": "[dependency-audit] GHSA-r5fr-rjxr-66jc: 1 location(s)", "body": "Severity: error. Filed by findings-to-issues.\n<!-- sds-finding-group: dependency-audit/GHSA-r5fr-rjxr-66jc -->", "labels": [{ "name": "audit" }] },
+  { "number": 46, "title": "[dependency-audit] GHSA-xxjr-mmjv-4gpg: 1 location(s)", "body": "Severity: warning. Filed by findings-to-issues.\n<!-- sds-finding-group: dependency-audit/GHSA-xxjr-mmjv-4gpg -->", "labels": [{ "name": "audit" }] }
+]

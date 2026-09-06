@@ -1,0 +1,111 @@
+{
+  "version": "sds-finding-list-1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "dependency-audit",
+          "version": "0.1.0"
+        }
+      },
+      "results": [
+        {
+          "ruleId": "GHSA-29mw-wpgm-hmr9",
+          "level": "warning",
+          "message": {
+            "text": "lodash@4.17.15 (npm) is affected by GHSA-29mw-wpgm-hmr9 (aka CVE-2020-28500): Regular Expression Denial of Service (ReDoS) in lodash [NOTE: version is an unresolved range from the manifest, not a lockfile-pinned version \u2014 treat as best-effort.]"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package.json"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "GHSA-35jh-r3h4-6jhm",
+          "level": "error",
+          "message": {
+            "text": "lodash@4.17.15 (npm) is affected by GHSA-35jh-r3h4-6jhm (aka CVE-2021-23337, CVE-2026-4800, GHSA-r5fr-rjxr-66jc): Command Injection in lodash [NOTE: version is an unresolved range from the manifest, not a lockfile-pinned version \u2014 treat as best-effort.]"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package.json"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "GHSA-f23m-r3pf-42rh",
+          "level": "warning",
+          "message": {
+            "text": "lodash@4.17.15 (npm) is affected by GHSA-f23m-r3pf-42rh (aka CVE-2025-13465, CVE-2026-2950, GHSA-xxjr-mmjv-4gpg): lodash vulnerable to Prototype Pollution via array path bypass in `_.unset` and `_.omit` [NOTE: version is an unresolved range from the manifest, not a lockfile-pinned version \u2014 treat as best-effort.]"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package.json"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "GHSA-p6mc-m468-83gw",
+          "level": "error",
+          "message": {
+            "text": "lodash@4.17.15 (npm) is affected by GHSA-p6mc-m468-83gw (aka CVE-2020-8203): Prototype Pollution in lodash [NOTE: version is an unresolved range from the manifest, not a lockfile-pinned version \u2014 treat as best-effort.]"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package.json"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "GHSA-r5fr-rjxr-66jc",
+          "level": "error",
+          "message": {
+            "text": "lodash@4.17.15 (npm) is affected by GHSA-r5fr-rjxr-66jc (aka CVE-2021-23337, CVE-2026-4800, GHSA-35jh-r3h4-6jhm): lodash vulnerable to Code Injection via `_.template` imports key names [NOTE: version is an unresolved range from the manifest, not a lockfile-pinned version \u2014 treat as best-effort.]"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package.json"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "GHSA-xxjr-mmjv-4gpg",
+          "level": "warning",
+          "message": {
+            "text": "lodash@4.17.15 (npm) is affected by GHSA-xxjr-mmjv-4gpg (aka CVE-2025-13465, CVE-2026-2950, GHSA-f23m-r3pf-42rh): Lodash has Prototype Pollution Vulnerability in `_.unset` and `_.omit` functions [NOTE: version is an unresolved range from the manifest, not a lockfile-pinned version \u2014 treat as best-effort.]"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package.json"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
