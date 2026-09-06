@@ -31,7 +31,7 @@
 <meta content="agent skills" name="keyword">
 <meta content="composability" name="keyword">
 <meta content="SKILL.md" name="keyword">
-<meta content="draft-skill-design-spec-01" name="ietf.draft">
+<meta content="draft-skill-design-spec-02" name="ietf.draft">
 <!-- Generator version information:
   xml2rfc 3.34.0
     Python 3.10.12
@@ -2675,7 +2675,13 @@ Result&lt;Success, Failure&gt;
         directory and use skill-relative paths (<code>scripts/x.py</code>,
         <code>evals/fixtures/y</code>); every such referenced path
         <span class="bcp14">MUST</span> exist, except generated fixtures
-        (<a href="#SDS-S-096" class="auto internal xref">Section 10.9, Paragraph 7</a>).<a href="#section-8.4-2" class="pilcrow">¶</a></p>
+        (<a href="#SDS-S-096" class="auto internal xref">Section 10.9, Paragraph 7</a>). A consumer-driven contract row
+        (<a href="#SDS-C-063" class="auto internal xref">Section 7.4, Paragraph 1</a>) <span class="bcp14">MAY</span> run another
+        skill's script by its family-root-relative path
+        (<code>skills/&lt;other&gt;/scripts/&lt;file&gt;</code>, reached
+        from the skill directory through the family root); such a
+        token resolves against that skill and <span class="bcp14">MUST</span>
+        exist there.<a href="#section-8.4-2" class="pilcrow">¶</a></p>
 </div>
 <div id="SDS-F-032">
 <p id="section-8.4-3"><strong>SDS-F-032</strong> (MAY, ADVISORY)
@@ -2769,9 +2775,14 @@ Result&lt;Success, Failure&gt;
 <p id="section-8.7-2"><strong>SDS-F-061</strong> (SHOULD, MACHINE)
         A skill's headings, <code>@requires</code> bullets, <code>@returns</code>
         line, and description <span class="bcp14">SHOULD NOT</span> use a term the
-        glossary lists under "do not use instead." The linter applies a
-        conservative single-word heuristic; the reserved words
-        <code>tier</code>, <code>rung</code>, <code>gate</code>, and
+        glossary lists under "do not use instead." A term that is part of a
+        proper noun or an identifier is not a synonym for the family
+        concept and is exempt: a product or command namespace
+        (<code>GitHub Projects</code>, <code>gh project</code>), a hyphenated
+        name (<code>project-board-sync</code>), or a backticked literal
+        (<code>`FORMAT JSON`</code>). The linter applies a conservative
+        single-word heuristic with exactly those exemptions; the
+        reserved words <code>tier</code>, <code>rung</code>, <code>gate</code>, and
         <code>checkpoint</code> require human review.<a href="#section-8.7-2" class="pilcrow">¶</a></p>
 </div>
 </section>
@@ -3319,6 +3330,20 @@ metadata:
         A skill with one mutating step <span class="bcp14">SHOULD</span> write its
         checkpoint inline; a skill with two or more
         <span class="bcp14">SHOULD</span> use <code>scripts/checkpoint.py</code>.<a href="#section-10.5-6" class="pilcrow">¶</a></p>
+</div>
+<div id="SDS-S-056">
+<p id="section-10.5-7"><strong>SDS-S-056</strong> (SHOULD, REVIEW)
+        A mutating call in an Act section <span class="bcp14">SHOULD</span> name
+        its target explicitly — the repository (<code>-R owner/repo</code>),
+        the branch (<code>--head</code>), the state directory
+        (<code>--state-dir</code>) — rather than relying on the working
+        directory, and the Act's commands <span class="bcp14">SHOULD</span> all
+        run from the skill directory. Changing directory between the
+        pending record, the mutation, and the completed record breaks
+        the skill-relative script paths of <a href="#SDS-F-031" class="auto internal xref">Section 8.4, Paragraph 2</a>
+        and leaves a <code>pending</code> record after a successful
+        mutation; observed in a live run of
+        <code>release-publisher</code>.<a href="#section-10.5-7" class="pilcrow">¶</a></p>
 </div>
 </section>
 </div>
@@ -4809,6 +4834,13 @@ metadata:
             <td class="text-left" rowspan="1" colspan="1">REVIEW</td>
           </tr>
           <tr>
+            <td class="text-left" rowspan="1" colspan="1">SDS-S-056</td>
+            <td class="text-left" rowspan="1" colspan="1">act-names-target</td>
+            <td class="text-left" rowspan="1" colspan="1">10.5</td>
+            <td class="text-left" rowspan="1" colspan="1">SHOULD</td>
+            <td class="text-left" rowspan="1" colspan="1">REVIEW</td>
+          </tr>
+          <tr>
             <td class="text-left" rowspan="1" colspan="1">SDS-S-060</td>
             <td class="text-left" rowspan="1" colspan="1">toil-test</td>
             <td class="text-left" rowspan="1" colspan="1">10.6</td>
@@ -5014,14 +5046,28 @@ metadata:
       <h2 id="name-change-log">
 <a href="#appendix-C" class="section-number selfRef">Appendix C. </a><a href="#name-change-log" class="section-name selfRef">Change Log</a>
       </h2>
-<p id="appendix-C-1"><strong>1.0-draft, editorial (2026-09-06):</strong> SDS-S-100
+<p id="appendix-C-1"><strong>1.0-draft, revision 02 (2026-09-06):</strong> Folds in
+      what building the twenty-eight situational skills and two more
+      live runs taught. SDS-F-061 now exempts a glossary term that is
+      part of a proper noun or an identifier (the GitHub cluster's own
+      nouns — issue, Projects, board item — were unspeakable under the
+      bare heuristic; the glossary gained rows for them). SDS-F-031 now
+      lets a consumer-driven contract row run another skill's script by
+      its family-root-relative path, because the strongest contract is
+      the real consumer (<code>rfc-writer</code> renders, then
+      <code>design-doc-review</code>'s own script must find nothing). New
+      SDS-S-056 (SHOULD, REVIEW): a mutating call names its target
+      explicitly rather than relying on the working directory. The
+      linter's heuristics changed to match; one REVIEW rule was added
+      to Appendix B; no MACHINE rule was added or removed.<a href="#appendix-C-1" class="pilcrow">¶</a></p>
+<p id="appendix-C-2"><strong>1.0-draft, editorial (2026-09-06):</strong> SDS-S-100
       now states that the family root is the skill family's own
       checkout, not the repository a skill operates on, and that a
       bundled checkpoint script must accept an explicit state directory
       — observed while driving <code>pr-lifecycle-manager</code> against a
       separate repository. No rule was added, removed, or re-tagged;
-      Appendix B is unchanged.<a href="#appendix-C-1" class="pilcrow">¶</a></p>
-<p id="appendix-C-2"><strong>1.0-draft (2026-09-05):</strong> Restructured top to
+      Appendix B is unchanged.<a href="#appendix-C-2" class="pilcrow">¶</a></p>
+<p id="appendix-C-3"><strong>1.0-draft (2026-09-05):</strong> Restructured top to
       bottom into Part 0 (core model), Part I (family and repository),
       Part II (kit), and Part III (skill anatomy); every normative rule
       now carries a permanent identifier and a MACHINE/REVIEW/ADVISORY
@@ -5047,20 +5093,20 @@ metadata:
       Also added: the checkpoint state path, the prohibition on wrapping
       a rung-5/6 Act in a pre-approved script, script and reference
       conventions, the long-parameter-list rule, and the validation
-      gate.<a href="#appendix-C-2" class="pilcrow">¶</a></p>
-<p id="appendix-C-3"><strong>0.3 (2026-09-05):</strong> Rebuilt in xml2rfc version
+      gate.<a href="#appendix-C-3" class="pilcrow">¶</a></p>
+<p id="appendix-C-4"><strong>0.3 (2026-09-05):</strong> Rebuilt in xml2rfc version
       3 (RFC 7991) vocabulary in place of the plain-text RFC-style
-      draft. No normative changes from 0.2.<a href="#appendix-C-3" class="pilcrow">¶</a></p>
-<p id="appendix-C-4"><strong>0.2 (2026-09-05):</strong> Rebuilt as an RFC-structured
+      draft. No normative changes from 0.2.<a href="#appendix-C-4" class="pilcrow">¶</a></p>
+<p id="appendix-C-5"><strong>0.2 (2026-09-05):</strong> Rebuilt as an RFC-structured
       document: added formal Terminology, Security Considerations, and
       Registry Considerations sections; added full Normative/
       Informative References with verified citations for MCP tool
       annotations, SARIF, OSV, SPDX (ISO/IEC 5962:2021), CycloneDX
       (ECMA-424), and MADR (v4.0.0); formalized the composition laws,
       contracts, and effect ladder with MUST/SHOULD/MAY language
-      throughout.<a href="#appendix-C-4" class="pilcrow">¶</a></p>
-<p id="appendix-C-5"><strong>0.1 (2026-09-05):</strong> Initial high-level
-      draft.<a href="#appendix-C-5" class="pilcrow">¶</a></p>
+      throughout.<a href="#appendix-C-5" class="pilcrow">¶</a></p>
+<p id="appendix-C-6"><strong>0.1 (2026-09-05):</strong> Initial high-level
+      draft.<a href="#appendix-C-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="authors-addresses">

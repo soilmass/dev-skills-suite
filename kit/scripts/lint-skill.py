@@ -104,7 +104,7 @@ SDS-F-016 | registry-description | SHOULD | MACHINE | 8.2 | Entry description eq
 SDS-F-020 | root-gitignore | MUST | MACHINE | 8.3 | Family-root .gitignore contains `.skills-state/`.
 SDS-F-021 | state-not-tracked | MUST | MACHINE | 8.3 | No tracked file under .skills-state/.
 SDS-F-030 | root-relative-paths | MUST | MACHINE | 8.4 | Cross-references to kit/, skills/, docs/ files are family-root-relative; no `../`; no bare shapes/, shared/, templates/, registry/; referenced kit/ paths exist.
-SDS-F-031 | skill-relative-commands | MUST | MACHINE | 8.4 | Commands run from the skill dir; scripts/, references/, assets/, evals/ references exist (generated fixtures exempt).
+SDS-F-031 | skill-relative-commands | MUST | MACHINE | 8.4 | Commands run from the skill dir; scripts/, references/, assets/, evals/ references exist (generated fixtures exempt); a contract row may run skills/<other>/scripts/<f>, resolved against that skill.
 SDS-F-032 | root-resolution | MAY | ADVISORY | 8.4 | Tooling resolves root-relative paths by locating the family root (parent of kit/), never the git toplevel.
 SDS-F-040 | skill-semver | MUST | MACHINE | 8.5 | metadata.version is semver.
 SDS-F-041 | shape-semver | MUST | REVIEW | 8.5 | Shape changes: remove/narrow = MAJOR, add optional = MINOR, else PATCH.
@@ -116,7 +116,7 @@ SDS-F-051 | ids-permanent | MUST | REVIEW | 8.6 | Rule IDs are never reused; wit
 SDS-F-052 | guides-non-normative | MUST | ADVISORY | 8.6 | Kit guides are non-normative; conflicts resolve to the spec.
 SDS-F-053 | promotion-threshold | SHOULD | REVIEW | 8.6 | Promotion situational -> pillar requires a recorded numeric threshold.
 SDS-F-060 | glossary-single | MUST | MACHINE | 8.7 | Exactly one glossary at kit/shared/glossary.md.
-SDS-F-061 | glossary-no-synonyms | SHOULD | MACHINE | 8.7 | Headings, @requires, @returns, and description avoid the glossary's do-not-use terms (heuristic; reserved words tier/rung/gate/checkpoint are REVIEW).
+SDS-F-061 | glossary-no-synonyms | SHOULD | MACHINE | 8.7 | Headings, @requires, @returns, and description avoid the glossary's do-not-use terms (heuristic; proper nouns, hyphenated names, and backticked literals exempt; reserved words tier/rung/gate/checkpoint are REVIEW).
 SDS-K-001 | kit-layout | MUST | MACHINE | 9.1 | kit/ contains templates/, evals/TEMPLATE.eval.yaml, shapes/, shared/{glossary.md,gates/,tool-profiles/}, registry/, scripts/lint-skill.py.
 SDS-K-002 | guides-banner | MUST | MACHINE | 9.1 | HOW-TO-BUILD-A-SKILL.md and PRIMITIVES.md open with a non-normative banner citing the spec.
 SDS-K-010 | template-order | MUST | MACHINE | 9.2 | Template H2/H3 order equals the normative order in 10.3.
@@ -178,6 +178,7 @@ SDS-S-052 | check-before-act-stated | MUST | REVIEW | 10.5 | Act states the chec
 SDS-S-053 | two-phase-checkpoint | MUST | MACHINE | 10.5 | Rung >= 4 Act contains **Checkpoint** describing the pending-then-completed record at .skills-state/<name>/<key>.json.
 SDS-S-054 | compensating-label | MUST | MACHINE | 10.5 | Rung >= 4 Act contains **Compensating action** for each mutating step.
 SDS-S-055 | checkpoint-ownership | SHOULD | REVIEW | 10.5 | Inline checkpoint write for one mutating step; scripts/checkpoint.py for two or more.
+SDS-S-056 | act-names-target | SHOULD | REVIEW | 10.5 | A mutating Act call names its target explicitly (-R owner/repo, --head, --state-dir) and runs from the skill directory; never a cd between pending, mutation, and completed.
 SDS-S-060 | toil-test | MUST | REVIEW | 10.6 | Scripts hold deterministic, mechanical work only.
 SDS-S-061 | no-judgment-in-scripts | MUST | REVIEW | 10.6 | Analyze, Classify, Decide never live in a script.
 SDS-S-062 | script-naming | SHOULD | MACHINE | 10.6 | scripts/ files are snake_case verb_noun .py/.sh; adapters name both sides.

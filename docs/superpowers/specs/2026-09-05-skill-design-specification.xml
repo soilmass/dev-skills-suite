@@ -4,7 +4,7 @@
      IETF and the ipr attribute below is included only as conventional
      xml2rfc boilerplate for tooling compatibility, not as a legal
      claim about IETF Trust provisions. -->
-<rfc ipr="trust200902" category="info" docName="draft-skill-design-spec-01"
+<rfc ipr="trust200902" category="info" docName="draft-skill-design-spec-02"
      submissionType="independent" version="3">
   <front>
     <title abbrev="SDS">Skill Design Specification (SDS): A
@@ -794,7 +794,13 @@ Result<Success, Failure>
         directory and use skill-relative paths (<tt>scripts/x.py</tt>,
         <tt>evals/fixtures/y</tt>); every such referenced path
         <bcp14>MUST</bcp14> exist, except generated fixtures
-        (<xref target="SDS-S-096"/>).</t>
+        (<xref target="SDS-S-096"/>). A consumer-driven contract row
+        (<xref target="SDS-C-063"/>) <bcp14>MAY</bcp14> run another
+        skill's script by its family-root-relative path
+        (<tt>skills/&lt;other&gt;/scripts/&lt;file&gt;</tt>, reached
+        from the skill directory through the family root); such a
+        token resolves against that skill and <bcp14>MUST</bcp14>
+        exist there.</t>
         <t anchor="SDS-F-032"><strong>SDS-F-032</strong> (MAY, ADVISORY)
         Tooling resolves root-relative paths by locating the family root
         (the parent of <tt>kit/</tt>), never by asking version control
@@ -855,9 +861,14 @@ Result<Success, Failure>
         <t anchor="SDS-F-061"><strong>SDS-F-061</strong> (SHOULD, MACHINE)
         A skill's headings, <tt>@requires</tt> bullets, <tt>@returns</tt>
         line, and description <bcp14>SHOULD NOT</bcp14> use a term the
-        glossary lists under "do not use instead." The linter applies a
-        conservative single-word heuristic; the reserved words
-        <tt>tier</tt>, <tt>rung</tt>, <tt>gate</tt>, and
+        glossary lists under "do not use instead." A term that is part of a
+        proper noun or an identifier is not a synonym for the family
+        concept and is exempt: a product or command namespace
+        (<tt>GitHub Projects</tt>, <tt>gh project</tt>), a hyphenated
+        name (<tt>project-board-sync</tt>), or a backticked literal
+        (<tt>`FORMAT JSON`</tt>). The linter applies a conservative
+        single-word heuristic with exactly those exemptions; the
+        reserved words <tt>tier</tt>, <tt>rung</tt>, <tt>gate</tt>, and
         <tt>checkpoint</tt> require human review.</t>
       </section>
     </section>
@@ -1241,6 +1252,18 @@ metadata:
         A skill with one mutating step <bcp14>SHOULD</bcp14> write its
         checkpoint inline; a skill with two or more
         <bcp14>SHOULD</bcp14> use <tt>scripts/checkpoint.py</tt>.</t>
+        <t anchor="SDS-S-056"><strong>SDS-S-056</strong> (SHOULD, REVIEW)
+        A mutating call in an Act section <bcp14>SHOULD</bcp14> name
+        its target explicitly — the repository (<tt>-R owner/repo</tt>),
+        the branch (<tt>--head</tt>), the state directory
+        (<tt>--state-dir</tt>) — rather than relying on the working
+        directory, and the Act's commands <bcp14>SHOULD</bcp14> all
+        run from the skill directory. Changing directory between the
+        pending record, the mutation, and the completed record breaks
+        the skill-relative script paths of <xref target="SDS-F-031"/>
+        and leaves a <tt>pending</tt> record after a successful
+        mutation; observed in a live run of
+        <tt>release-publisher</tt>.</t>
       </section>
 
       <section anchor="anatomy-scripts">
@@ -1986,6 +2009,7 @@ metadata:
           <tr><td>SDS-S-053</td><td>two-phase-checkpoint</td><td>10.5</td><td>MUST</td><td>MACHINE</td></tr>
           <tr><td>SDS-S-054</td><td>compensating-label</td><td>10.5</td><td>MUST</td><td>MACHINE</td></tr>
           <tr><td>SDS-S-055</td><td>checkpoint-ownership</td><td>10.5</td><td>SHOULD</td><td>REVIEW</td></tr>
+          <tr><td>SDS-S-056</td><td>act-names-target</td><td>10.5</td><td>SHOULD</td><td>REVIEW</td></tr>
           <tr><td>SDS-S-060</td><td>toil-test</td><td>10.6</td><td>MUST</td><td>REVIEW</td></tr>
           <tr><td>SDS-S-061</td><td>no-judgment-in-scripts</td><td>10.6</td><td>MUST</td><td>REVIEW</td></tr>
           <tr><td>SDS-S-062</td><td>script-naming</td><td>10.6</td><td>SHOULD</td><td>MACHINE</td></tr>
@@ -2020,6 +2044,20 @@ metadata:
 
     <section anchor="changelog" numbered="true">
       <name>Change Log</name>
+      <t><strong>1.0-draft, revision 02 (2026-09-06):</strong> Folds in
+      what building the twenty-eight situational skills and two more
+      live runs taught. SDS-F-061 now exempts a glossary term that is
+      part of a proper noun or an identifier (the GitHub cluster's own
+      nouns — issue, Projects, board item — were unspeakable under the
+      bare heuristic; the glossary gained rows for them). SDS-F-031 now
+      lets a consumer-driven contract row run another skill's script by
+      its family-root-relative path, because the strongest contract is
+      the real consumer (<tt>rfc-writer</tt> renders, then
+      <tt>design-doc-review</tt>'s own script must find nothing). New
+      SDS-S-056 (SHOULD, REVIEW): a mutating call names its target
+      explicitly rather than relying on the working directory. The
+      linter's heuristics changed to match; one REVIEW rule was added
+      to Appendix B; no MACHINE rule was added or removed.</t>
       <t><strong>1.0-draft, editorial (2026-09-06):</strong> SDS-S-100
       now states that the family root is the skill family's own
       checkout, not the repository a skill operates on, and that a
