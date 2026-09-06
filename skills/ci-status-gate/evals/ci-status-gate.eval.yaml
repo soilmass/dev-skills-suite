@@ -1,0 +1,136 @@
+# Table-driven eval file for ci-status-gate (SDS-S-090).
+#
+# A rung-3 Query Skill whose policy script is exercised entirely offline
+# through --checks-json-file fixtures in GitHub's check-runs API shape
+# and an injected --as-of clock (SDS-S-064, SDS-S-065). The single live
+# call (gh api -X GET .../check-runs) is never made by a blocking row
+# (SDS-S-092); a read-only smoke check sits after the separator.
+
+skill: ci-status-gate
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): every required check green -> pass.
+  - name: happy-path-all-green
+    input:
+      command: "python3 scripts/evaluate_checks.py . --checks-json-file evals/fixtures/checks-green.json --required build,test,lint --as-of 2026-09-05T12:00:00Z"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "chosenOption is pass; justification says all 3 required check(s) concluded successfully"
+        - "decisionDrivers is exactly [build: success, test: success, lint: success]; consequences.negative is empty"
+
+  # A failed required check fails the gate and names it, with its link.
+  - name: happy-path-required-failure
+    input:
+      command: "python3 scripts/evaluate_checks.py . --checks-json-file evals/fixtures/checks-failing.json --required build,test,lint --as-of 2026-09-05T12:00:00Z"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "chosenOption is fail; justification names 'test' and failure; the test driver carries its html_url"
+
+  # A check still running (well within the limit) -> wait.
+  - name: boundary-in-progress
+    input:
+      command: "python3 scripts/evaluate_checks.py . --checks-json-file evals/fixtures/checks-pending.json --required build,test --as-of 2026-09-05T12:10:00Z"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "chosenOption is wait; justification names 'test' as in_progress with 10 min so far"
+
+  # The same fixture seen 90 minutes later is stale -> fail; the clock is the only difference.
+  - name: boundary-stale-in-progress
+    input:
+      command: "python3 scripts/evaluate_checks.py . --checks-json-file evals/fixtures/checks-pending.json --required build,test --as-of 2026-09-05T13:30:00Z"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "chosenOption is fail; justification says 'test' has been in_progress for 90 minutes (stale after 60)"
+
+  # A required check that never reported -> fail (missing), even though everything present is green.
+  - name: boundary-missing-required
+    input:
+      command: "python3 scripts/evaluate_checks.py . --checks-json-file evals/fixtures/checks-green.json --required build,test,lint,security-scan --as-of 2026-09-05T12:00:00Z"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "chosenOption is fail; justification says required check 'security-scan' has not reported at all"
+
+  # A failing check that is NOT required does not gate, but is surfaced.
+  - name: boundary-non-required-failure
+    input:
+      command: "python3 scripts/evaluate_checks.py . --checks-json-file evals/fixtures/checks-failing.json --required build,lint --as-of 2026-09-05T12:00:00Z"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "chosenOption is pass; consequences.negative has one entry naming non-required check 'test'"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): no check runs and no required set -> wait, a valid decision-doc.
+  - name: boundary-empty-check-runs
+    input:
+      command: "python3 scripts/evaluate_checks.py . --checks-json-file evals/fixtures/checks-empty.json --as-of 2026-09-05T12:00:00Z"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "chosenOption is wait; justification says no checks have reported yet; decisionDrivers is empty"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-checks
+    input:
+      command: "python3 scripts/evaluate_checks.py . --checks-json-file evals/fixtures/checks-malformed.json --as-of 2026-09-05T12:00:00Z"
+    expected:
+      kind: failure
+      failureCode: checks-unparseable
+      assertions:
+        - "exit code is 1 and stderr says checks-unparseable"
+
+  - name: boundary-missing-as-of
+    input:
+      command: "python3 scripts/evaluate_checks.py . --checks-json-file evals/fixtures/checks-green.json"
+    expected:
+      kind: failure
+      failureCode: as-of-invalid
+      assertions:
+        - "exit code is 1 and stderr says --as-of is required with a fixture (as-of-invalid)"
+
+  - name: boundary-invalid-repo-path
+    input:
+      command: "python3 scripts/evaluate_checks.py evals/fixtures/checks-green.json --checks-json-file evals/fixtures/checks-green.json --as-of 2026-09-05T12:00:00Z"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 — the repository path is a file"
+
+  # N/A — shape-out is decision-doc, not finding-list (SDS-S-095).
+  - name: mutation-fixture
+    expected:
+      kind: not-applicable
+      reason: "ci-status-gate does not search for known problems; shape-out is decision-doc."
+
+  # N/A — shape-out decision-doc != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out decision-doc differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): the decision-doc pr-lifecycle-manager (shape-in decision-doc) can consume validates against the registered shape.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/evaluate_checks.py . --checks-json-file evals/fixtures/checks-green.json --required build,test,lint --as-of 2026-09-05T12:00:00Z | python3 -c \"import json,sys,jsonschema; jsonschema.validate(json.load(sys.stdin), json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/decision-doc.schema.json'))); print('decision-doc OK')\""
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "the actual output validates against kit/shapes/decision-doc.schema.json"
+
+---
+# Live, read-only smoke check (asserting SHAPE only; SDS-S-092) —
+# requires gh auth against a real repository and is not a gate:
+#   python3 scripts/evaluate_checks.py . --ref HEAD | python3 -c "import json,sys,jsonschema; jsonschema.validate(json.load(sys.stdin), json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/decision-doc.schema.json')))"

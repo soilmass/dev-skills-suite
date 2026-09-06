@@ -281,6 +281,16 @@
       "tier": "situational",
       "shape-out": "freeform",
       "shape-in": "freeform"
+    },
+    {
+      "name": "ci-status-gate",
+      "description": "Answers one question about a commit — do its CI checks pass the gate? — by reading GitHub's check runs for the ref, applying a fixed rule table (a required check missing, failed, or stuck beyond a staleness limit fails; one still running waits; all green passes) and returning a decision-doc that says which check decided it and why. Use before merging, deploying, or tagging, when a pipeline looks green but something is missing, or when asked \"is CI green?\"",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "external-read-only",
+      "tier": "situational",
+      "shape-out": "decision-doc",
+      "shape-in": "freeform"
     }
   ]
 }

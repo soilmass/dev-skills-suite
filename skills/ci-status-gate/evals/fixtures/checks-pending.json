@@ -1,0 +1,21 @@
+{
+  "total_count": 2,
+  "check_runs": [
+    {
+      "name": "build",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-09-05T11:40:00Z",
+      "completed_at": "2026-09-05T11:45:00Z",
+      "html_url": "https://github.com/soilmass/shop/actions/runs/7/job/1"
+    },
+    {
+      "name": "test",
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-09-05T12:00:00Z",
+      "completed_at": null,
+      "html_url": "https://github.com/soilmass/shop/actions/runs/7/job/2"
+    }
+  ]
+}
