@@ -1,0 +1,98 @@
+# Table-driven eval file for design-doc-review (SDS-S-090).
+#
+# A rung-1 Query Skill over planted markdown documents: one carrying
+# every structural gap the script detects, one complete document that
+# must stay silent, one without headings, and a malformed checklist.
+# Every row is deterministic and offline.
+
+skill: design-doc-review
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): exactly the planted gaps are reported.
+  - name: happy-path-planted-gaps
+    input:
+      command: "python3 scripts/check_design_doc.py evals/fixtures/design-gaps.md"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "design/missing-section names exactly non-goals and rollout (Context, Goals, Proposed design, Alternatives, Risks, Open questions are present under their aliases)"
+        - "design/empty-section names exactly 'Risks'"
+        - "design/placeholder fires twice: the TBD line and the [FILL: …] line; the TODO inside the fenced code block is not reported"
+        - "design/too-few-alternatives fires with options 1; design/unowned-question fires once for the second open question; design/missing-metadata fires (no status/author/date line)"
+        - "warnings are ordered before infos"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted single-alternative section is found on its heading line.
+  - name: mutation-fixture-single-alternative
+    input:
+      command: "python3 scripts/check_design_doc.py evals/fixtures/design-gaps.md"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "a design/too-few-alternatives result exists at design-gaps.md line 23 with properties.options 1, level warning"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): a complete document -> empty results.
+  - name: boundary-empty-findings-complete-doc
+    input:
+      command: "python3 scripts/check_design_doc.py evals/fixtures/design-complete.md"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; the output is otherwise complete and schema-valid"
+
+  # A custom checklist changes what is required: with only context and goals required, the gaps document has no missing-section finding.
+  - name: boundary-custom-checklist
+    input:
+      command: "python3 scripts/check_design_doc.py evals/fixtures/design-gaps.md --checklist evals/fixtures/checklist-minimal.json"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "no design/missing-section result; the other structural findings are unchanged"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast): a file with no headings cannot be reviewed structurally.
+  - name: boundary-malformed-no-headings
+    input:
+      command: "python3 scripts/check_design_doc.py evals/fixtures/design-no-headings.md"
+    expected:
+      kind: failure
+      failureCode: doc-unstructured
+      assertions:
+        - "exit code is 1 and stderr says doc-unstructured"
+
+  - name: boundary-missing-doc
+    input:
+      command: "python3 scripts/check_design_doc.py evals/fixtures"
+    expected:
+      kind: failure
+      failureCode: doc-missing
+      assertions:
+        - "exit code is 1 — a directory cannot be read as a document — and stderr says doc-missing"
+
+  - name: boundary-invalid-checklist
+    input:
+      command: "python3 scripts/check_design_doc.py evals/fixtures/design-gaps.md --checklist evals/fixtures/design-gaps.md"
+    expected:
+      kind: failure
+      failureCode: checklist-invalid
+      assertions:
+        - "exit code is 1 and stderr says checklist-invalid"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/check_design_doc.py evals/fixtures/design-gaps.md | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"

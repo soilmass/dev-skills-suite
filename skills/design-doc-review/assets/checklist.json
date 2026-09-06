@@ -1,0 +1,13 @@
+{
+  "description": "Sections a design document must have, with the heading aliases that satisfy each (matched case-insensitively by prefix). Order is the order a reader needs them in. Copy and edit for a team whose template differs; pass it with --checklist.",
+  "sections": [
+    { "key": "context", "required": true, "aliases": ["context", "background", "problem", "problem statement", "motivation", "summary"] },
+    { "key": "goals", "required": true, "aliases": ["goals", "objectives", "requirements"] },
+    { "key": "non-goals", "required": true, "aliases": ["non-goals", "non goals", "out of scope", "not in scope"] },
+    { "key": "proposal", "required": true, "aliases": ["proposed design", "proposal", "design", "detailed design", "solution", "approach"] },
+    { "key": "alternatives", "required": true, "aliases": ["alternatives", "alternatives considered", "options", "options considered", "other approaches"] },
+    { "key": "risks", "required": true, "aliases": ["risks", "risks and mitigations", "drawbacks", "trade-offs", "tradeoffs"] },
+    { "key": "rollout", "required": true, "aliases": ["rollout", "migration", "rollout plan", "deployment", "launch plan", "rollback"] },
+    { "key": "open-questions", "required": false, "aliases": ["open questions", "unresolved questions", "questions"] }
+  ]
+}

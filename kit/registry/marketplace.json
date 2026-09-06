@@ -321,6 +321,16 @@
       "tier": "situational",
       "shape-out": "status-report",
       "shape-in": "plan-doc"
+    },
+    {
+      "name": "design-doc-review",
+      "description": "Reviews a design doc in two passes — a mechanical one that finds missing or empty sections against a checklist, leftover placeholders, an alternatives section with fewer than two options, and open questions nobody owns; then a judgment pass on whether the motivation is stated before the solution, the alternatives were weighed honestly, and the risks and rollout are real — returning a finding-list the author can act on. Use before a design review meeting, when asked to review or critique a design, or when a design doc is about to be marked accepted.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
     }
   ]
 }

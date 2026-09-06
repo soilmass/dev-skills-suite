@@ -1,0 +1,46 @@
+{
+  "description": "Sections a design document must have, with the heading aliases that satisfy each (matched case-insensitively by prefix). Order is the order a reader needs them in. Copy and edit for a team whose template differs; pass it with --checklist.",
+  "sections": [
+    {
+      "key": "context",
+      "required": true,
+      "aliases": [
+        "context",
+        "background",
+        "problem",
+        "problem statement",
+        "motivation",
+        "summary"
+      ]
+    },
+    {
+      "key": "goals",
+      "required": true,
+      "aliases": [
+        "goals",
+        "objectives",
+        "requirements"
+      ]
+    },
+    {
+      "key": "alternatives",
+      "required": true,
+      "aliases": [
+        "alternatives",
+        "alternatives considered",
+        "options",
+        "options considered",
+        "other approaches"
+      ]
+    },
+    {
+      "key": "open-questions",
+      "required": false,
+      "aliases": [
+        "open questions",
+        "unresolved questions",
+        "questions"
+      ]
+    }
+  ]
+}
