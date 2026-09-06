@@ -1,0 +1,11 @@
+{
+  "/checkout": {
+    "timings": { "interactive": 3400, "largest-contentful-paint": 2300 },
+    "resourceSizes": { "script": 240, "total": 700 },
+    "resourceCounts": { "third-party": 8 }
+  },
+  "/blog/post": {
+    "timings": { "interactive": 3900 },
+    "resourceSizes": { "script": 150 }
+  }
+}

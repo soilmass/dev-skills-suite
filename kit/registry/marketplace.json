@@ -44,9 +44,9 @@
     },
     {
       "name": "performance-budget-check",
-      "description": "Compares current metrics against a stated performance budget and flags regressions.",
+      "description": "Compares measured page metrics against a Lighthouse CI budget.json and, optionally, a baseline run, and produces a finding-list of over-budget, near-budget, and regressed metrics per path. Use before a release, when a bundle or page got slower, when asked whether performance is within budget, or when the user mentions Lighthouse, Core Web Vitals, or bundle size.",
       "version": "0.1.0",
-      "status": "planned",
+      "status": "built",
       "effect-tier": "local-read-only",
       "tier": "pillar",
       "shape-out": "finding-list",

@@ -1,0 +1,120 @@
+# Table-driven eval file for performance-budget-check (SDS-S-090).
+#
+# A rung-1 Query Skill over static fixtures: a Lighthouse CI budget
+# with an exact path and a wildcard, a current run that plants two
+# over-budget lines and two near-budget lines, a baseline that turns
+# five lines into regressions (one of them still within budget), a
+# clean run, an empty run, an empty budget, and a malformed budget.
+# Every row is deterministic and offline.
+
+skill: performance-budget-check
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): current run against the budget, no baseline.
+  - name: happy-path-current-vs-budget
+    input:
+      command: "python3 scripts/check_budget.py --budget evals/fixtures/budget.json --metrics evals/fixtures/metrics-current.json"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "exactly 2 perf/over-budget (error): /checkout interactive 3400 > 3000, /checkout script 240 > 200"
+        - "exactly 2 perf/near-budget (info): /checkout largest-contentful-paint 2300 vs 2500, /blog/post interactive 3900 vs the wildcard 4000"
+        - "no perf/no-data and no perf/regression findings; errors are ordered first"
+
+  # Happy path with a baseline: regressions appear, including one that is still within budget.
+  - name: happy-path-with-baseline-regressions
+    input:
+      command: "python3 scripts/check_budget.py --budget evals/fixtures/budget.json --metrics evals/fixtures/metrics-current.json --baseline evals/fixtures/metrics-baseline.json"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the 4 findings above are still present"
+        - "exactly 5 perf/regression (warning) findings, including /checkout total (650 -> 700, +7.7%) which is within its 800 budget"
+        - "/checkout third-party (8 -> 8) and /blog/post script (150 -> 150) produce no regression"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted script-size breach is found on /checkout.
+  - name: mutation-fixture-planted-over-budget
+    input:
+      command: "python3 scripts/check_budget.py --budget evals/fixtures/budget.json --metrics evals/fixtures/metrics-current.json"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "a perf/over-budget result exists with properties.path '/checkout', metric 'script', budget 200, measured 240, overBy 20.0, level error"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): an empty budget yields a zero-entry finding-list.
+  - name: boundary-empty-budget
+    input:
+      command: "python3 scripts/check_budget.py --budget evals/fixtures/budget-empty.json --metrics evals/fixtures/metrics-current.json"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; the document is otherwise complete and schema-valid"
+
+  # Boundary: everything comfortably within budget -> no findings at all.
+  - name: boundary-none-clean-run
+    input:
+      command: "python3 scripts/check_budget.py --budget evals/fixtures/budget.json --metrics evals/fixtures/metrics-clean.json --baseline evals/fixtures/metrics-clean.json"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array — within budget is the finding"
+
+  # Boundary: no measurements at all -> the budgeted path is reported as unmeasured, not silently passed.
+  - name: boundary-no-measurements
+    input:
+      command: "python3 scripts/check_budget.py --budget evals/fixtures/budget.json --metrics evals/fixtures/metrics-empty.json"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "exactly one perf/no-data (info) finding, for /checkout (the wildcard entry matches nothing when nothing was measured)"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-budget
+    input:
+      command: "python3 scripts/check_budget.py --budget evals/fixtures/budget-malformed.json --metrics evals/fixtures/metrics-current.json"
+    expected:
+      kind: failure
+      failureCode: budget-unparseable
+      assertions:
+        - "exit code is 1 and stderr names budget-malformed.json and says budget-unparseable"
+
+  - name: boundary-invalid-metrics-shape
+    input:
+      command: "python3 scripts/check_budget.py --budget evals/fixtures/budget.json --metrics evals/fixtures/budget.json"
+    expected:
+      kind: failure
+      failureCode: metrics-unparseable
+      assertions:
+        - "exit code is 1 — a budget array is not a metrics object keyed by path"
+
+  - name: boundary-bad-tolerance
+    input:
+      command: "python3 scripts/check_budget.py --budget evals/fixtures/budget.json --metrics evals/fixtures/metrics-current.json --tolerance five"
+    expected:
+      kind: failure
+      failureCode: bad-argument
+      assertions:
+        - "exit code is 1 and stderr says bad-argument"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/check_budget.py --budget evals/fixtures/budget.json --metrics evals/fixtures/metrics-current.json --baseline evals/fixtures/metrics-baseline.json | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"

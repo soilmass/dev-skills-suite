@@ -1,0 +1,1 @@
+[ { "path": "/checkout", "timings": [ { "metric": "interactive", "budget": 3000 }

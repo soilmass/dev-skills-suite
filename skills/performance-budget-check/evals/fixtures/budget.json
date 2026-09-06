@@ -1,0 +1,25 @@
+[
+  {
+    "path": "/checkout",
+    "timings": [
+      { "metric": "interactive", "budget": 3000 },
+      { "metric": "largest-contentful-paint", "budget": 2500 }
+    ],
+    "resourceSizes": [
+      { "resourceType": "script", "budget": 200 },
+      { "resourceType": "total", "budget": 800 }
+    ],
+    "resourceCounts": [
+      { "resourceType": "third-party", "budget": 10 }
+    ]
+  },
+  {
+    "path": "/*",
+    "timings": [
+      { "metric": "interactive", "budget": 4000 }
+    ],
+    "resourceSizes": [
+      { "resourceType": "script", "budget": 300 }
+    ]
+  }
+]
