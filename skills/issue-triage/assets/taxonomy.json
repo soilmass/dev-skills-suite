@@ -1,0 +1,6 @@
+{
+  "description": "Label taxonomy issue-triage proposes from. Create these in the repository (gh label create) before the first run; the skill never invents a label outside this file.",
+  "kind": ["bug", "feature", "question", "docs", "needs-info"],
+  "priority": ["high", "normal"],
+  "marker": "triaged"
+}

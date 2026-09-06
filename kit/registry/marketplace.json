@@ -291,6 +291,16 @@
       "tier": "situational",
       "shape-out": "decision-doc",
       "shape-in": "freeform"
+    },
+    {
+      "name": "issue-triage",
+      "description": "Triages a repository's untriaged open issues: reads them, proposes a kind label, a priority for bugs, a request for reproduction steps where a bug has none, and a nudge on stale issues — as a plan-doc a human revises — then applies each label and comment only after a medium-risk confirmation, one issue at a time, with every label reversible and every step checkpointed. Use when the untriaged count has grown, on a triage rota, or when asked to label, sort, or clean up the issue tracker.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "shared-write",
+      "tier": "situational",
+      "shape-out": "status-report",
+      "shape-in": "plan-doc"
     }
   ]
 }

@@ -1,0 +1,34 @@
+[
+  {
+    "number": 14,
+    "title": "README typo in install section",
+    "body": "The docs say `pip instal`.",
+    "labels": [
+      {
+        "name": "kind/docs"
+      }
+    ],
+    "createdAt": "2026-08-01T10:00:00Z",
+    "updatedAt": "2026-08-01T10:00:00Z",
+    "author": {
+      "login": "someone"
+    },
+    "comments": []
+  },
+  {
+    "number": 17,
+    "title": "Something",
+    "body": "",
+    "labels": [
+      {
+        "name": "triaged"
+      }
+    ],
+    "createdAt": "2026-09-01T10:00:00Z",
+    "updatedAt": "2026-09-01T10:00:00Z",
+    "author": {
+      "login": "someone"
+    },
+    "comments": []
+  }
+]

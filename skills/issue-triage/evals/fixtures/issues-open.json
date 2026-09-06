@@ -1,0 +1,66 @@
+[
+  {
+    "number": 12,
+    "title": "App crashes on startup",
+    "body": "Opened the app and it crashed with a traceback.",
+    "labels": [],
+    "createdAt": "2026-09-01T10:00:00Z",
+    "updatedAt": "2026-09-01T10:00:00Z",
+    "author": {
+      "login": "someone"
+    },
+    "comments": []
+  },
+  {
+    "number": 13,
+    "title": "Add dark mode",
+    "body": "It would be nice to have a dark theme for the settings page. Proposal: a toggle in preferences that persists per user, following the system preference by default, with the existing palette tokens mapped to a dark set so every screen changes together.",
+    "labels": [],
+    "createdAt": "2026-08-30T10:00:00Z",
+    "updatedAt": "2026-09-03T10:00:00Z",
+    "author": {
+      "login": "someone"
+    },
+    "comments": []
+  },
+  {
+    "number": 14,
+    "title": "README typo in install section",
+    "body": "The docs say `pip instal`.",
+    "labels": [
+      {
+        "name": "kind/docs"
+      }
+    ],
+    "createdAt": "2026-08-01T10:00:00Z",
+    "updatedAt": "2026-08-01T10:00:00Z",
+    "author": {
+      "login": "someone"
+    },
+    "comments": []
+  },
+  {
+    "number": 15,
+    "title": "Is it possible to run this behind a proxy?",
+    "body": "",
+    "labels": [],
+    "createdAt": "2026-04-20T10:00:00Z",
+    "updatedAt": "2026-05-01T10:00:00Z",
+    "author": {
+      "login": "someone"
+    },
+    "comments": []
+  },
+  {
+    "number": 16,
+    "title": "Thoughts",
+    "body": "Some thoughts I had while using this.",
+    "labels": [],
+    "createdAt": "2026-09-02T10:00:00Z",
+    "updatedAt": "2026-09-02T10:00:00Z",
+    "author": {
+      "login": "someone"
+    },
+    "comments": []
+  }
+]
