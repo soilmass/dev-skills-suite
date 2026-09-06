@@ -20,7 +20,21 @@ rows:
         - "exactly one comment/stale-param: load_order documents 'timeout', actual [fresh, order_id]"
         - "comment/dangling-reference findings name normalize_rows (the total() comment) and fetch_all (inside the commented-out block); none name clamp or total"
         - "exactly one comment/commented-out-code finding, 4 lines, starting at the 'rows = fetch_all()' comment"
-        - "no finding points at clean.py; warnings are ordered before infos"
+        - "no finding points at clean.py or proper_nouns.py; warnings are ordered before infos"
+
+  # REQUIRED — boundary: false positives found dogfooding this skill on the
+  # family repository's own comments (kit/scripts/lint-skill.py mentions
+  # GitHub several times, ci-pipeline-audit's script mentions PyYAML). The
+  # CamelCase-identifier heuristic cannot tell a proper noun from a symbol
+  # name by shape alone, so a small denylist covers the ones actually seen.
+  - name: boundary-proper-noun-comments
+    input:
+      command: "python3 scripts/audit_comments.py evals/fixtures/planted-src"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "no comment/dangling-reference result names GitHub, PyYAML, or OpenAPI even though proper_nouns.py's comments mention all three and none is defined anywhere in the tree"
 
   # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted stale parameter is found on the function's line.
   - name: mutation-fixture-planted-stale-param

@@ -18,7 +18,11 @@ Three deterministic detectors (Effect Ladder rung 1; `ast` and
                                CamelCase token of 4+ chars with an
                                underscore or a call parenthesis) that
                                is defined nowhere in the tree
-                               -> warning
+                               -> warning (a small denylist,
+                               COMMON_PROPER_NOUNS, exempts
+                               CamelCase-shaped product/protocol names
+                               like GitHub and PyYAML that are prose,
+                               never a symbol in this tree)
     comment/commented-out-code a run of 2+ consecutive `#` lines that
                                parse as Python statements once the
                                `#` is stripped
@@ -46,6 +50,12 @@ SKIP_DIRS = {".git", "node_modules", "dist", "build", "vendor", "target", "__pyc
 PARAM_RE = re.compile(r"^\s*(?::param\s+(\w+)\s*:|(\w+)\s*\([^)]*\)\s*:|(\w+)\s*:\s)", re.M)
 IDENT_RE = re.compile(r"`([A-Za-z_][A-Za-z0-9_.]*)`|\b([a-z]+_[a-z0-9_]+|[A-Z][a-z]+[A-Z][A-Za-z0-9]*)\b|\b([A-Za-z_][A-Za-z0-9_]{3,})\(")
 COMMON_WORDS = {"e_g", "i_e", "to_do", "note_that", "as_is"}
+# Proper nouns that are CamelCase-shaped (matched by IDENT_RE's identifier
+# heuristic) but name a product, protocol, or library rather than a symbol
+# in this tree — found dogfooding this skill on the family repository's
+# own comments (GitHub, PyYAML, OpenAPI all mentioned in prose, none ever
+# claimed to be defined here).
+COMMON_PROPER_NOUNS = {"github", "pyyaml", "openapi"}
 
 
 def finding(rule, level, text, uri, line, props):
@@ -107,7 +117,7 @@ def scan_file(p, rel, defined_names):
     for line, text in comments:
         for m in IDENT_RE.finditer(text):
             name = (m.group(1) or m.group(2) or m.group(3) or "").split(".")[-1]
-            if not name or name.lower() in COMMON_WORDS or name.upper() == name:
+            if not name or name.lower() in COMMON_WORDS or name.lower() in COMMON_PROPER_NOUNS or name.upper() == name:
                 continue
             if name not in defined_names and name not in dir(__builtins__):
                 results.append(finding("comment/dangling-reference", "warning",
