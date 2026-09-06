@@ -14,8 +14,12 @@ importing file's package directory), and JavaScript/TypeScript
 imports via a pattern over `import ... from '...'`, bare `import
 '...'`, `export ... from '...'`, and `require('...')` — only relative
 specifiers (`./`, `../`) are resolved; a bare specifier is external
-and ignored. `--lang` (default `auto`) scans Python only, JavaScript
-only, or both. A Python import nested inside `if TYPE_CHECKING:` (or
+and ignored. A relative specifier ending `.js`/`.mjs`/`.cjs` that does
+not exist on disk also resolves against a same-stem `.ts`/`.tsx`,
+`.mts`, or `.cts` file, respectively — TypeScript's own ESM/NodeNext
+convention of writing the compiled extension in source while the file
+on disk is still `.ts`. `--lang` (default `auto`) scans Python only,
+JavaScript only, or both. A Python import nested inside `if TYPE_CHECKING:` (or
 `if typing.TYPE_CHECKING:`) is not counted as an edge: it exists only
 for static type checkers and never executes at runtime, so it cannot
 form a real circular import — the `else` branch of that same `if`, if
@@ -170,11 +174,21 @@ def py_edges(rel, root):
                         yield None, node.lineno, label
 
 
+TS_ESM_SWAP = {".js": [".ts", ".tsx"], ".mjs": [".mts"], ".cjs": [".cts"]}
+
+
 def resolve_js(importing_rel, spec, root):
     importing_dir = (root / importing_rel).parent
     norm = Path(os.path.normpath(str(importing_dir / spec)))
     if norm.suffix in JS_EXTS and norm.is_file():
         return norm.relative_to(root).as_posix()
+    # TypeScript's own ESM/NodeNext convention: source specifies the
+    # compiled '.js' (or '.mjs'/'.cjs') extension even though the file
+    # on disk is a '.ts' (or '.mts'/'.cts') source of the same stem.
+    for swapped_ext in TS_ESM_SWAP.get(norm.suffix, ()):
+        c = norm.with_suffix(swapped_ext)
+        if c.is_file():
+            return c.relative_to(root).as_posix()
     for ext in JS_EXTS:
         c = Path(str(norm) + ext)
         if c.is_file():
