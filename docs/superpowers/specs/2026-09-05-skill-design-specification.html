@@ -31,7 +31,7 @@
 <meta content="agent skills" name="keyword">
 <meta content="composability" name="keyword">
 <meta content="SKILL.md" name="keyword">
-<meta content="draft-skill-design-spec-02" name="ietf.draft">
+<meta content="draft-skill-design-spec-03" name="ietf.draft">
 <!-- Generator version information:
   xml2rfc 3.34.0
     Python 3.10.12
@@ -2857,6 +2857,19 @@ Result&lt;Success, Failure&gt;
         A Shape that introduces a term <span class="bcp14">SHOULD</span> add a
         glossary row.<a href="#section-9.3-3" class="pilcrow">¶</a></p>
 </div>
+<div id="SDS-K-023">
+<p id="section-9.3-4"><strong>SDS-K-023</strong> (SHOULD, REVIEW)
+        A family <span class="bcp14">SHOULD</span> carry a machine check that each
+        registered Shape remains backward compatible with its copy at
+        the last tagged release: a frozen recording of every
+        <code>kit/shapes/&lt;name&gt;.schema.json</code> at the tag, diffed
+        against the current file by a skill or script that reports the
+        changes able to reject a previously valid instance. A break
+        found this way is the MAJOR change of <a href="#SDS-F-051" class="auto internal xref">Section 8.6, Paragraph 2</a>
+        and requires the review that rule names. In this family the
+        check is <code>json-schema-compat-check</code>'s
+        <code>contract-with-family-shapes</code> eval row.<a href="#section-9.3-4" class="pilcrow">¶</a></p>
+</div>
 </section>
 </div>
 <div id="kit-gates">
@@ -4451,6 +4464,13 @@ metadata:
             <td class="text-left" rowspan="1" colspan="1">REVIEW</td>
           </tr>
           <tr>
+            <td class="text-left" rowspan="1" colspan="1">SDS-K-023</td>
+            <td class="text-left" rowspan="1" colspan="1">shape-compat-check</td>
+            <td class="text-left" rowspan="1" colspan="1">9.3</td>
+            <td class="text-left" rowspan="1" colspan="1">SHOULD</td>
+            <td class="text-left" rowspan="1" colspan="1">REVIEW</td>
+          </tr>
+          <tr>
             <td class="text-left" rowspan="1" colspan="1">SDS-K-030</td>
             <td class="text-left" rowspan="1" colspan="1">gate-file</td>
             <td class="text-left" rowspan="1" colspan="1">9.4</td>
@@ -5048,7 +5068,15 @@ metadata:
       <h2 id="name-change-log">
 <a href="#appendix-C" class="section-number selfRef">Appendix C. </a><a href="#name-change-log" class="section-name selfRef">Change Log</a>
       </h2>
-<p id="appendix-C-1"><strong>1.0-draft, revision 02 (2026-09-06):</strong> Folds in
+<p id="appendix-C-1"><strong>1.0-draft, revision 03 (2026-09-06):</strong> Adds
+      SDS-K-023 (SHOULD, REVIEW): a family carries a machine check that
+      each registered Shape stays backward compatible with its copy at
+      the last tag, the concrete form of SDS-F-051's MAJOR-change review
+      — introduced when <code>json-schema-compat-check</code> made it a
+      one-row eval against frozen copies of the four shapes at
+      v1.0.0-draft. One REVIEW rule added to Appendix B; no MACHINE rule
+      changed.<a href="#appendix-C-1" class="pilcrow">¶</a></p>
+<p id="appendix-C-2"><strong>1.0-draft, revision 02 (2026-09-06):</strong> Folds in
       what building the twenty-eight situational skills and two more
       live runs taught. SDS-F-061 now exempts a glossary term that is
       part of a proper noun or an identifier (the GitHub cluster's own
@@ -5061,15 +5089,15 @@ metadata:
       SDS-S-056 (SHOULD, REVIEW): a mutating call names its target
       explicitly rather than relying on the working directory. The
       linter's heuristics changed to match; one REVIEW rule was added
-      to Appendix B; no MACHINE rule was added or removed.<a href="#appendix-C-1" class="pilcrow">¶</a></p>
-<p id="appendix-C-2"><strong>1.0-draft, editorial (2026-09-06):</strong> SDS-S-100
+      to Appendix B; no MACHINE rule was added or removed.<a href="#appendix-C-2" class="pilcrow">¶</a></p>
+<p id="appendix-C-3"><strong>1.0-draft, editorial (2026-09-06):</strong> SDS-S-100
       now states that the family root is the skill family's own
       checkout, not the repository a skill operates on, and that a
       bundled checkpoint script must accept an explicit state directory
       — observed while driving <code>pr-lifecycle-manager</code> against a
       separate repository. No rule was added, removed, or re-tagged;
-      Appendix B is unchanged.<a href="#appendix-C-2" class="pilcrow">¶</a></p>
-<p id="appendix-C-3"><strong>1.0-draft (2026-09-05):</strong> Restructured top to
+      Appendix B is unchanged.<a href="#appendix-C-3" class="pilcrow">¶</a></p>
+<p id="appendix-C-4"><strong>1.0-draft (2026-09-05):</strong> Restructured top to
       bottom into Part 0 (core model), Part I (family and repository),
       Part II (kit), and Part III (skill anatomy); every normative rule
       now carries a permanent identifier and a MACHINE/REVIEW/ADVISORY
@@ -5095,20 +5123,20 @@ metadata:
       Also added: the checkpoint state path, the prohibition on wrapping
       a rung-5/6 Act in a pre-approved script, script and reference
       conventions, the long-parameter-list rule, and the validation
-      gate.<a href="#appendix-C-3" class="pilcrow">¶</a></p>
-<p id="appendix-C-4"><strong>0.3 (2026-09-05):</strong> Rebuilt in xml2rfc version
+      gate.<a href="#appendix-C-4" class="pilcrow">¶</a></p>
+<p id="appendix-C-5"><strong>0.3 (2026-09-05):</strong> Rebuilt in xml2rfc version
       3 (RFC 7991) vocabulary in place of the plain-text RFC-style
-      draft. No normative changes from 0.2.<a href="#appendix-C-4" class="pilcrow">¶</a></p>
-<p id="appendix-C-5"><strong>0.2 (2026-09-05):</strong> Rebuilt as an RFC-structured
+      draft. No normative changes from 0.2.<a href="#appendix-C-5" class="pilcrow">¶</a></p>
+<p id="appendix-C-6"><strong>0.2 (2026-09-05):</strong> Rebuilt as an RFC-structured
       document: added formal Terminology, Security Considerations, and
       Registry Considerations sections; added full Normative/
       Informative References with verified citations for MCP tool
       annotations, SARIF, OSV, SPDX (ISO/IEC 5962:2021), CycloneDX
       (ECMA-424), and MADR (v4.0.0); formalized the composition laws,
       contracts, and effect ladder with MUST/SHOULD/MAY language
-      throughout.<a href="#appendix-C-5" class="pilcrow">¶</a></p>
-<p id="appendix-C-6"><strong>0.1 (2026-09-05):</strong> Initial high-level
-      draft.<a href="#appendix-C-6" class="pilcrow">¶</a></p>
+      throughout.<a href="#appendix-C-6" class="pilcrow">¶</a></p>
+<p id="appendix-C-7"><strong>0.1 (2026-09-05):</strong> Initial high-level
+      draft.<a href="#appendix-C-7" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="authors-addresses">

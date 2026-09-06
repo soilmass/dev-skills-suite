@@ -4,7 +4,7 @@
      IETF and the ipr attribute below is included only as conventional
      xml2rfc boilerplate for tooling compatibility, not as a legal
      claim about IETF Trust provisions. -->
-<rfc ipr="trust200902" category="info" docName="draft-skill-design-spec-02"
+<rfc ipr="trust200902" category="info" docName="draft-skill-design-spec-03"
      submissionType="independent" version="3">
   <front>
     <title abbrev="SDS">Skill Design Specification (SDS): A
@@ -920,6 +920,17 @@ Result<Success, Failure>
         <t anchor="SDS-K-022"><strong>SDS-K-022</strong> (SHOULD, REVIEW)
         A Shape that introduces a term <bcp14>SHOULD</bcp14> add a
         glossary row.</t>
+        <t anchor="SDS-K-023"><strong>SDS-K-023</strong> (SHOULD, REVIEW)
+        A family <bcp14>SHOULD</bcp14> carry a machine check that each
+        registered Shape remains backward compatible with its copy at
+        the last tagged release: a frozen recording of every
+        <tt>kit/shapes/&lt;name&gt;.schema.json</tt> at the tag, diffed
+        against the current file by a skill or script that reports the
+        changes able to reject a previously valid instance. A break
+        found this way is the MAJOR change of <xref target="SDS-F-051"/>
+        and requires the review that rule names. In this family the
+        check is <tt>json-schema-compat-check</tt>'s
+        <tt>contract-with-family-shapes</tt> eval row.</t>
       </section>
 
       <section anchor="kit-gates">
@@ -1956,6 +1967,7 @@ metadata:
           <tr><td>SDS-K-020</td><td>shape-file</td><td>9.3</td><td>MUST</td><td>MACHINE</td></tr>
           <tr><td>SDS-K-021</td><td>shape-registration</td><td>9.3</td><td>MUST</td><td>REVIEW</td></tr>
           <tr><td>SDS-K-022</td><td>shape-glossary</td><td>9.3</td><td>SHOULD</td><td>REVIEW</td></tr>
+          <tr><td>SDS-K-023</td><td>shape-compat-check</td><td>9.3</td><td>SHOULD</td><td>REVIEW</td></tr>
           <tr><td>SDS-K-030</td><td>gate-file</td><td>9.4</td><td>MUST</td><td>MACHINE</td></tr>
           <tr><td>SDS-K-031</td><td>gate-rung</td><td>9.4</td><td>MUST</td><td>REVIEW</td></tr>
           <tr><td>SDS-K-040</td><td>profile-file</td><td>9.5</td><td>MUST</td><td>MACHINE</td></tr>
@@ -2046,6 +2058,14 @@ metadata:
 
     <section anchor="changelog" numbered="true">
       <name>Change Log</name>
+      <t><strong>1.0-draft, revision 03 (2026-09-06):</strong> Adds
+      SDS-K-023 (SHOULD, REVIEW): a family carries a machine check that
+      each registered Shape stays backward compatible with its copy at
+      the last tag, the concrete form of SDS-F-051's MAJOR-change review
+      — introduced when <tt>json-schema-compat-check</tt> made it a
+      one-row eval against frozen copies of the four shapes at
+      v1.0.0-draft. One REVIEW rule added to Appendix B; no MACHINE rule
+      changed.</t>
       <t><strong>1.0-draft, revision 02 (2026-09-06):</strong> Folds in
       what building the twenty-eight situational skills and two more
       live runs taught. SDS-F-061 now exempts a glossary term that is

@@ -45,9 +45,10 @@ standalone dev-lifecycle set that assumes nothing about the project it lands in.
 Experimentation, Monorepo Coordination — ~19 more candidate skills, pull from
 here once a cluster above proves thin.
 
-**Second bench (2026-09-06, being built):** with all 38 catalog skills
-built, the exploratory clusters get concrete names — one to three each,
-standards-first and repository-agnostic:
+**Second bench (2026-09-06, built — tag v1.1.0-draft):** with all 38
+catalog skills built, the exploratory clusters got concrete names — one to
+three each, standards-first and repository-agnostic; all eleven are built,
+with cross-bench contract rows pinned by frozen producer output:
 
 | Cluster | Skills |
 |---|---|
