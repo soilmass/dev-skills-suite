@@ -1,0 +1,98 @@
+# Table-driven eval file for large-file-splitter-advisor (SDS-S-090).
+#
+# A rung-1 Query Skill over a planted tree scanned with a 40-line
+# budget: one oversized module with two clusters that never name each
+# other, one oversized module whose definitions all reach one another
+# (no mechanical seam), and one small module under the budget. Every
+# row is deterministic and offline.
+
+skill: large-file-splitter-advisor
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): the two oversized modules are reported with the right seams; the small one is not.
+  - name: happy-path-planted-seams
+    input:
+      command: "python3 scripts/find_split_seams.py evals/fixtures/planted-src --max-lines 40"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "exactly two results: size/oversized-module for shop.py (warning) and size/single-cluster for tangled.py (info), in that order"
+        - "shop.py has 7 definitions in exactly 2 seams, largest first: [Report, format_row, render_report, _pad] (18 lines) then [OrderLine, load_order, total_for] (13 lines)"
+        - "tangled.py has 11 definitions in exactly 1 seam"
+        - "no result points at small.py"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted two-cluster module is found with its seams.
+  - name: mutation-fixture-planted-two-clusters
+    input:
+      command: "python3 scripts/find_split_seams.py evals/fixtures/planted-src --max-lines 40"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "a size/oversized-module result exists at shop.py line 1 with properties.lines 54, maxLines 40, and a seam whose definitions are exactly [OrderLine, load_order, total_for] spanning lines 12-28"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # The default budget (500) is above every fixture: a tree with nothing oversized yields empty results.
+  - name: boundary-nothing-over-budget
+    input:
+      command: "python3 scripts/find_split_seams.py evals/fixtures/planted-src"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): no Python files -> empty results.
+  - name: boundary-empty-tree
+    input:
+      command: "python3 scripts/find_split_seams.py evals/fixtures/empty-src --max-lines 40"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; the output is otherwise complete and schema-valid"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast): a syntax error stops the scan.
+  - name: boundary-malformed-source
+    input:
+      command: "python3 scripts/find_split_seams.py evals/fixtures/broken-src --max-lines 40"
+    expected:
+      kind: failure
+      failureCode: source-unparseable
+      assertions:
+        - "exit code is 1 and stderr names broken.py and says source-unparseable"
+
+  - name: boundary-invalid-path
+    input:
+      command: "python3 scripts/find_split_seams.py evals/fixtures/planted-src/small.py"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 — the path is a file, not a directory"
+
+  - name: boundary-invalid-budget
+    input:
+      command: "python3 scripts/find_split_seams.py evals/fixtures/planted-src --max-lines 0"
+    expected:
+      kind: failure
+      failureCode: budget-invalid
+      assertions:
+        - "exit code is 1 and stderr says --max-lines must be positive and names budget-invalid"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/find_split_seams.py evals/fixtures/planted-src --max-lines 40 | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"
