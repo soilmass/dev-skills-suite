@@ -38,6 +38,13 @@ If you're not sure, it's a Query Skill — push the mutating part into a
 separate Command Skill that the Query Skill's output feeds (SDS-C-002).
 Do not write one skill that does both.
 
+Once you know the kind and the Effect Ladder rung (Step 1 below), run
+`python3 kit/scripts/new-skill.py <name> --kind query|command --rung 1..6
+--shape-out <shape|freeform> [--shape-in <shape|freeform>]` to create
+`skills/<name>/` from the matching template with its mechanical fields
+filled in and a `status: "planned"` registry entry appended, then
+continue with Step 1.
+
 ## Step 1 — Assign the Effect Ladder rung (SDS-C-040, SDS-S-017, SDS-S-025)
 
 Pick the single highest rung the skill's Procedure reaches:
