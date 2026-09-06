@@ -221,6 +221,16 @@
       "tier": "situational",
       "shape-out": "finding-list",
       "shape-in": "freeform"
+    },
+    {
+      "name": "test-coverage-gap-finder",
+      "description": "Reads a Cobertura coverage report beside the sources it measured and turns the percentage into names — functions and methods whose body no test executed, files below a coverage floor, and files the report never saw — as a finding-list, ranked by the human judgment of which gap is risky rather than by size. Use when a coverage number dropped and nobody knows where, when deciding which tests to write next, or when asked what is untested.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
     }
   ]
 }

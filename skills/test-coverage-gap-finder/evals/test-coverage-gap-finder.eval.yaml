@@ -1,0 +1,117 @@
+# Table-driven eval file for test-coverage-gap-finder (SDS-S-090).
+#
+# A rung-1 Query Skill over a hand-written Cobertura report (shaped
+# exactly as coverage.py emits it, including def lines hit at import)
+# beside the sources it measured: covered and uncovered functions and
+# methods, a skipped dunder, a file below the floor, a file absent from
+# the report, and a tests/ file that must not count as unmeasured.
+# Every row is deterministic and offline.
+
+skill: test-coverage-gap-finder
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): exactly the planted gaps are named.
+  - name: happy-path-planted-gaps
+    input:
+      command: "python3 scripts/find_coverage_gaps.py evals/fixtures/coverage.xml --repo evals/fixtures/repo"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "coverage/uncovered-function names exactly cancel_order, _audit, Cart.clear (src/orders.py) and one, two (src/lowrate.py); none names load_order, Cart.add, or __repr__"
+        - "exactly one coverage/low-file-rate: src/lowrate.py, lineRate 0.2, 1 of 5 tracked lines hit"
+        - "exactly one coverage/unmeasured-file: src/legacy.py; tests/test_orders.py is not reported"
+        - "warnings are ordered before infos"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted uncovered public function is found on its def line.
+  - name: mutation-fixture-uncovered-body
+    input:
+      command: "python3 scripts/find_coverage_gaps.py evals/fixtures/coverage.xml --repo evals/fixtures/repo"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "a coverage/uncovered-function result exists at src/orders.py line 9 with properties.function cancel_order, startLine 9, endLine 12, trackedLines 3, public true — the def line's import-time hit is not counted as coverage"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # A lower floor silences the file-rate finding without touching the function findings.
+  - name: boundary-floor-below-every-file
+    input:
+      command: "python3 scripts/find_coverage_gaps.py evals/fixtures/coverage.xml --repo evals/fixtures/repo --min-file-rate 0.1"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "no coverage/low-file-rate result; the five coverage/uncovered-function results are unchanged"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): a report with no classes beside an empty tree -> empty results.
+  - name: boundary-empty-report
+    input:
+      command: "python3 scripts/find_coverage_gaps.py evals/fixtures/empty-coverage.xml --repo evals/fixtures/empty-repo"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; the output is otherwise complete and schema-valid"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast): a truncated report stops the scan.
+  - name: boundary-malformed-report
+    input:
+      command: "python3 scripts/find_coverage_gaps.py evals/fixtures/malformed.xml --repo evals/fixtures/repo"
+    expected:
+      kind: failure
+      failureCode: report-malformed
+      assertions:
+        - "exit code is 1 and stderr says report-malformed"
+
+  - name: boundary-missing-report
+    input:
+      command: "python3 scripts/find_coverage_gaps.py evals/fixtures/repo --repo evals/fixtures/repo"
+    expected:
+      kind: failure
+      failureCode: report-missing
+      assertions:
+        - "exit code is 1 and stderr says report-missing — a directory is not a report file"
+
+  - name: boundary-malformed-source
+    input:
+      command: "python3 scripts/find_coverage_gaps.py evals/fixtures/broken-coverage.xml --repo evals/fixtures/broken-repo"
+    expected:
+      kind: failure
+      failureCode: source-unparseable
+      assertions:
+        - "exit code is 1 and stderr names src/broken.py and says source-unparseable"
+
+  - name: boundary-invalid-repo
+    input:
+      command: "python3 scripts/find_coverage_gaps.py evals/fixtures/coverage.xml --repo evals/fixtures/coverage.xml"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 — the repository path is a file"
+
+  - name: boundary-invalid-rate
+    input:
+      command: "python3 scripts/find_coverage_gaps.py evals/fixtures/coverage.xml --repo evals/fixtures/repo --min-file-rate 7"
+    expected:
+      kind: failure
+      failureCode: rate-invalid
+      assertions:
+        - "exit code is 1 and stderr says rate-invalid"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/find_coverage_gaps.py evals/fixtures/coverage.xml --repo evals/fixtures/repo | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"
