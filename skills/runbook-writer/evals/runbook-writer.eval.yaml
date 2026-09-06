@@ -1,0 +1,102 @@
+# Table-driven eval file for runbook-writer (SDS-S-090).
+#
+# A rung-4 Command Skill whose only mutation is writing a markdown page,
+# so the Act path runs for real against a gitignored output directory
+# reset by a build script (SDS-S-096). The judgment — turning "check
+# it's fine" into an observable — is the model's; the rows cover what
+# is mechanical: shape, the unverifiable-step refusal, the warnings, and
+# the render.
+#
+# Before running: evals/fixtures/rb-out is generated, not checked in.
+#   evals/fixtures/build-rb-out.sh
+
+skill: runbook-writer
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): a complete, verified runbook renders with no warnings.
+  - name: happy-path-dry-run
+    input:
+      command: "python3 scripts/render_runbook.py evals/fixtures/runbook-good.json --out-dir evals/fixtures --dry-run"
+    expected:
+      kind: success
+      assertions:
+        - "steps is 4 and warnings is empty (every step shows a backticked command; lastVerified is set)"
+        - "rendered contains '## Preconditions', four '### N.' step headings each with **Do.**, **Verify.**, **If it fails.**, '## Rollback', and '## Escalation'"
+        - "rendered says 'Last walked through end to end: 2026-08-14'; nothing was written (dry run)"
+
+  # Happy path: real write.
+  - name: happy-path-write-runbook
+    input:
+      command: "evals/fixtures/build-rb-out.sh && python3 scripts/render_runbook.py evals/fixtures/runbook-good.json --out-dir evals/fixtures/rb-out"
+    expected:
+      kind: success
+      assertions:
+        - "evals/fixtures/rb-out/rotate-the-payment-gateway-api-key.md exists and begins with '# Runbook:'"
+
+  # Boundary: a step with an empty verify is refused outright (SDS-C-019).
+  - name: boundary-unverifiable-step
+    input:
+      command: "python3 scripts/render_runbook.py evals/fixtures/runbook-missing-verify.json --out-dir evals/fixtures --dry-run"
+    expected:
+      kind: failure
+      failureCode: runbook-incomplete
+      assertions:
+        - "this fixture plants an EMPTY verify, which is a refusal, not a warning — exit code 1 and stderr names step 1 and says runbook-incomplete"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): zero preconditions is valid and renders '(none)'.
+  - name: boundary-no-preconditions
+    input:
+      command: "python3 -c \"import json; d=json.load(open('evals/fixtures/runbook-good.json')); d['preconditions']=[]; d.pop('lastVerified'); json.dump(d, open('evals/fixtures/rb-out/no-preconditions.json','w'))\" && python3 scripts/render_runbook.py evals/fixtures/rb-out/no-preconditions.json --out-dir evals/fixtures --dry-run"
+    expected:
+      kind: success
+      assertions:
+        - "rendered lists '- (none)' under Preconditions and says 'Never verified end to end'; warnings contains the lastVerified warning only"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-runbook
+    input:
+      command: "python3 scripts/render_runbook.py evals/fixtures/runbook-malformed.json --out-dir evals/fixtures --dry-run"
+    expected:
+      kind: failure
+      failureCode: runbook-unparseable
+      assertions:
+        - "exit code is 1 and stderr says runbook-unparseable"
+
+  - name: boundary-invalid-no-escalation
+    input:
+      command: "python3 scripts/render_runbook.py evals/fixtures/runbook-invalid.json --out-dir evals/fixtures --dry-run"
+    expected:
+      kind: failure
+      failureCode: runbook-invalid
+      assertions:
+        - "exit code is 1 and stderr says runbook-invalid, naming the missing 'escalation' property"
+
+  - name: boundary-missing-out-dir
+    input:
+      command: "python3 scripts/render_runbook.py evals/fixtures/runbook-good.json --out-dir evals/fixtures/runbook-good.json --dry-run"
+    expected:
+      kind: failure
+      failureCode: out-dir-missing
+      assertions:
+        - "exit code is 1 — the --out-dir argument is a file, not a directory"
+
+  # N/A — shape-out is freeform, not finding-list (SDS-S-095).
+  - name: mutation-fixture
+    expected:
+      kind: not-applicable
+      reason: "runbook-writer does not search for known problems; shape-out is freeform."
+
+  # N/A — freeform/freeform is not a self-composability signal (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out and shape-in are both freeform; per SDS-S-094 that is not self-composability, and a rendered page is not an input to this skill."
+
+  # REQUIRED — contract (SDS-C-063): the specification validates against this skill's own asset schema, the interface to its render script.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 -c \"import json,jsonschema; jsonschema.validate(json.load(open('evals/fixtures/runbook-good.json')), json.load(open('assets/runbook.schema.json'))); print('runbook spec OK')\""
+    expected:
+      kind: success
+      assertions:
+        - "the good specification validates against assets/runbook.schema.json"

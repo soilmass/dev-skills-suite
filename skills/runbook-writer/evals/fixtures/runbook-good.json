@@ -1,0 +1,38 @@
+{
+  "title": "Rotate the payment gateway API key",
+  "purpose": "Replace the live payment gateway key without dropping checkout traffic, e.g. after a suspected leak or on the 90-day schedule.",
+  "trigger": "The security channel reports a possible key exposure, or the calendar reminder for the quarterly rotation fires.",
+  "preconditions": [
+    "You have the `payments-admin` role in the gateway console",
+    "The `ops` VPN is connected (the config service is not reachable otherwise)",
+    "Checkout error rate is at baseline (below 0.5% on the dashboard) — do not rotate during an incident"
+  ],
+  "steps": [
+    {
+      "do": "Create a new key in the gateway console at `Settings → API keys → Create` and copy it once; it is shown only once.",
+      "verify": "The console lists two active keys: the old one and the new one, both marked live.",
+      "ifFails": "If the console refuses (key limit reached), delete the oldest *inactive* key first — never an active one — and retry."
+    },
+    {
+      "do": "Write the new key to the config service: `opsctl secret set payments/gateway_key --from-stdin`, pasting the key.",
+      "verify": "`opsctl secret get payments/gateway_key --meta` shows a new version number and a timestamp within the last minute.",
+      "ifFails": "If `opsctl` reports a permissions error, your VPN session has expired; reconnect and retry. Do not paste the key into chat to hand off."
+    },
+    {
+      "do": "Roll the checkout service so it picks up the new secret: `opsctl rollout restart checkout --wait`.",
+      "verify": "`opsctl rollout status checkout` reports all replicas ready, and the dashboard's checkout error rate stays below 0.5% for five minutes.",
+      "ifFails": "If error rate rises, run the Rollback section immediately; do not wait out the five minutes."
+    },
+    {
+      "do": "Revoke the old key in the gateway console at `Settings → API keys → <old key> → Revoke`.",
+      "verify": "The console lists exactly one active key, and the error rate is still at baseline after five more minutes.",
+      "ifFails": "If revoking the old key raises the error rate, some caller still uses it: re-enable it (Revoke is reversible for 24 hours) and search the config service for other consumers of `payments/gateway_key`."
+    }
+  ],
+  "rollback": "Set the previous secret version back with `opsctl secret rollback payments/gateway_key --to <previous-version>` and restart checkout (`opsctl rollout restart checkout --wait`). If the old key was already revoked, re-enable it in the console first (possible within 24 hours of revocation).",
+  "escalation": {
+    "who": "#payments-oncall, then the payments engineering manager",
+    "when": "Error rate above 2% for more than two minutes at any step, or the old key cannot be re-enabled."
+  },
+  "lastVerified": "2026-08-14"
+}

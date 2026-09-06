@@ -1,0 +1,10 @@
+{
+  "title": "Planted: no escalation block at all",
+  "purpose": "Clear the CDN cache.",
+  "trigger": "Stale assets reported.",
+  "preconditions": [],
+  "steps": [
+    { "do": "Purge with `cdnctl purge --all`.", "verify": "`cdnctl status` shows purge complete.", "ifFails": "Retry once." }
+  ],
+  "rollback": "Nothing to roll back."
+}

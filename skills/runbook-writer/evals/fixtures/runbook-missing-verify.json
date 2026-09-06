@@ -1,0 +1,11 @@
+{
+  "title": "Planted: a step nobody can check",
+  "purpose": "Restart the nightly report job.",
+  "trigger": "The report is late.",
+  "preconditions": [],
+  "steps": [
+    { "do": "Restart the job with `opsctl job restart nightly-report`.", "verify": "", "ifFails": "Page the data team." }
+  ],
+  "rollback": "Nothing to roll back; the job is idempotent.",
+  "escalation": { "who": "#data-oncall", "when": "The job has not started within 15 minutes." }
+}

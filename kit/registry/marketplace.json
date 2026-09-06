@@ -171,6 +171,16 @@
       "tier": "situational",
       "shape-out": "plan-doc",
       "shape-in": "freeform"
+    },
+    {
+      "name": "runbook-writer",
+      "description": "Turns tribal operational knowledge into a runbook a tired engineer can follow at 3 a.m.: a purpose, a trigger, preconditions, numbered steps that each pair a command with how to verify it worked and what to do if it did not, a rollback, and an escalation path — refusing to write a step that cannot be verified. Use when an incident revealed a missing runbook, when asked to write or update one, or when a procedure lives only in someone's head.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-write",
+      "tier": "situational",
+      "shape-out": "freeform",
+      "shape-in": "freeform"
     }
   ]
 }
