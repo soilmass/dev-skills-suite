@@ -18,10 +18,11 @@ kit/shapes/finding-list.schema.json (REVIEW items become level "hint");
 the document is self-validated against that schema before printing
 (exit 2 if it does not validate). `--sarif` (only meaningful with
 `--json`) emits the SARIF-2.1.0 variant of that same document instead:
-`version` becomes `"2.1.0"` and a top-level `$schema` of
-`https://json.schemastore.org/sarif-2.1.0.json` is added, for upload to
-GitHub Code Scanning via github/codeql-action/upload-sarif — the shape
-underneath (`runs`, `results`) is unchanged. `--rules` prints the
+`version` becomes `"2.1.0"`, a top-level `$schema` of
+`https://json.schemastore.org/sarif-2.1.0.json` is added, and each
+result's `level` is narrowed to SARIF's {none, note, warning, error}
+enum (info/hint fold to note) — for upload to GitHub Code Scanning via
+github/codeql-action/upload-sarif. `--rules` prints the
 embedded rule table (`ID|slug|level|tag|section`), one rule per line in
 ID order, for diffing against the spec's Appendix B.
 
@@ -277,6 +278,9 @@ EXTERNAL_CALL_RE = re.compile(r"urllib\.request|import requests|http\.client|soc
 FIXTURE_RESERVED = {".gitignore", ".gitkeep"}
 LEVEL_FOR = {"MUST": "ERROR", "SHOULD": "WARN", "MAY": "INFO"}
 JSON_LEVEL = {"ERROR": "error", "WARN": "warning", "INFO": "info", "REVIEW": "hint"}
+# SARIF 2.1.0's result.level enum is {none, note, warning, error} — narrower
+# than the family's {error, warning, info, hint} — used only by --sarif.
+SARIF_LEVEL = {"info": "note", "hint": "note"}
 
 
 # --------------------------------------------------------------------------
@@ -1958,7 +1962,11 @@ def report_json(findings: list[Finding], review: bool, kit: Path, sarif: bool = 
         # shape, but `version` and a top-level `$schema` per GitHub's
         # upload-sarif requirements (the family shape's own version stays
         # "sds-finding-list-1.0" — this is a presentation variant, not a
-        # change to kit/shapes/finding-list.schema.json).
+        # change to kit/shapes/finding-list.schema.json). SARIF's result
+        # `level` enum is {none, note, warning, error} — narrower than the
+        # family's {error, warning, info, hint} — so info/hint fold to note.
+        for r in results:
+            r["level"] = SARIF_LEVEL.get(r["level"], r["level"])
         doc = {"$schema": "https://json.schemastore.org/sarif-2.1.0.json", "version": "2.1.0", "runs": doc["runs"]}
     print(json.dumps(doc, indent=2))
     return 0
