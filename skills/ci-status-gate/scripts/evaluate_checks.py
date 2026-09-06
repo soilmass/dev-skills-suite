@@ -75,8 +75,11 @@ def load_fixture(path):
 
 
 def load_live(repo, ref):
-    result = subprocess.run(["gh", "api", "-X", "GET", f"repos/{{owner}}/{{repo}}/commits/{ref}/check-runs", "--paginate"],
-                            cwd=repo, capture_output=True, text=True)
+    try:
+        result = subprocess.run(["gh", "api", "-X", "GET", f"repos/{{owner}}/{{repo}}/commits/{ref}/check-runs", "--paginate"],
+                                cwd=repo, capture_output=True, text=True, timeout=60)
+    except subprocess.TimeoutExpired:
+        sys.exit("ERROR: gh api check-runs timed out after 60s (gh-unreachable)")
     if result.returncode != 0:
         sys.exit(f"ERROR: gh api check-runs failed (gh-unreachable): {result.stderr.strip()}")
     try:
