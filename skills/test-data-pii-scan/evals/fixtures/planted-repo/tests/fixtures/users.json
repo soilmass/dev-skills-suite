@@ -1,0 +1,5 @@
+[
+  { "id": 1, "name": "Ada Example", "email": "ada@example.com", "phone": "+1 202-555-0142", "dob": "1990-01-01" },
+  { "id": 2, "name": "Test User", "email": "test@corp.test", "card": "4242 4242 4242 4242" },
+  { "id": 3, "name": "Real Person", "email": "j.doe@gmail.com", "phone": "(415) 867-5309", "ssn": "219-09-9999", "card": "4539 1488 0343 6467" }
+]

@@ -562,6 +562,16 @@
       "shape-out": "finding-list",
       "shape-in": "freeform",
       "status": "built"
+    },
+    {
+      "name": "test-data-pii-scan",
+      "description": "Scans a repository's test data — fixtures, seeds, factories, recorded responses, snapshots — for values that look like a real person's: credit-card numbers that pass Luhn and are not the known test numbers, valid US Social Security Numbers, checksum-valid IBANs, e-mail addresses at real domains, phone numbers outside the fictional 555-01xx range, public IP addresses, and dates of birth — as a finding-list with every value masked; then judges which hits are copied from production and must go. Use before open-sourcing or sharing a repository, after a \"copy prod to staging\" incident, when a privacy review asks what personal data the tests hold, or when asked whether the fixtures are safe to commit.",
+      "version": "0.1.0",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform",
+      "status": "built"
     }
   ]
 }

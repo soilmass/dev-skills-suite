@@ -1,0 +1,102 @@
+# Table-driven eval file for test-data-pii-scan (SDS-S-090).
+#
+# A rung-1 Query Skill over a planted tree: a fixtures file with one
+# copied record (real-domain e-mail, real-looking phone, valid SSN,
+# Luhn-valid card) beside fictional records, a seed with a
+# checksum-valid IBAN and a public IP beside fictional ones, a binary
+# file, a *.seed.csv outside any test directory, and a source file
+# (out of scope); plus a clean tree that must stay silent. Every
+# planted value is invented — the card and IBAN are arithmetic
+# constructions, not issued numbers. Every row is deterministic and
+# offline.
+
+skill: test-data-pii-scan
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): every planted hit is reported, every fictional value is silent, and no value is unmasked.
+  - name: happy-path-planted-fixtures
+    input:
+      command: "python3 scripts/scan_test_data.py evals/fixtures/planted-repo"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "errors: pii/credit-card at tests/fixtures/users.json line 4 (value ************6467, length 16), pii/iban at db/seeds/accounts.sql line 2 (GB82…5432, country GB), pii/ssn at users.json line 4 (***-**-9999); the 4242 test card, the 000-00-0000 SSN, and the two checksum-invalid IBANs are silent"
+        - "warnings: pii/email for gmail.com (users.json line 4, value j***@gmail.com) and yahoo.com (bin/export.seed.csv line 2, matched by the *.seed.* marker); pii/phone ending 5309 (users.json line 4); the example.com and corp.test addresses and the 555-0142 number are silent"
+        - "infos: pii/date-of-birth dob 1990-01-01 (users.json line 2); pii/ip-address 8.8.8.8 (accounts.sql line 2); 192.0.2.10, 203.0.113.7, and 10.0.0.5 are silent; src/app.py's gmail address is out of scope"
+        - "tool.properties: directories [db/seeds, tests], files 4, scanned 3, skipped 1 (archive.zip is binary), byRule counts credit-card 1 / date-of-birth 1 / email 2 / iban 1 / ip-address 1 / phone 1 / ssn 1; errors before warnings before infos"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted copied card is found, masked.
+  - name: mutation-fixture-copied-card
+    input:
+      command: "python3 scripts/scan_test_data.py evals/fixtures/planted-repo"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "a pii/credit-card result exists at tests/fixtures/users.json line 4 with properties.value ************6467 and level error; the digits 4539 appear nowhere in the output"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # Explicit paths replace the conventional set: only the seed directory is scanned.
+  - name: boundary-explicit-paths
+    input:
+      command: "python3 scripts/scan_test_data.py evals/fixtures/planted-repo --paths db"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "tool.properties.directories is [db], files 1; exactly two results: pii/iban and pii/ip-address"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): fictional values only -> empty results.
+  - name: boundary-empty-clean-fixtures
+    input:
+      command: "python3 scripts/scan_test_data.py evals/fixtures/clean-repo"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; tool.properties.scanned is 1 and byRule is empty"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-allowlist
+    input:
+      command: "python3 scripts/scan_test_data.py evals/fixtures/planted-repo --allowlist evals/fixtures/bad-allowlist.json"
+    expected:
+      kind: failure
+      failureCode: allowlist-invalid
+      assertions:
+        - "exit code is 1 — the allowlist is a JSON array, not an object — and stderr says allowlist-invalid"
+
+  - name: boundary-missing-paths-entry
+    input:
+      command: "python3 scripts/scan_test_data.py evals/fixtures/planted-repo --paths nope"
+    expected:
+      kind: failure
+      failureCode: paths-missing
+      assertions:
+        - "exit code is 1 and stderr says paths-missing and names nope"
+
+  - name: boundary-invalid-path
+    input:
+      command: "python3 scripts/scan_test_data.py evals/fixtures/planted-repo/src/app.py"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 — the repository path is a file"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/scan_test_data.py evals/fixtures/planted-repo | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"
