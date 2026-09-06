@@ -57,13 +57,13 @@ def main():
     try:
         toplevel = run(["git", "rev-parse", "--show-toplevel"], cwd=repo).strip()
     except RuntimeError as e:
-        sys.exit(f"ERROR: not a git repository ({repo}): {e}")
+        sys.exit(f"ERROR: not a git repository (repo-invalid) ({repo}): {e}")
     # <repo-path> must be the repository root itself. A plain directory
     # that merely sits inside some enclosing repository is not a
     # repository — treating it as one would diff the enclosing repo.
     if Path(toplevel).resolve() != repo.resolve():
         sys.exit(
-            f"ERROR: not a git repository root ({repo}): it is a plain "
+            f"ERROR: not a git repository root (repo-invalid) ({repo}): it is a plain "
             f"directory inside the repository at {toplevel}"
         )
 
@@ -75,7 +75,7 @@ def main():
     try:
         run(["git", "rev-parse", "--verify", base], cwd=repo)
     except RuntimeError as e:
-        sys.exit(f"ERROR: base ref {base!r} does not exist: {e}")
+        sys.exit(f"ERROR: base ref {base!r} does not exist (base-ref-missing): {e}")
 
     try:
         stat_output = run(["git", "diff", "--stat", f"{base}...HEAD"], cwd=repo)

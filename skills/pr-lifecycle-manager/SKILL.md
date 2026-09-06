@@ -239,6 +239,9 @@ ran, was skipped by check-before-act, or was declined, with
 - `step-failed-compensated`: a mutating step failed after an earlier
   step succeeded; the earlier step's compensating action was offered
   and the status-report names it.
+- `checkpoint-invalid`: a `completed` checkpoint was written for a
+  step with no `pending` record — the two-phase order (SDS-S-053) was
+  broken; nothing is recorded.
 
 ## @example
 

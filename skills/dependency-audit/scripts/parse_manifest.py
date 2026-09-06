@@ -46,7 +46,7 @@ def parse_npm(repo):
         try:
             data = json.loads(lockfile.read_text())
         except json.JSONDecodeError as e:
-            sys.exit(f"ERROR: package-lock.json is not valid JSON: {e}")
+            sys.exit(f"ERROR: package-lock.json is not valid JSON (manifest-unparseable): {e}")
         packages = data.get("packages", {})
         for path, info in packages.items():
             if not path or path == "":
@@ -67,7 +67,7 @@ def parse_npm(repo):
         try:
             data = json.loads(manifest.read_text())
         except json.JSONDecodeError as e:
-            sys.exit(f"ERROR: package.json is not valid JSON: {e}")
+            sys.exit(f"ERROR: package.json is not valid JSON (manifest-unparseable): {e}")
         for section in ("dependencies", "devDependencies"):
             for name, spec in data.get(section, {}).items():
                 version, resolved = _strip_range(spec)

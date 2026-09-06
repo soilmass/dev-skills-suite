@@ -129,7 +129,7 @@ def main():
     else:
         pending = [s for s in record["steps"] if s["step"] == step and s["status"] == "pending"]
         if not pending:
-            sys.exit(f"ERROR: no pending record for step {step!r} in {path}; write --status pending before the mutating call")
+            sys.exit(f"ERROR: no pending record for step {step!r} in {path}; write --status pending before the mutating call (checkpoint-invalid)")
         entry = pending[-1]
         entry["status"] = "completed"
         entry["completedAt"] = now()

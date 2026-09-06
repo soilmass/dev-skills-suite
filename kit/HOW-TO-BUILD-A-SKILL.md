@@ -245,8 +245,13 @@ manifests against Claude Code's own schema.
    the Procedure actually does, not what's convenient to declare.
 2. Validate any produced example artifact against its shape's
    `.schema.json` in `kit/shapes/` using a JSON Schema validator.
-3. Run the eval table. All rows pass, including the mutation fixture
-   and fixed-point row where required.
+3. Run the eval table: `python3 kit/scripts/run-evals.py
+   skills/<skill>` runs the generators and every row that carries a
+   command, checks the exit code against `expected.kind`, the
+   `failureCode` against stderr, and a registered `shape` against
+   the schema. All rows pass, including the mutation fixture and
+   fixed-point row where required; then read the prose assertions
+   against the actual output — the runner does not evaluate them.
 4. Re-read the glossary (`kit/shared/glossary.md`) and confirm you
    didn't introduce a synonym for a term it already defines
    (SDS-F-061).

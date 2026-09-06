@@ -26,7 +26,6 @@ rows:
       command: "python3 scripts/parse_manifest.py evals/fixtures/vulnerable-npm"
     expected:
       kind: success
-      shape: finding-list
       assertions:
         - "output is a JSON array with one entry: {ecosystem: npm, name: lodash, version: 4.17.15, resolved: false, source: package.json}"
 

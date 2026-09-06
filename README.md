@@ -103,10 +103,15 @@ eval file whose rows are real, runnable commands.
 
 ## Building a skill
 
-Follow `kit/HOW-TO-BUILD-A-SKILL.md`, then run the conformance linter:
+Follow `kit/HOW-TO-BUILD-A-SKILL.md`, then run the conformance linter
+and the eval runner:
 
     python3 kit/scripts/lint-skill.py skills/<name>
     python3 kit/scripts/lint-skill.py --all skills
+    python3 kit/scripts/run-evals.py skills/<name>
+    python3 kit/scripts/run-evals.py --all skills
 
 A skill is done when the linter reports zero errors and every eval row
-passes (SDS-S-110).
+passes (SDS-S-110). The runner executes each row's command from the
+skill directory and checks its exit code, failure code, and shape; the
+prose assertions are read by a person.

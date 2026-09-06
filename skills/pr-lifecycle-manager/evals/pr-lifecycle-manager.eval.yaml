@@ -120,10 +120,10 @@ rows:
           --state-dir evals/fixtures/state-scratch
     expected:
       kind: failure
-      failureCode: step-failed-compensated
+      failureCode: checkpoint-invalid
       assertions:
         - "exit code is 1"
-        - "stderr says there is no pending record for step 'merge' — a completed record can never appear without a prior pending one"
+        - "stderr says there is no pending record for step 'merge' (checkpoint-invalid) — a completed record can never appear without a prior pending one"
 
   # N/A — shape-out is status-report, not finding-list (SDS-S-095).
   - name: mutation-fixture
