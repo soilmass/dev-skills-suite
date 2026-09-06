@@ -73,6 +73,11 @@ rhythm, each hanging off an existing cluster and pinned to a standard
 | Collaboration & Docs | accessibility-audit, i18n-string-inventory |
 | Testing & CI | test-data-pii-scan, github-actions-cost-audit |
 
+**Cross-cutting (2026-09-06):** `findings-digest` — the first consumer of
+`finding-list`, the shape 37 skills produce; added when the README's
+generated shape graph showed the family's dominant shape had no
+consumer. It merges any number of audit outputs into one status-report.
+
 ## Core Model: a skill is a function
 
 ```
