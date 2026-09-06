@@ -66,12 +66,12 @@ rhythm, each hanging off an existing cluster and pinned to a standard
 
 | Cluster | Skills |
 |---|---|
-| Code Quality & Hygiene | commit-message-lint, codeowners-check |
+| Code Quality & Health | commit-message-lint, codeowners-check |
 | Performance & Observability | retry-timeout-audit, sla-error-budget-check |
 | Local Dev & Environment | docker-compose-review |
-| Release & Operations | terraform-plan-review, github-actions-cost-audit |
+| Release & Operations | terraform-plan-review |
 | Collaboration & Docs | accessibility-audit, i18n-string-inventory |
-| Testing & Verification | test-data-pii-scan |
+| Testing & CI | test-data-pii-scan, github-actions-cost-audit |
 
 ## Core Model: a skill is a function
 
