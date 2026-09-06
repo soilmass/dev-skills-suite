@@ -2,6 +2,7 @@ name: git-readonly
 effect-tier: domain-read-only
 allowed-tools:
   - "Bash(git status:*)"
+  - "Bash(git rev-parse:*)"
   - "Bash(git log:*)"
   - "Bash(git diff:*)"
   - "Bash(git show:*)"

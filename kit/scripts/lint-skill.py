@@ -1150,6 +1150,10 @@ def c_s054(ctx):
 def c_s062(ctx):
     out = []
     for sf in script_files(ctx):
+        # checkpoint.py is the name the spec itself mandates for multi-step
+        # Command Skills (SDS-S-055), so it is exempt from the verb_noun rule.
+        if sf.name == "checkpoint.py":
+            continue
         if not re.match(r"^[a-z]+_[a-z0-9_]+\.(py|sh)$", sf.name) or sf.stem in {"utils", "helpers", "common"}:
             out.append(F(ctx, "SDS-S-062", f"script name {sf.name!r} is not snake_case verb_noun", f"scripts/{sf.name}", level="INFO"))
     return out
@@ -1412,7 +1416,10 @@ def c_s096(ctx):
             if not gitignored(d, rel):
                 out.append(F(ctx, "SDS-S-096", f"nested git repository {rel}/ is not gitignored (would become a gitlink)", f"evals/fixtures/{rel}"))
         for sub in d.iterdir():
-            if sub.is_dir() and not any(sub.iterdir()):
+            # Generated (gitignored) directories are rebuilt by a build-*.sh
+            # and are never tracked, so the .gitkeep rule for static
+            # fixtures does not apply to them.
+            if sub.is_dir() and not any(sub.iterdir()) and not gitignored(d, sub.name):
                 out.append(F(ctx, "SDS-S-096", f"empty fixture directory {sub.name}/ needs a .gitkeep", f"evals/fixtures/{sub.name}"))
     return out
 

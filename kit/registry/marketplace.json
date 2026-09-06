@@ -94,9 +94,9 @@
     },
     {
       "name": "pr-lifecycle-manager",
-      "description": "Orchestrates a PR end-to-end: opens, requests reviewers, watches CI, and merges once green and confirmed.",
+      "description": "Orchestrates a pull request end to end: opens it from the current branch if none exists, requests reviewers, verifies CI and review state, and merges only after an explicit high-risk confirmation. Use when finishing a feature branch, when asked to open, ship, land, or merge a PR, or when a PR is green and waiting to be merged.",
       "version": "0.1.0",
-      "status": "planned",
+      "status": "built",
       "effect-tier": "irreversible",
       "tier": "pillar",
       "shape-out": "status-report",
