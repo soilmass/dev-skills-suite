@@ -98,7 +98,7 @@ def main():
     compensating = take(args, "--compensating-action")
     show = take(args, "--show", required_value=False)
     if len(args) != 2:
-        sys.exit("ERROR: usage: checkpoint.py <skill> <key> (--step <name> --status pending|completed | --show) [--state-dir <dir>]")
+        sys.exit("ERROR: usage: checkpoint.py <skill> <key> (--step <name> --status pending [--pre-state-file <json>] [--compensating-action \"<text>\"] | --step <name> --status completed [--post-state-file <json>] | --show) [--state-dir <dir>]")
     skill, key = args
 
     if state_dir is None:
