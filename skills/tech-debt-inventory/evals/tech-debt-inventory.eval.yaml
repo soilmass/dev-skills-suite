@@ -1,0 +1,90 @@
+# Table-driven eval file for tech-debt-inventory (SDS-S-090).
+#
+# A rung-1 Query Skill with a purely local scanner, so every row is
+# deterministic against static fixtures: a planted repository with one
+# file per signal (SDS-S-095 mutation fixture), a clean file that must
+# stay silent, a prose file the extension filter must ignore, and an
+# empty repository. No generated fixtures, no network.
+
+skill: tech-debt-inventory
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): the planted repository yields all three signal kinds.
+  - name: happy-path-planted-repo
+    input:
+      command: "python3 scripts/scan_debt.py evals/fixtures/planted-repo --long-file-lines 40"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "exactly 3 debt/marker findings (TODO info, FIXME warning, HACK warning), all in markers.py"
+        - "exactly 1 debt/long-file finding, for long_module.py"
+        - "exactly 2 debt/duplicate-block findings sharing one fingerprint, one each in dup_a.py and dup_b.py"
+        - "no finding points at clean.py or notes.md"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted FIXME is found at its exact line.
+  - name: mutation-fixture-planted-fixme
+    input:
+      command: "python3 scripts/scan_debt.py evals/fixtures/planted-repo"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "a debt/marker finding with properties.marker FIXME exists at markers.py line 11 with level warning"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): an empty repository yields a zero-entry finding-list.
+  - name: boundary-empty-repo
+    input:
+      command: "python3 scripts/scan_debt.py evals/fixtures/empty-repo"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; the document is otherwise complete and schema-valid"
+
+  # Boundary: nothing crosses the default thresholds -> the long-file signal is absent at 500 lines.
+  - name: boundary-no-long-file-at-default-threshold
+    input:
+      command: "python3 scripts/scan_debt.py evals/fixtures/planted-repo"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "no debt/long-file finding (long_module.py is 60 lines, below the default 500)"
+        - "markers and duplicate-block findings are still present"
+
+  # REQUIRED — boundary: malformed/invalid input (SDS-C-019 fail-fast).
+  - name: boundary-invalid-repo-path
+    input:
+      command: "python3 scripts/scan_debt.py evals/fixtures/planted-repo/clean.py"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 — the path is a file, not a directory"
+
+  - name: boundary-malformed-threshold
+    input:
+      command: "python3 scripts/scan_debt.py evals/fixtures/planted-repo --long-file-lines forty"
+    expected:
+      kind: failure
+      failureCode: bad-argument
+      assertions:
+        - "exit code is 1 and stderr says bad-argument"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): the finding-list is SARIF-compatible for a downstream consumer such as code scanning.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/scan_debt.py evals/fixtures/planted-repo --long-file-lines 40 | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"

@@ -4,9 +4,9 @@
   "skills": [
     {
       "name": "tech-debt-inventory",
-      "description": "Scans a codebase for debt markers (TODOs, duplicated logic, god files) and produces a prioritized inventory.",
+      "description": "Scans a repository's source files for technical-debt signals — TODO/FIXME/HACK markers, oversized files, duplicated code blocks — and produces a prioritized SARIF-compatible finding-list, with the model ranking what a mechanical scan cannot. Use when asked to inventory, audit, or prioritize technical debt, before planning a refactor, or when the user mentions TODOs, code smells, or god files.",
       "version": "0.1.0",
-      "status": "planned",
+      "status": "built",
       "effect-tier": "local-read-only",
       "tier": "pillar",
       "shape-out": "finding-list",
