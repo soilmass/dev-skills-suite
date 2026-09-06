@@ -36,7 +36,10 @@ Rules emitted:
 A kind needs at least --min-votes (default 3) identifiers before a
 dominant style is declared; below that nothing is reported for it.
 Dunder names, `_`-prefixed private names' leading underscores, and
-`self`/`cls` are ignored when classifying.
+`self`/`cls` are ignored when classifying. A module-level name bound
+to a `TypeVar(...)` / `typing.TypeVar(...)` call is ignored entirely
+(neither a vote nor a violation): PEP 484's own TypeVar naming
+convention is not this tree's general variable-naming convention.
 
 Prints one finding-list; a consistent tree yields an empty `results`
 array (SDS-C-033). Exit 1 with "ERROR: ..." on stderr for a path that
@@ -65,6 +68,22 @@ ALLOWED = {
     "argument": ("snake_case", "camelCase"),
 }
 IGNORE = {"self", "cls", "_"}
+
+
+def _is_typevar_call(value):
+    """True for `X = TypeVar(...)` / `X = typing.TypeVar(...)`: PEP
+    484's own naming convention for TypeVars (CapWords, optionally
+    `_`-prefixed and `_co`/`_contra`-suffixed for variance) is not
+    this tree's general variable-naming convention, so a TypeVar
+    assignment is not a naming-convention vote or violation."""
+    if not isinstance(value, ast.Call):
+        return False
+    func = value.func
+    if isinstance(func, ast.Name):
+        return func.id == "TypeVar"
+    if isinstance(func, ast.Attribute):
+        return func.attr == "TypeVar"
+    return False
 
 
 def style_of(name, kind):
@@ -105,6 +124,8 @@ def collect(tree, rel):
             bound[t.id] += 1
     for node in tree.body:
         if isinstance(node, ast.Assign):
+            if _is_typevar_call(node.value):
+                continue
             for t in node.targets:
                 if isinstance(t, ast.Name) and bound[t.id] == 1:
                     kind = "constant" if isinstance(node.value, ast.Constant) or (isinstance(node.value, (ast.Tuple, ast.List, ast.Set)) and all(isinstance(e, ast.Constant) for e in node.value.elts)) else "variable"

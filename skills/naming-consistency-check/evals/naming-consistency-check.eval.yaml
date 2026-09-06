@@ -44,6 +44,21 @@ rows:
       assertions:
         - "tool.properties.dominant.function is camelCase and results is empty"
 
+  # REQUIRED — boundary: false positive found dogfooding this skill on
+  # psf/requests (src/requests/_types.py: `_T_co = TypeVar("_T_co",
+  # covariant=True)`, and similarly in cookies.py, structures.py,
+  # utils.py) — a TypeVar assignment follows PEP 484's own naming
+  # convention, not the tree's general variable-naming convention.
+  - name: boundary-typevar-assignment
+    input:
+      command: "python3 scripts/check_naming.py evals/fixtures/boundary-typevar-src"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "results is empty: _T_co (bound via typing.TypeVar(...)) draws no naming/mixed-convention finding and casts no vote"
+        - "tool.properties.votes.variable is exactly snake_case 3 — _T_co is not counted"
+
   # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): no Python files -> empty results and no dominant styles.
   - name: boundary-empty-tree
     input:
