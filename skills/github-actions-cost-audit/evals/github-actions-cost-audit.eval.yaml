@@ -1,0 +1,123 @@
+# Table-driven eval file for github-actions-cost-audit (SDS-S-090).
+#
+# A rung-3 Query Skill whose only external call is the runs API; every
+# blocking row replaces it with a frozen recording in the API shape
+# (frozen-gh-actions-runs.json, hand-built to the workflow_runs
+# schema: 16 runs in the window, one before it, one without
+# timestamps) and injects the clock (SDS-S-064, SDS-S-065). The
+# planted repository has a CI workflow on push+pull_request with no
+# concurrency, a macOS release workflow, and a nightly workflow that
+# cancels in progress; the lean repository must stay silent.
+
+skill: github-actions-cost-audit
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): every planted waste pattern is attributed to its workflow.
+  - name: happy-path-planted-runs
+    input:
+      command: "python3 scripts/audit_actions_cost.py evals/fixtures/planted-repo --runs-json-file evals/fixtures/frozen-gh-actions-runs.json --as-of 2026-09-06T00:00:00Z"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "warnings: actions-cost/duplicate-trigger on ci.yml (commits 2, examples bbb444 and ccc555); actions-cost/expensive-runner on release.yml (macos, multiplier 10, minutes 70, weightedMinutes 700); actions-cost/long-run on release.yml (medianMinutes 35, limit 30); actions-cost/no-concurrency-cancel on ci.yml (supersededRuns 2 — three distinct commits on feat/x; the re-run attempt is not a supersession); nightly.yml draws no concurrency finding (cancel-in-progress true)"
+        - "infos: actions-cost/failed-minutes on ci.yml (40 of 124); actions-cost/reruns on ci.yml (12); actions-cost/top-workflow on release.yml (share 0.803, weightedMinutes 700); ci.yml at 124/872 is below the 25% floor"
+        - "tool.properties: since 2026-08-07T00:00:00Z (30 days before as-of), runs 16 (the July run and the run without timestamps are excluded), minutes 242, weightedMinutes 872, workflows table with ci.yml 8 runs / 124, nightly.yml 6 / 48, release.yml 2 / 70 / 700; warnings before infos"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted macOS workflow is found with its multiplier, from the frozen recording.
+  - name: mutation-fixture-expensive-runner
+    input:
+      command: "python3 scripts/audit_actions_cost.py evals/fixtures/planted-repo --runs-json-file evals/fixtures/frozen-gh-actions-runs.json --as-of 2026-09-06T00:00:00Z"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "an actions-cost/expensive-runner result exists at .github/workflows/release.yml with properties.runner macos, multiplier 10, weightedMinutes 700, level warning"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # The long-run threshold is a parameter: at 40 the 35-minute median is no longer long.
+  - name: boundary-long-minutes
+    input:
+      command: "python3 scripts/audit_actions_cost.py evals/fixtures/planted-repo --runs-json-file evals/fixtures/frozen-gh-actions-runs.json --as-of 2026-09-06T00:00:00Z --long-minutes 40"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "exactly six results; no actions-cost/long-run"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): a lean repository -> empty results; a window with no runs -> empty results.
+  - name: boundary-empty-lean-repository
+    input:
+      command: "python3 scripts/audit_actions_cost.py evals/fixtures/lean-repo --runs-json-file evals/fixtures/runs-lean.json --as-of 2026-09-06T00:00:00Z"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array — one workflow, two runs on different commits and branches, no re-runs — and tool.properties.minutes is 11"
+
+  - name: boundary-empty-no-runs
+    input:
+      command: "python3 scripts/audit_actions_cost.py evals/fixtures/lean-repo --runs-json-file evals/fixtures/runs-empty.json --as-of 2026-09-06T00:00:00Z"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; tool.properties.runs is 0"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-runs
+    input:
+      command: "python3 scripts/audit_actions_cost.py evals/fixtures/planted-repo --runs-json-file evals/fixtures/runs-malformed.json --as-of 2026-09-06T00:00:00Z"
+    expected:
+      kind: failure
+      failureCode: runs-unparseable
+      assertions:
+        - "exit code is 1 — workflow_runs is a string, not an array — and stderr says runs-unparseable"
+
+  - name: boundary-malformed-workflow
+    input:
+      command: "python3 scripts/audit_actions_cost.py evals/fixtures/broken-repo --runs-json-file evals/fixtures/runs-lean.json --as-of 2026-09-06T00:00:00Z"
+    expected:
+      kind: failure
+      failureCode: workflows-unparseable
+      assertions:
+        - "exit code is 1 and stderr names .github/workflows/ci.yml and says workflows-unparseable"
+
+  - name: boundary-missing-as-of
+    input:
+      command: "python3 scripts/audit_actions_cost.py evals/fixtures/planted-repo --runs-json-file evals/fixtures/runs-lean.json"
+    expected:
+      kind: failure
+      failureCode: as-of-invalid
+      assertions:
+        - "exit code is 1 and stderr says --as-of is required with a fixture (as-of-invalid)"
+
+  - name: boundary-invalid-repo-path
+    input:
+      command: "python3 scripts/audit_actions_cost.py evals/fixtures/runs-lean.json --runs-json-file evals/fixtures/runs-lean.json --as-of 2026-09-06T00:00:00Z"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 — the repository path is a file"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/audit_actions_cost.py evals/fixtures/planted-repo --runs-json-file evals/fixtures/frozen-gh-actions-runs.json --as-of 2026-09-06T00:00:00Z | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"
+
+---
+# Live, read-only smoke check (asserting SHAPE only; SDS-S-092) —
+# requires gh auth against a real repository and is not a gate:
+#   python3 scripts/audit_actions_cost.py . | python3 -c "import json,sys,jsonschema; jsonschema.validate(json.load(sys.stdin), json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json')))"

@@ -1,0 +1,31 @@
+{
+  "total_count": 2,
+  "workflow_runs": [
+    {
+      "id": 5,
+      "name": "CI",
+      "path": ".github/workflows/ci.yml",
+      "event": "push",
+      "head_sha": "h1",
+      "head_branch": "main",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "run_started_at": "2026-09-02T09:00:00Z",
+      "updated_at": "2026-09-02T09:06:00Z"
+    },
+    {
+      "id": 6,
+      "name": "CI",
+      "path": ".github/workflows/ci.yml",
+      "event": "pull_request",
+      "head_sha": "h2",
+      "head_branch": "feat/a",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "run_started_at": "2026-09-02T10:00:00Z",
+      "updated_at": "2026-09-02T10:05:00Z"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+name: Release
+on:
+  push:
+    tags: ["v*"]
+jobs:
+  build-ios:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - run: xcodebuild

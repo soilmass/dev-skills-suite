@@ -572,6 +572,16 @@
       "shape-out": "finding-list",
       "shape-in": "freeform",
       "status": "built"
+    },
+    {
+      "name": "github-actions-cost-audit",
+      "description": "Attributes a repository's GitHub Actions minutes to its workflows over a window and finds the usual waste — macOS and Windows runners billed at 10x and 2x, the same commit run on both push and pull_request, pull-request workflows without concurrency cancellation that keep running after a newer push, long median runs, minutes spent on failed runs and re-runs — as a finding-list with per-workflow minutes attached; then judges which fixes pay back. Use when the Actions bill or the minutes quota surprises someone, before adding a runner or a workflow, or when asked where the CI minutes go.",
+      "version": "0.1.0",
+      "effect-tier": "external-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform",
+      "status": "built"
     }
   ]
 }

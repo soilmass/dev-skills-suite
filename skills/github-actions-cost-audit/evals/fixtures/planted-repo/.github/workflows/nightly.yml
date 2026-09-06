@@ -1,0 +1,13 @@
+name: Nightly
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  pull_request:
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - run: make e2e
