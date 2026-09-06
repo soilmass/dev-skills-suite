@@ -522,6 +522,16 @@
       "tier": "situational",
       "shape-out": "finding-list",
       "shape-in": "freeform"
+    },
+    {
+      "name": "docker-compose-review",
+      "description": "Reviews a Docker Compose file, service by service, for the definitions that bite in production or leak in development — unpinned images, no healthcheck, depends_on without a readiness condition, privileged or host-namespace services, secret literals in environment, root or Docker-socket bind mounts, ports published on every interface, no resource limits, no restart policy — as a finding-list judged under a dev or prod profile, leaving the call on what this file is for to a human. Use before a compose file goes to a shared host, when a container escaped or starved the box, or when asked to review docker-compose.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
     }
   ]
 }

@@ -1,0 +1,40 @@
+# Planted compose: one service per pattern beside a well-formed one
+services:
+  web:
+    image: nginx
+    privileged: true
+    environment:
+      DB_PASSWORD: hunter2
+      API_KEY: ${API_KEY}
+    ports:
+      - "8080:80"
+  worker:
+    image: shop/worker:1.4.0
+    network_mode: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data:/data
+    depends_on:
+      - db
+  db:
+    image: postgres:latest
+    healthcheck:
+      test: ["CMD", "pg_isready"]
+      interval: 10s
+  api:
+    image: shop/api:1.4.0@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    environment:
+      - SECRET_KEY=${SECRET_KEY}
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "1"
+    restart: unless-stopped

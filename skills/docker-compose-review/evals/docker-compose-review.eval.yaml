@@ -1,0 +1,96 @@
+# Table-driven eval file for docker-compose-review (SDS-S-090).
+#
+# A rung-1 Query Skill over a planted compose file carrying one service
+# per pattern beside a well-formed service, reviewed under both
+# profiles; a clean file that must stay silent; and malformed inputs.
+# Every row is deterministic and offline — no engine is contacted.
+
+skill: docker-compose-review
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): every planted pattern is reported on its service under the dev profile.
+  - name: happy-path-planted-dev
+    input:
+      command: "python3 scripts/review_compose.py evals/fixtures/compose-planted.yml"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "web: compose/unpinned-image (nginx, no tag), compose/privileged, compose/secret-literal for DB_PASSWORD (not for API_KEY=${API_KEY}), compose/port-all-interfaces for 8080:80 at level info (dev), compose/no-healthcheck, compose/no-resource-limits"
+        - "worker: compose/host-network (network_mode host), compose/root-bind-mount for /var/run/docker.sock, compose/depends-on-no-condition for [db] (list form), compose/no-healthcheck, compose/no-resource-limits; db: compose/unpinned-image (postgres:latest), compose/no-resource-limits only — it has a healthcheck"
+        - "api draws nothing (pinned image with digest, healthcheck, depends_on with condition, 127.0.0.1 port, limits, ${SECRET_KEY}); no compose/no-restart-policy under dev; tool.properties.profile dev, services [api, db, web, worker]; warnings before infos"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted secret literal is found on its service.
+  - name: mutation-fixture-secret-literal
+    input:
+      command: "python3 scripts/review_compose.py evals/fixtures/compose-planted.yml"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "a compose/secret-literal result exists with properties.service web and key DB_PASSWORD, level warning"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # The prod profile raises host-port exposure to a warning and adds the restart-policy check.
+  - name: boundary-prod-profile
+    input:
+      command: "python3 scripts/review_compose.py evals/fixtures/compose-planted.yml --profile prod"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "compose/port-all-interfaces for web is level warning; compose/no-restart-policy appears for web, worker, and db but not api (restart: unless-stopped)"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): a well-formed file -> empty results under prod too.
+  - name: boundary-empty-findings-clean-file
+    input:
+      command: "python3 scripts/review_compose.py evals/fixtures/compose-clean.yml --profile prod"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-yaml
+    input:
+      command: "python3 scripts/review_compose.py evals/fixtures/compose-malformed.yml"
+    expected:
+      kind: failure
+      failureCode: compose-unparseable
+      assertions:
+        - "exit code is 1 and stderr says compose-unparseable"
+
+  - name: boundary-no-services
+    input:
+      command: "python3 scripts/review_compose.py evals/fixtures/compose-no-services.yml"
+    expected:
+      kind: failure
+      failureCode: compose-invalid
+      assertions:
+        - "exit code is 1 — valid YAML without a services mapping — and stderr says compose-invalid"
+
+  - name: boundary-invalid-profile
+    input:
+      command: "python3 scripts/review_compose.py evals/fixtures/compose-clean.yml --profile staging"
+    expected:
+      kind: failure
+      failureCode: profile-invalid
+      assertions:
+        - "exit code is 1 and stderr says profile-invalid"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/review_compose.py evals/fixtures/compose-planted.yml | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"

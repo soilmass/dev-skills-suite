@@ -1,0 +1,14 @@
+services:
+  api:
+    image: shop/api:1.4.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+    ports:
+      - target: 8000
+        published: 8000
+        host_ip: 127.0.0.1
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    restart: always
