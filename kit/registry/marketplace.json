@@ -452,6 +452,16 @@
       "tier": "situational",
       "shape-out": "finding-list",
       "shape-in": "freeform"
+    },
+    {
+      "name": "public-api-change-check",
+      "description": "Compares two versions of a Python package's public surface — the names `__all__` exports or that carry no leading underscore, their signatures, class methods and attributes — and reports what breaks importers: symbols removed, parameters removed, renamed, or made required, defaults and return annotations changed, with additions as information and a semver verdict (major, minor, patch). Use before releasing a library, when reviewing a refactor of a shared package, or when asked whether a change is backwards compatible for callers.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
     }
   ]
 }

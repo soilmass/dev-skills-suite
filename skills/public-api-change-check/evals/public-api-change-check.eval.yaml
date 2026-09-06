@@ -1,0 +1,87 @@
+# Table-driven eval file for public-api-change-check (SDS-S-090).
+#
+# A rung-1 Query Skill over three planted snapshots of one package: the
+# released surface, a proposed version carrying one instance of each
+# change, and a purely additive version. Every row is deterministic
+# and offline — nothing is imported.
+
+skill: public-api-change-check
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): every planted change is reported by dotted symbol; the verdict is major.
+  - name: happy-path-planted-changes
+    input:
+      command: "python3 scripts/diff_public_api.py evals/fixtures/old evals/fixtures/new"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "errors: api/symbol-removed for pkg.pricing.legacy_total (function), pkg.pricing.Cart.clear (method), and pkg.export (module — its members are not reported separately); api/param-required-added for pkg.pricing.price param discount (lost its default)"
+        - "warnings: api/param-renamed for pkg.pricing.Cart.add qty -> quantity at position 2 (0-based, self counted); infos: api/default-changed for pkg.pricing.price currency USD -> EUR, api/symbol-added for pkg.pricing.refund (function) and pkg.refunds (module, members not reported); the private _internal helper and Cart.TAX draw nothing"
+        - "tool.properties.verdict is major, breaking 4; errors before warnings before infos"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted removed method is found by symbol.
+  - name: mutation-fixture-method-removed
+    input:
+      command: "python3 scripts/diff_public_api.py evals/fixtures/old evals/fixtures/new"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "an api/symbol-removed result exists with properties.symbol pkg.pricing.Cart.clear, kind method, located at pricing.py in the old snapshot, level error"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # An additive change alone is a minor bump.
+  - name: boundary-additive-only
+    input:
+      command: "python3 scripts/diff_public_api.py evals/fixtures/old evals/fixtures/additive"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "exactly one result, api/symbol-added for pkg.pricing.refund at level info; tool.properties.verdict is minor, breaking 0"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): identical snapshots -> empty results, verdict patch.
+  - name: boundary-empty-identical-snapshots
+    input:
+      command: "python3 scripts/diff_public_api.py evals/fixtures/old evals/fixtures/old"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; tool.properties.verdict is patch"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-source
+    input:
+      command: "python3 scripts/diff_public_api.py evals/fixtures/old evals/fixtures/broken"
+    expected:
+      kind: failure
+      failureCode: source-unparseable
+      assertions:
+        - "exit code is 1 and stderr names broken.py and says source-unparseable"
+
+  - name: boundary-invalid-path
+    input:
+      command: "python3 scripts/diff_public_api.py evals/fixtures/old evals/fixtures/old/pricing.py"
+    expected:
+      kind: failure
+      failureCode: package-invalid
+      assertions:
+        - "exit code is 1 — the new path is a file, not a directory"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/diff_public_api.py evals/fixtures/old evals/fixtures/new | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"
