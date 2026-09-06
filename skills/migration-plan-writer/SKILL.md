@@ -6,8 +6,8 @@ description: >-
   beside the old, usage moved in shippable slices, the old path
   removed last and only after a verification step — refusing a plan
   that skips the coexistence phase or contracts before migrating. Use
-  when replacing a library, API, schema, or service, when asked how to
-  migrate off something, or before a large refactor.
+  when replacing a library, API, database table, or service, when asked
+  how to migrate off something, or before a large refactor.
 license: Apache-2.0
 compatibility: Requires the Python `jsonschema` package (the check
   script validates the plan against the family shape).
