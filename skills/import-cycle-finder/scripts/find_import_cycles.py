@@ -15,7 +15,11 @@ imports via a pattern over `import ... from '...'`, bare `import
 '...'`, `export ... from '...'`, and `require('...')` — only relative
 specifiers (`./`, `../`) are resolved; a bare specifier is external
 and ignored. `--lang` (default `auto`) scans Python only, JavaScript
-only, or both.
+only, or both. A Python import nested inside `if TYPE_CHECKING:` (or
+`if typing.TYPE_CHECKING:`) is not counted as an edge: it exists only
+for static type checkers and never executes at runtime, so it cannot
+form a real circular import — the `else` branch of that same `if`, if
+present, does execute at runtime and is still counted.
 
 Tarjan's algorithm finds the graph's strongly connected components.
 Every component of two or more modules is one `arch/import-cycle`
@@ -105,6 +109,30 @@ def resolve_relative_py(level, module, name, importing_rel, root):
     return None
 
 
+def _is_type_checking_test(test):
+    if isinstance(test, ast.Name) and test.id == "TYPE_CHECKING":
+        return True
+    if isinstance(test, ast.Attribute) and test.attr == "TYPE_CHECKING":
+        return True
+    return False
+
+
+def _walk_skip_type_checking(node):
+    """Like ast.walk, but does not descend into the `body` of an
+    `if TYPE_CHECKING:` / `if typing.TYPE_CHECKING:` block: those
+    imports exist only for static type checkers and never execute at
+    runtime, so they cannot form a real circular import (the `orelse`
+    branch does execute at runtime and is walked normally)."""
+    stack = [node]
+    while stack:
+        n = stack.pop()
+        yield n
+        if isinstance(n, ast.If) and _is_type_checking_test(n.test):
+            stack.extend(n.orelse)
+        else:
+            stack.extend(ast.iter_child_nodes(n))
+
+
 def py_edges(rel, root):
     """Yield (target_or_None, lineno, unresolved_name_or_None) for each
     import in the file at rel."""
@@ -113,7 +141,7 @@ def py_edges(rel, root):
         tree = ast.parse(text, filename=str(rel))
     except SyntaxError as e:
         sys.exit(f"ERROR: {rel.as_posix()} does not parse (source-unparseable): {e}")
-    for node in ast.walk(tree):
+    for node in _walk_skip_type_checking(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
                 target = resolve_absolute_py(alias.name, root)

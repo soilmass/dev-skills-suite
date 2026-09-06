@@ -47,6 +47,21 @@ rows:
       assertions:
         - "runs[0].results is an empty array; tool.properties is modules 2, edges 1, cycles 0, largestCycle 0, truncated false — a well-formed, zero-entry finding-list, not null or omitted"
 
+  # REQUIRED — boundary: false positive found dogfooding this skill on
+  # psf/requests (src/requests/_types.py imports .cookies only inside
+  # `if TYPE_CHECKING:`; src/requests/cookies.py imports ._types for
+  # real — the TYPE_CHECKING-only edge closed a phantom cycle that
+  # never executes at runtime).
+  - name: boundary-type-checking-only-import
+    input:
+      command: "python3 scripts/find_import_cycles.py evals/fixtures/boundary-type-checking-py"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array: the only edge counted is mod_b.py -> mod_a.py (real); mod_a.py's `if TYPE_CHECKING:` import of mod_b.py is not counted, so no cycle is found"
+        - "tool.properties.edges is 1, tool.properties.cycles is 0"
+
   # Boundary: --max-cycles truncates the cycle list but never the
   # unrelated arch/unresolved-import finding.
   - name: boundary-max-cycles
