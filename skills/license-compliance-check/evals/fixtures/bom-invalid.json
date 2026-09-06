@@ -1,0 +1,1 @@
+{ "format": "SPDX-2.3", "packages": [ { "name": "not-a-cyclonedx-bom" } ] }

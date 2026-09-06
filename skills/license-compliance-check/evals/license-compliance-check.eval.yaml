@@ -1,0 +1,110 @@
+# Table-driven eval file for license-compliance-check (SDS-S-090).
+#
+# A rung-1 Query Skill over a planted BOM covering every policy path
+# (permissive, weak copyleft, strong copyleft, network copyleft,
+# undeclared, dual-licensed OR, deprecated id), plus an empty BOM, a
+# malformed file, and a non-CycloneDX file. The upstream contract is a
+# frozen recording of sbom-generator's real output (SDS-S-093).
+
+skill: license-compliance-check
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): an MIT repository against the planted BOM.
+  - name: happy-path-mit-project
+    input:
+      command: "python3 scripts/check_licenses.py --bom evals/fixtures/bom-sample.json --own-license MIT"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "license/incompatible (error) for readline-gpl (GPL-3.0-only), old-id-lib (GPL-2.0 evaluated as GPL-2.0-only), and agpl-service (AGPL-3.0-only)"
+        - "license/review (warning) for libfoo (LGPL-2.1-or-later via license.id)"
+        - "license/unknown (warning) for mystery-lib (no license declared)"
+        - "license/nonstandard-id (info) for old-id-lib; lodash, left-pad, and dual-licensed (MIT OR Apache-2.0) produce nothing"
+        - "errors are ordered first"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted GPL component is found as incompatible.
+  - name: mutation-fixture-planted-gpl
+    input:
+      command: "python3 scripts/check_licenses.py --bom evals/fixtures/bom-sample.json --own-license MIT"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "a license/incompatible result exists with properties.component readline-gpl, license GPL-3.0-only, projectCategory permissive, level error"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # Happy path: a GPL repository accepts GPL components and only reviews AGPL.
+  - name: happy-path-gpl-project
+    input:
+      command: "python3 scripts/check_licenses.py --bom evals/fixtures/bom-sample.json --own-license GPL-3.0-only"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "no license/incompatible results; agpl-service is license/review; readline-gpl and old-id-lib pass (old-id-lib still gets its nonstandard-id info)"
+
+  # Happy path: allow and deny lists override the policy and are reported.
+  - name: happy-path-allow-deny
+    input:
+      command: "python3 scripts/check_licenses.py --bom evals/fixtures/bom-sample.json --own-license MIT --allow GPL-3.0-only --deny WTFPL"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "readline-gpl is license/allowlisted (info) instead of incompatible; left-pad is license/incompatible (error) because WTFPL is denied"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): no components -> empty results.
+  - name: boundary-empty-bom
+    input:
+      command: "python3 scripts/check_licenses.py --bom evals/fixtures/bom-empty.json --own-license MIT"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; the document is otherwise complete and schema-valid"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-bom
+    input:
+      command: "python3 scripts/check_licenses.py --bom evals/fixtures/bom-malformed.json --own-license MIT"
+    expected:
+      kind: failure
+      failureCode: bom-unparseable
+      assertions:
+        - "exit code is 1 and stderr says bom-unparseable"
+
+  - name: boundary-invalid-not-cyclonedx
+    input:
+      command: "python3 scripts/check_licenses.py --bom evals/fixtures/bom-invalid.json --own-license MIT"
+    expected:
+      kind: failure
+      failureCode: bom-invalid
+      assertions:
+        - "exit code is 1 and stderr says bom-invalid"
+
+  - name: boundary-bad-project-license
+    input:
+      command: "python3 scripts/check_licenses.py --bom evals/fixtures/bom-sample.json --own-license NotALicense-9.9"
+    expected:
+      kind: failure
+      failureCode: bad-argument
+      assertions:
+        - "exit code is 1 and stderr says bad-argument"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — consumer-driven contract with the upstream producer (SDS-C-063, SDS-S-093):
+  # sbom-generator's recorded real output is consumed without error and yields the predicted findings.
+  - name: contract-with-upstream-producer
+    input:
+      command: "python3 scripts/check_licenses.py --bom evals/fixtures/frozen-sbom-generator-bom.json --own-license MIT | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); rs=d['runs'][0]['results']; print('upstream BOM consumed;', len(rs), 'findings')\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "sbom-generator's actual BOM is accepted; serde and requests (no declared license) yield license/unknown, left-pad (WTFPL) and lodash (MIT) pass"

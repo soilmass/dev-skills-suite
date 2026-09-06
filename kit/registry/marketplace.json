@@ -151,6 +151,16 @@
       "tier": "situational",
       "shape-out": "freeform",
       "shape-in": "freeform"
+    },
+    {
+      "name": "license-compliance-check",
+      "description": "Checks every component license in a CycloneDX BOM against the repository's own SPDX license using a stated compatibility policy — strong copyleft into permissively licensed or proprietary code is incompatible, weak copyleft needs review, unknown is unknown, deprecated SPDX identifiers are flagged — and reports the result as a finding-list. Use before a release or a dependency addition, when asked whether the dependencies' licenses are acceptable, or with sbom-generator's output in hand.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
     }
   ]
 }
