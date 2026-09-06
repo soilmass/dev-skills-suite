@@ -1528,8 +1528,11 @@ def c_f031(ctx):
     if ctx.eval_path:
         out += scan_paths(ctx, "evals/" + ctx.eval_path.name, ctx.eval_raw, True)
         for r in eval_rows(ctx):
-            for m in re.finditer(r"scripts/[\w./-]+", row_command(r)):
-                if not (ctx.dir / m.group(0)).exists():
+            for m in re.finditer(r"(?:skills/([\w-]+)/)?(scripts/[\w./-]+)", row_command(r)):
+                # a token prefixed skills/<other>/ names another skill's script — a
+                # consumer-driven contract row running the real consumer (SDS-C-063)
+                base = ctx.dir.parent / m.group(1) if m.group(1) else ctx.dir
+                if not (base / m.group(2)).exists():
                     out.append(ev(ctx, "SDS-F-031", f"row {r.get('name')!r} runs {m.group(0)} which does not exist", r.get("name")))
     return [f for f in out if f.rule_id == "SDS-F-031"]
 

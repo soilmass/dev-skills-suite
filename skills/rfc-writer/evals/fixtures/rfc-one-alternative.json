@@ -1,0 +1,46 @@
+{
+  "title": "Checkout retries",
+  "status": "draft",
+  "authors": [
+    "@priya"
+  ],
+  "date": "2026-09-05",
+  "summary": "Retry transient payment-gateway failures with an idempotency key derived from the order id. About 2% of gateway calls fail transiently and every one is surfaced to the customer today. The cost is one reconciliation job and a flag.",
+  "motivation": "Payment gateway calls fail transiently about 2% of the time; each failure is shown to the customer as a declined checkout, and support sees roughly forty tickets a week that are retries done by hand.",
+  "goals": [
+    "Retry transient gateway failures without duplicating charges.",
+    "Keep p99 checkout latency under 2 s."
+  ],
+  "nonGoals": [
+    "Retrying declined cards.",
+    "Changing the checkout UI."
+  ],
+  "proposal": "Wrap the gateway client in an idempotent retry: three attempts, exponential backoff capped at 800 ms, with an idempotency key derived from the order id so a retried request that already succeeded is a no-op at the gateway. The wrapper is behind a flag and logs every retry with the attempt number and the gateway's response code.",
+  "alternatives": [
+    {
+      "name": "Client-side retry in the web app",
+      "whyNot": "duplicates charges when the first call succeeded but the response was lost; the browser has no idempotency key."
+    }
+  ],
+  "risks": [
+    {
+      "risk": "The gateway ignores the idempotency key in one region",
+      "mitigation": "a reconciliation job voids duplicate captures within five minutes; verified against the sandbox for both regions before rollout."
+    },
+    {
+      "risk": "Retries add latency on a degraded gateway",
+      "mitigation": "accepted: the backoff ceiling bounds the worst case at 2.4 s, within the p99 budget, and the flag turns it off."
+    }
+  ],
+  "rollout": {
+    "plan": "Behind a flag: 1% of traffic for one day, then 25%, then 100%, watching duplicate-capture and p99 dashboards at each step.",
+    "rollback": "flip the flag off; no data migration is involved."
+  },
+  "openQuestions": [
+    {
+      "question": "What backoff ceiling does the load test support?",
+      "owner": "@marco",
+      "blocking": false
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev-skills-suite/skills/rfc-writer/rfc.schema.json",
+  "title": "rfc",
+  "description": "The specification rfc-writer composes in Decide and hands to scripts/render_rfc.py (SDS-S-080, a skill-local shape). Sections follow the order a reviewer needs them in and are exactly the ones design-doc-review's checklist requires, so a rendered RFC passes that skill's structural pass by construction: motivation before proposal, goals with non-goals, at least two alternatives each with why it lost, risks each with a mitigation or an explicit acceptance, a rollout with its rollback, and open questions each with an owner.",
+  "type": "object",
+  "required": ["title", "status", "authors", "date", "summary", "motivation", "goals", "nonGoals", "proposal", "alternatives", "risks", "rollout"],
+  "properties": {
+    "title": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["draft", "in review", "accepted", "rejected", "superseded"] },
+    "authors": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+    "date": { "type": "string", "format": "date" },
+    "summary": { "type": "string", "minLength": 1, "maxLength": 600, "description": "The whole RFC in three sentences: the change, why, and the cost." },
+    "motivation": { "type": "string", "minLength": 1, "description": "The situation that makes the change worth its cost, stated so a reader who rejects the proposal still agrees with this." },
+    "goals": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+    "nonGoals": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 }, "description": "What this deliberately does not attempt; a goals list with no non-goals is a wish list." },
+    "proposal": { "type": "string", "minLength": 1 },
+    "alternatives": {
+      "type": "array", "minItems": 2,
+      "items": { "type": "object", "required": ["name", "whyNot"], "properties": { "name": { "type": "string", "minLength": 1 }, "description": { "type": "string" }, "whyNot": { "type": "string", "minLength": 1 } } }
+    },
+    "risks": {
+      "type": "array", "minItems": 1,
+      "items": { "type": "object", "required": ["risk", "mitigation"], "properties": { "risk": { "type": "string", "minLength": 1 }, "mitigation": { "type": "string", "minLength": 1, "description": "A mitigation, or the word 'accepted' with the reason." } } }
+    },
+    "rollout": {
+      "type": "object", "required": ["plan", "rollback"],
+      "properties": { "plan": { "type": "string", "minLength": 1 }, "rollback": { "type": "string", "minLength": 1 } }
+    },
+    "openQuestions": {
+      "type": "array",
+      "items": { "type": "object", "required": ["question", "owner"], "properties": { "question": { "type": "string", "minLength": 1 }, "owner": { "type": "string", "description": "Who will answer it; empty is refused by the render script." }, "blocking": { "type": "boolean", "default": false } } }
+    }
+  }
+}

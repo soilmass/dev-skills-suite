@@ -331,6 +331,16 @@
       "tier": "situational",
       "shape-out": "finding-list",
       "shape-in": "freeform"
+    },
+    {
+      "name": "rfc-writer",
+      "description": "Writes a request-for-comments design doc that will survive review: a three-sentence summary, motivation stated before the proposal, goals with explicit non-goals, at least two alternatives each with why it lost, risks each with a mitigation or an honest acceptance, a rollout with its rollback, and open questions each with an owner — refusing to render a placeholder, an anonymous owner, or a risk with no answer, so the page passes design-doc-review's structural pass by construction. Use when a change is big enough to need agreement before code, when asked to write an RFC or design doc, or when a decision keeps being re-litigated in chat.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-write",
+      "tier": "situational",
+      "shape-out": "freeform",
+      "shape-in": "freeform"
     }
   ]
 }

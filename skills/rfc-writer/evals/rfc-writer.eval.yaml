@@ -1,0 +1,120 @@
+# Table-driven eval file for rfc-writer (SDS-S-090).
+#
+# A rung-4 Command Skill whose render script checks an RFC
+# specification for completeness and renders it. Write-mode rows render
+# into the gitignored evals/fixtures/rfc-out/, reset by
+# build-rfc-out.sh (SDS-S-096). The contract row feeds the rendered
+# page to design-doc-review's structural check, which must find nothing
+# (SDS-C-063). Every row is deterministic and offline.
+
+skill: rfc-writer
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): a complete specification renders with no warnings, in checklist order.
+  - name: happy-path-dry-run
+    input:
+      command: "python3 scripts/render_rfc.py evals/fixtures/rfc-good.json --out-dir evals/fixtures --dry-run"
+    expected:
+      kind: success
+      assertions:
+        - "sections is exactly [Summary, Motivation, Goals, Non-goals, Proposed design, Alternatives considered, Risks and mitigations, Rollout, Open questions] and warnings is empty"
+        - "rendered begins with '# RFC: Checkout retries' and a **Status:** … **Authors:** … **Date:** line; each alternative is a ### heading followed by **Why not:**; the open question carries (owner: @marco)"
+        - "nothing was written (dry run)"
+
+  # Happy path: real write.
+  - name: happy-path-write-rfc
+    input:
+      command: "evals/fixtures/build-rfc-out.sh && python3 scripts/render_rfc.py evals/fixtures/rfc-good.json --out-dir evals/fixtures/rfc-out"
+    expected:
+      kind: success
+      assertions:
+        - "evals/fixtures/rfc-out/checkout-retries.md exists and begins with '# RFC:'"
+
+  # REQUIRED — boundary: minimal input (SDS-C-005): one goal, one non-goal, one risk, no open questions — the smallest complete RFC still renders.
+  - name: boundary-minimal-spec
+    input:
+      command: "python3 scripts/render_rfc.py evals/fixtures/rfc-minimal.json --out-dir evals/fixtures --dry-run"
+    expected:
+      kind: success
+      assertions:
+        - "sections has eight entries and omits Open questions; warnings is empty"
+
+  # Boundary: one alternative fails the shape (minItems 2) — a design compared against nothing was not compared.
+  - name: boundary-single-alternative
+    input:
+      command: "python3 scripts/render_rfc.py evals/fixtures/rfc-one-alternative.json --out-dir evals/fixtures --dry-run"
+    expected:
+      kind: failure
+      failureCode: rfc-invalid
+      assertions:
+        - "exit code is 1 and stderr names alternatives and says rfc-invalid"
+
+  # Boundary: an open question with no owner is refused (SDS-C-019).
+  - name: boundary-unowned-question
+    input:
+      command: "python3 scripts/render_rfc.py evals/fixtures/rfc-unowned-question.json --out-dir evals/fixtures --dry-run"
+    expected:
+      kind: failure
+      failureCode: rfc-incomplete
+      assertions:
+        - "exit code is 1 and stderr says open question 1 has no owner and says rfc-incomplete"
+
+  # Boundary: a placeholder anywhere is refused.
+  - name: boundary-placeholder
+    input:
+      command: "python3 scripts/render_rfc.py evals/fixtures/rfc-placeholder.json --out-dir evals/fixtures --dry-run"
+    expected:
+      kind: failure
+      failureCode: rfc-incomplete
+      assertions:
+        - "exit code is 1 and stderr names the field rollout.rollback with its TBD text and says rfc-incomplete"
+
+  # REQUIRED — boundary: empty/minimal input (SDS-C-005): a specification with no non-goals fails the shape.
+  - name: boundary-empty-non-goals
+    input:
+      command: "python3 scripts/render_rfc.py evals/fixtures/rfc-invalid.json --out-dir evals/fixtures --dry-run"
+    expected:
+      kind: failure
+      failureCode: rfc-invalid
+      assertions:
+        - "exit code is 1 and stderr names nonGoals and says rfc-invalid"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-spec
+    input:
+      command: "python3 scripts/render_rfc.py evals/fixtures/rfc-malformed.json --out-dir evals/fixtures --dry-run"
+    expected:
+      kind: failure
+      failureCode: rfc-unparseable
+      assertions:
+        - "exit code is 1 and stderr says rfc-unparseable"
+
+  - name: boundary-missing-out-dir
+    input:
+      command: "python3 scripts/render_rfc.py evals/fixtures/rfc-good.json --out-dir evals/fixtures/rfc-good.json --dry-run"
+    expected:
+      kind: failure
+      failureCode: out-dir-missing
+      assertions:
+        - "exit code is 1 — the --out-dir argument is a file, not a directory"
+
+  # N/A — shape-out is freeform, not finding-list (SDS-S-095).
+  - name: mutation-fixture
+    expected:
+      kind: not-applicable
+      reason: "rfc-writer does not search for known problems; shape-out is freeform."
+
+  # N/A — freeform/freeform is not a self-composability signal (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out and shape-in are both freeform; per SDS-S-094 that is not self-composability, and a rendered RFC is not an input to this skill."
+
+  # REQUIRED — contract (SDS-C-063): the rendered page passes design-doc-review's structural pass with zero findings — the downstream consumer's real check, not a schema.
+  - name: contract-with-design-doc-review
+    input:
+      command: "evals/fixtures/build-rfc-out.sh && python3 scripts/render_rfc.py evals/fixtures/rfc-good.json --out-dir evals/fixtures/rfc-out > evals/fixtures/rfc-out/render.json && python3 $(git rev-parse --show-toplevel)/skills/design-doc-review/scripts/check_design_doc.py evals/fixtures/rfc-out/checkout-retries.md | python3 -c \"import json,sys; rs=json.load(sys.stdin)['runs'][0]['results']; assert rs==[], rs; print('design-doc-review: no findings')\""
+    expected:
+      kind: success
+      assertions:
+        - "design-doc-review's check_design_doc.py reports an empty results array for the rendered RFC"
