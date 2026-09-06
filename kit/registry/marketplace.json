@@ -251,6 +251,16 @@
       "tier": "situational",
       "shape-out": "finding-list",
       "shape-in": "freeform"
+    },
+    {
+      "name": "repository-orientation",
+      "description": "Builds a newcomer's map of an unfamiliar repository — what languages it is written in, which manifests declare which build, test, and run commands, how the tree is laid out, where the entry points are, and which conventional signals (README, LICENSE, CI, lockfile, tests) are present or missing — then writes the orientation a reader needs in the first hour: where to start, how to run it, what is unusual. Use on the first day in a repository, before reviewing a repository you have never opened, or when asked \"how is this organised\".",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "freeform",
+      "shape-in": "freeform"
     }
   ]
 }

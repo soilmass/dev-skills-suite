@@ -1,0 +1,75 @@
+# Table-driven eval file for repository-orientation (SDS-S-090).
+#
+# A rung-1 Query Skill over a planted polyglot repository: a Python
+# package under src/ with pyproject scripts and tool sections, a small
+# JavaScript admin page with package.json scripts, a Makefile, tests,
+# docs, CI, a README and LICENSE, and deliberately no lockfile. Every
+# row is deterministic and offline.
+
+skill: repository-orientation
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): the facts object names every planted signal correctly.
+  - name: happy-path-planted-facts
+    input:
+      command: "python3 scripts/map_repository.py evals/fixtures/planted-repo"
+    expected:
+      kind: success
+      shape: freeform
+      assertions:
+        - "languages lists Python first with 4 files, then JavaScript with 2; node_modules is not counted"
+        - "manifests contains pyproject.toml (python, name shop, command shop -> shop.main:run, tools [pytest, ruff]), package.json (npm, name shop-admin, commands build and test), Makefile (make, commands make test and make lint, no .PHONY)"
+        - "entryPoints is exactly [admin/index.js, src/shop/main.py] (sorted)"
+        - "signals: readme, license, ci, tests true; contributing, changelog, lockfile false; layout.conventional.src and tests and .github/workflows true, lib false"
+        - "the object validates against assets/orientation.schema.json"
+
+  # N/A — shape-out is freeform, not finding-list (SDS-S-095).
+  - name: mutation-fixture
+    expected:
+      kind: not-applicable
+      reason: "shape-out is freeform; the mutation-fixture rule applies to finding-list producers."
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): an empty directory yields zero counts, still schema-valid.
+  - name: boundary-empty-repo
+    input:
+      command: "python3 scripts/map_repository.py evals/fixtures/empty-repo"
+    expected:
+      kind: success
+      shape: freeform
+      assertions:
+        - "fileCount is 1 (only the .gitkeep placeholder), languages, manifests and entryPoints are empty, every signal is false, and the object validates against assets/orientation.schema.json"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast): a package.json that is not JSON stops the scan.
+  - name: boundary-malformed-manifest
+    input:
+      command: "python3 scripts/map_repository.py evals/fixtures/broken-repo"
+    expected:
+      kind: failure
+      failureCode: manifest-malformed
+      assertions:
+        - "exit code is 1 and stderr names package.json and says manifest-malformed"
+
+  - name: boundary-invalid-path
+    input:
+      command: "python3 scripts/map_repository.py evals/fixtures/planted-repo/README.md"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 — the path is a file, not a directory"
+
+  # N/A — shape-out and shape-in are both freeform, which does not qualify (SDS-C-017, SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "freeform/freeform does not name a registered Shape on both sides; the fixed-point law does not apply."
+
+  # REQUIRED — contract (SDS-C-063): the facts object is what readme-writer and onboarding-doc-generator consume via --facts-file.
+  - name: contract-with-downstream-writers
+    input:
+      command: "python3 scripts/map_repository.py evals/fixtures/planted-repo | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('assets/orientation.schema.json'))); print('orientation OK', d['fileCount'])\""
+    expected:
+      kind: success
+      shape: freeform
+      assertions:
+        - "the actual output validates against assets/orientation.schema.json, the contract downstream writers pin"

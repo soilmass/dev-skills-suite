@@ -1,0 +1,4 @@
+{
+  "name": "shop-admin",
+  "scripts": {"build": "esbuild admin/index.js", "test": "node --test"}
+}

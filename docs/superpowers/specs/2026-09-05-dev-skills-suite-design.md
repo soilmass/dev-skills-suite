@@ -37,7 +37,7 @@ standalone dev-lifecycle set that assumes nothing about the project it lands in.
 | Dependencies & Supply Chain | ⭐dependency-audit | upgrade-risk-assessor, sbom-generator, license-compliance-check |
 | Performance & Observability | ⭐performance-budget-check | query-plan-review, log-taxonomy-designer, alert-fatigue-audit |
 | Release & Operations | ⭐incident-postmortem | changelog-writer, release-notes-writer, rollback-plan-writer, runbook-writer |
-| Collaboration & Docs | ⭐pr-description-writer, ⭐api-doc-writer | readme-writer, onboarding-doc-generator, codebase-orientation |
+| Collaboration & Docs | ⭐pr-description-writer, ⭐api-doc-writer | readme-writer, onboarding-doc-generator, repository-orientation |
 | GitHub Operations | ⭐sync-strategy-advisor, ⭐pr-lifecycle-manager | issue-triage, project-board-sync, release-publisher, branch-hygiene, ci-status-gate |
 
 **Bench (exploratory, not committed):** Refactoring & Modernization, Local Dev

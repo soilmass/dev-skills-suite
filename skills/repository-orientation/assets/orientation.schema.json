@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev-skills-suite/skills/repository-orientation/orientation.schema.json",
+  "title": "orientation",
+  "description": "The mechanical facts about a repository that scripts/map_repository.py collects (SDS-S-080, a skill-local shape): languages by file count, manifests and the commands they declare, top-level layout, entry points, and presence signals. Downstream writers (readme-writer, onboarding-doc-generator) consume it via --facts-file. An empty repository is a valid instance with zero counts and empty lists.",
+  "type": "object",
+  "required": ["version", "repository", "fileCount", "languages", "manifests", "layout", "entryPoints", "signals"],
+  "properties": {
+    "version": { "const": "repository-orientation-1.0" },
+    "repository": { "type": "string" },
+    "fileCount": { "type": "integer", "minimum": 0 },
+    "languages": {
+      "type": "array",
+      "items": { "type": "object", "required": ["language", "files"], "properties": { "language": { "type": "string" }, "files": { "type": "integer", "minimum": 1 } } }
+    },
+    "manifests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file", "ecosystem", "commands"],
+        "properties": {
+          "file": { "type": "string" },
+          "ecosystem": { "enum": ["npm", "python", "cargo", "go", "make"] },
+          "name": { "type": ["string", "null"] },
+          "commands": { "type": "array", "items": { "type": "object", "required": ["name", "command"], "properties": { "name": { "type": "string" }, "command": { "type": "string" } } } },
+          "tools": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "layout": {
+      "type": "object",
+      "required": ["topLevel", "conventional"],
+      "properties": {
+        "topLevel": { "type": "array", "items": { "type": "object", "required": ["name", "files", "kind"], "properties": { "name": { "type": "string" }, "files": { "type": "integer" }, "kind": { "enum": ["directory", "file"] } } } },
+        "conventional": { "type": "object", "additionalProperties": { "type": "boolean" } }
+      }
+    },
+    "entryPoints": { "type": "array", "items": { "type": "string" } },
+    "signals": {
+      "type": "object",
+      "required": ["readme", "license", "contributing", "changelog", "ci", "lockfile", "tests"],
+      "additionalProperties": { "type": "boolean" }
+    }
+  }
+}
