@@ -201,6 +201,16 @@
       "tier": "situational",
       "shape-out": "finding-list",
       "shape-in": "freeform"
+    },
+    {
+      "name": "naming-consistency-check",
+      "description": "Finds Python identifiers that break the naming convention the rest of the repository already follows — a camelCase function among snake_case ones, a lowercase class, a constant that is not UPPER_CASE where the others are — by counting the styles actually in use per kind and reporting the minority, never by imposing PEP 8; plus one- and two-letter names a reader cannot decode. Returns a finding-list for human review. Use before a cleanup, when reviewing code from a new contributor, or when asked whether naming is consistent.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
     }
   ]
 }
