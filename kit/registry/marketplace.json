@@ -271,6 +271,16 @@
       "tier": "situational",
       "shape-out": "freeform",
       "shape-in": "freeform"
+    },
+    {
+      "name": "onboarding-doc-generator",
+      "description": "Writes the guide a new colleague follows in their first days on a repository — the access they must be granted and by whom, setup steps each paired with what they should see when it worked, a first task small enough to finish in a day, and who to ask about what — refusing a step nobody can verify or an access grant from \"someone\", and checking every setup command against the facts repository-orientation collected. Use when a new person is joining, when the last newcomer got stuck, or when asked to write or refresh an onboarding guide.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-write",
+      "tier": "situational",
+      "shape-out": "freeform",
+      "shape-in": "freeform"
     }
   ]
 }

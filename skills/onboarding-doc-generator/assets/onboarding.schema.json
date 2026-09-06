@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev-skills-suite/skills/onboarding-doc-generator/onboarding.schema.json",
+  "title": "onboarding",
+  "description": "The specification onboarding-doc-generator composes in Decide and hands to scripts/render_onboarding.py (SDS-S-080, a skill-local shape). An onboarding guide is the README plus what the tree cannot show: the access a newcomer must be granted and by whom, setup steps each paired with how to verify it worked, a first task small enough to finish in a day, and who to ask about what. Setup commands are structured so the script can check them against the repository's declared commands.",
+  "type": "object",
+  "required": ["repository", "audience", "access", "setup", "firstTask", "whoToAsk"],
+  "properties": {
+    "repository": { "type": "string", "minLength": 1 },
+    "audience": { "type": "string", "minLength": 1, "description": "Who this is for, e.g. 'a backend engineer joining the checkout team'." },
+    "access": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["what", "grantedBy"],
+        "properties": {
+          "what": { "type": "string", "minLength": 1 },
+          "grantedBy": { "type": "string", "minLength": 1, "description": "A person, role, or request path — never 'someone'." },
+          "how": { "type": "string" }
+        }
+      }
+    },
+    "setup": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["do", "verify"],
+        "properties": {
+          "do": { "type": "string", "minLength": 1 },
+          "command": { "type": "string", "description": "The exact command, when there is one; checked against the repository's declared commands." },
+          "verify": { "type": "string", "description": "What the newcomer should see when it worked. Empty means unverifiable and is refused." }
+        }
+      }
+    },
+    "firstTask": {
+      "type": "object",
+      "required": ["description", "done"],
+      "properties": {
+        "description": { "type": "string", "minLength": 1 },
+        "done": { "type": "string", "minLength": 1, "description": "How the newcomer knows it is finished." },
+        "link": { "type": "string" }
+      }
+    },
+    "whoToAsk": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["topic", "ask"],
+        "properties": { "topic": { "type": "string", "minLength": 1 }, "ask": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "reading": {
+      "type": "array",
+      "items": { "type": "object", "required": ["title", "where"], "properties": { "title": { "type": "string" }, "where": { "type": "string" }, "why": { "type": "string" } } }
+    },
+    "lastVerified": { "type": "string", "format": "date", "description": "The last date a newcomer actually followed this guide end to end." }
+  }
+}

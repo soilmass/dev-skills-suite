@@ -1,0 +1,55 @@
+{
+  "repository": "shop",
+  "audience": "a backend engineer joining the checkout team",
+  "access": [
+    {
+      "what": "AWS staging account",
+      "grantedBy": "Priya (checkout lead)",
+      "how": "ask in #checkout-dev"
+    },
+    {
+      "what": "GitHub write access to soilmass/shop",
+      "grantedBy": "the org admins via the #it-requests form"
+    }
+  ],
+  "setup": [
+    {
+      "do": "Install the package in editable mode",
+      "command": "pip install -e .",
+      "verify": "`shop --help` prints the command list"
+    },
+    {
+      "do": "Run the tests (the same target CI runs on every push)",
+      "command": "make test",
+      "verify": "`42 passed` in under a minute"
+    },
+    {
+      "do": "Price a sample order",
+      "command": "shop price --order 42",
+      "verify": "`42: 20.00 USD (tax included)`"
+    }
+  ],
+  "firstTask": {
+    "description": "Add a pricing rule that applies a 5% discount to orders over 100 USD, with a test.",
+    "done": "the new test passes, `make lint` is clean, and the pull request has one approval",
+    "link": "https://github.com/soilmass/shop/issues/12"
+  },
+  "whoToAsk": [
+    {
+      "topic": "pricing rules",
+      "ask": "#checkout-dev (Priya owns pricing/)"
+    },
+    {
+      "topic": "CI and releases",
+      "ask": "Marco"
+    }
+  ],
+  "reading": [
+    {
+      "title": "Orientation",
+      "where": "docs/orientation.md",
+      "why": "where everything lives"
+    }
+  ],
+  "lastVerified": "2026-08-20"
+}

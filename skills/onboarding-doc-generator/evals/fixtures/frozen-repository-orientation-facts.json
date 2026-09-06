@@ -1,0 +1,154 @@
+{
+  "version": "repository-orientation-1.0",
+  "repository": "planted-repo",
+  "fileCount": 13,
+  "languages": [
+    {
+      "language": "Python",
+      "files": 4
+    },
+    {
+      "language": "JavaScript",
+      "files": 2
+    },
+    {
+      "language": "YAML",
+      "files": 1
+    },
+    {
+      "language": "Markdown",
+      "files": 1
+    },
+    {
+      "language": "JSON",
+      "files": 1
+    },
+    {
+      "language": "TOML",
+      "files": 1
+    }
+  ],
+  "manifests": [
+    {
+      "file": "package.json",
+      "ecosystem": "npm",
+      "name": "shop-admin",
+      "commands": [
+        {
+          "name": "build",
+          "command": "esbuild admin/index.js"
+        },
+        {
+          "name": "test",
+          "command": "node --test"
+        }
+      ]
+    },
+    {
+      "file": "pyproject.toml",
+      "ecosystem": "python",
+      "name": "shop",
+      "commands": [
+        {
+          "name": "shop",
+          "command": "shop.main:run"
+        }
+      ],
+      "tools": [
+        "pytest",
+        "ruff"
+      ]
+    },
+    {
+      "file": "Makefile",
+      "ecosystem": "make",
+      "name": null,
+      "commands": [
+        {
+          "name": "test",
+          "command": "make test"
+        },
+        {
+          "name": "lint",
+          "command": "make lint"
+        }
+      ]
+    }
+  ],
+  "layout": {
+    "topLevel": [
+      {
+        "name": ".github",
+        "files": 1,
+        "kind": "directory"
+      },
+      {
+        "name": "LICENSE",
+        "files": 1,
+        "kind": "file"
+      },
+      {
+        "name": "Makefile",
+        "files": 1,
+        "kind": "file"
+      },
+      {
+        "name": "README.md",
+        "files": 1,
+        "kind": "file"
+      },
+      {
+        "name": "admin",
+        "files": 2,
+        "kind": "directory"
+      },
+      {
+        "name": "docs",
+        "files": 1,
+        "kind": "directory"
+      },
+      {
+        "name": "package.json",
+        "files": 1,
+        "kind": "file"
+      },
+      {
+        "name": "pyproject.toml",
+        "files": 1,
+        "kind": "file"
+      },
+      {
+        "name": "src",
+        "files": 3,
+        "kind": "directory"
+      },
+      {
+        "name": "tests",
+        "files": 1,
+        "kind": "directory"
+      }
+    ],
+    "conventional": {
+      "src": true,
+      "lib": false,
+      "tests": true,
+      "test": false,
+      "docs": true,
+      "scripts": false,
+      ".github/workflows": true
+    }
+  },
+  "entryPoints": [
+    "admin/index.js",
+    "src/shop/main.py"
+  ],
+  "signals": {
+    "readme": true,
+    "license": true,
+    "contributing": false,
+    "changelog": false,
+    "ci": true,
+    "lockfile": false,
+    "tests": true
+  }
+}
