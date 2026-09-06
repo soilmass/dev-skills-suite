@@ -392,6 +392,16 @@
       "tier": "situational",
       "shape-out": "finding-list",
       "shape-in": "freeform"
+    },
+    {
+      "name": "json-schema-compat-check",
+      "description": "Compares two versions of a JSON Schema and answers the question a registry asks — can every instance the old version accepted still pass the new one? — reporting each backward-incompatible change as a finding-list located by pointer: properties made required, properties removed under closed objects, types narrowed, enum values dropped, constraints tightened; with widenings and relaxations listed as information and enum additions as a warning for exhaustive readers. Use before publishing a JSON Schema change for an event, a config file, or a stored record, or when asked whether a JSON Schema change is compatible.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
     }
   ]
 }

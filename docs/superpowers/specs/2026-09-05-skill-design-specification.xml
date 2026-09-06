@@ -864,8 +864,10 @@ Result<Success, Failure>
         glossary lists under "do not use instead." A term that is part of a
         proper noun or an identifier is not a synonym for the family
         concept and is exempt: a product or command namespace
-        (<tt>GitHub Projects</tt>, <tt>gh project</tt>), a hyphenated
-        name (<tt>project-board-sync</tt>), or a backticked literal
+        (<tt>GitHub Projects</tt>, <tt>gh project</tt>), a capitalised
+        name following another capitalised word (<tt>JSON Schema</tt>,
+        <tt>OpenAPI Description</tt>), a hyphenated name
+        (<tt>project-board-sync</tt>), or a backticked literal
         (<tt>`FORMAT JSON`</tt>). The linter applies a conservative
         single-word heuristic with exactly those exemptions; the
         reserved words <tt>tier</tt>, <tt>rung</tt>, <tt>gate</tt>, and

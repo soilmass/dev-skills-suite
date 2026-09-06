@@ -116,7 +116,7 @@ SDS-F-051 | ids-permanent | MUST | REVIEW | 8.6 | Rule IDs are never reused; wit
 SDS-F-052 | guides-non-normative | MUST | ADVISORY | 8.6 | Kit guides are non-normative; conflicts resolve to the spec.
 SDS-F-053 | promotion-threshold | SHOULD | REVIEW | 8.6 | Promotion situational -> pillar requires a recorded numeric threshold.
 SDS-F-060 | glossary-single | MUST | MACHINE | 8.7 | Exactly one glossary at kit/shared/glossary.md.
-SDS-F-061 | glossary-no-synonyms | SHOULD | MACHINE | 8.7 | Headings, @requires, @returns, and description avoid the glossary's do-not-use terms (heuristic; proper nouns, hyphenated names, and backticked literals exempt; reserved words tier/rung/gate/checkpoint are REVIEW).
+SDS-F-061 | glossary-no-synonyms | SHOULD | MACHINE | 8.7 | Headings, @requires, @returns, and description avoid the glossary's do-not-use terms (heuristic; proper nouns such as GitHub Projects or JSON Schema, hyphenated names, and backticked literals exempt; reserved words tier/rung/gate/checkpoint are REVIEW).
 SDS-K-001 | kit-layout | MUST | MACHINE | 9.1 | kit/ contains templates/, evals/TEMPLATE.eval.yaml, shapes/, shared/{glossary.md,gates/,tool-profiles/}, registry/, scripts/lint-skill.py.
 SDS-K-002 | guides-banner | MUST | MACHINE | 9.1 | HOW-TO-BUILD-A-SKILL.md and PRIMITIVES.md open with a non-normative banner citing the spec.
 SDS-K-010 | template-order | MUST | MACHINE | 9.2 | Template H2/H3 order equals the normative order in 10.3.
@@ -1607,7 +1607,10 @@ def c_f061(ctx):
             # hyphenated skill name project-board-sync, or a backticked
             # literal such as the `project` auth scope.
             pattern = rf"(?<![\w`-])(?<!github\s)(?<!gh\s){re.escape(term)}(?![\w`-])(?!\.json|\sfile)"
-            if re.search(pattern, text, re.I):
+            hits = [m for m in re.finditer(pattern, text, re.I)
+                    # a capitalised term right after a capitalised word is a proper noun: JSON Schema, OpenAPI Description
+                    if not (m.group(0)[:1].isupper() and re.search(r"\b[A-Z][A-Za-z0-9]*\s$", text[:m.start()]))]
+            if hits:
                 out.append(F(ctx, "SDS-F-061", f"glossary do-not-use term {term!r} in: {text.strip()[:60]!r}", line=ln))
     return out
 

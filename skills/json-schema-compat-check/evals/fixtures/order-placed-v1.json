@@ -1,0 +1,67 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "https://example/order-placed/v1",
+ "type": "object",
+ "required": [
+  "order_id",
+  "status",
+  "placed_at"
+ ],
+ "properties": {
+  "order_id": {
+   "type": "string"
+  },
+  "status": {
+   "type": "string",
+   "enum": [
+    "open",
+    "paid",
+    "shipped"
+   ]
+  },
+  "placed_at": {
+   "type": "string"
+  },
+  "currency": {
+   "type": "string"
+  },
+  "total": {
+   "type": "number",
+   "maximum": 100000
+  },
+  "notes": {
+   "type": "string"
+  },
+  "customer": {
+   "$ref": "#/$defs/Customer"
+  },
+  "lines": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "properties": {
+     "sku": {
+      "type": "string"
+     },
+     "qty": {
+      "type": "integer",
+      "minimum": 1
+     }
+    }
+   }
+  }
+ },
+ "$defs": {
+  "Customer": {
+   "type": "object",
+   "properties": {
+    "id": {
+     "type": "integer"
+    },
+    "email": {
+     "type": "string"
+    }
+   }
+  }
+ }
+}
