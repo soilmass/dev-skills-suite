@@ -1,0 +1,24 @@
+{
+  "status": "accepted",
+  "contextAndProblemStatement": "Should this ref pass the CI gate? 3 check run(s) reported; required: build, test, lint.",
+  "decisionDrivers": [
+    "build: success",
+    "test: failure \u2014 https://github.com/soilmass/shop/actions/runs/7/job/2"
+  ],
+  "consideredOptions": [
+    "pass",
+    "wait",
+    "fail"
+  ],
+  "decisionOutcome": {
+    "chosenOption": "fail",
+    "justification": "required check 'test' concluded failure"
+  },
+  "consequences": {
+    "positive": [
+      "build success"
+    ],
+    "negative": []
+  },
+  "confirmation": "Re-run this evaluation immediately before acting on it; check runs can be re-triggered and superseded."
+}

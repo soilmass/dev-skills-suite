@@ -1,0 +1,13 @@
+{
+  "release": {
+    "tagName": "v1.4.0",
+    "isDraft": false,
+    "publishedAt": "2026-09-04T09:00:00Z",
+    "url": "https://github.com/soilmass/shop/releases/tag/v1.4.0"
+  },
+  "tag": {
+    "exists": true,
+    "sha": "3f9c2a1d4e5f60718293a4b5c6d7e8f9a0b1c2d3"
+  },
+  "head": "3f9c2a1d4e5f60718293a4b5c6d7e8f9a0b1c2d3"
+}

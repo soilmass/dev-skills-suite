@@ -1,0 +1,24 @@
+{
+  "status": "accepted",
+  "contextAndProblemStatement": "Should this ref pass the CI gate? 2 check run(s) reported; required: build, test.",
+  "decisionDrivers": [
+    "build: success",
+    "test: in_progress"
+  ],
+  "consideredOptions": [
+    "pass",
+    "wait",
+    "fail"
+  ],
+  "decisionOutcome": {
+    "chosenOption": "wait",
+    "justification": "required check 'test' is in_progress (10 min so far)"
+  },
+  "consequences": {
+    "positive": [
+      "build success"
+    ],
+    "negative": []
+  },
+  "confirmation": "Re-run this evaluation immediately before acting on it; check runs can be re-triggered and superseded."
+}

@@ -1,0 +1,31 @@
+{
+  "summary": "shop 1.4.0: 1 breaking changes, 1 security, 1 added, 1 changed, 1 fixed, 1 deprecated",
+  "sections": [
+    {
+      "heading": "Breaking changes",
+      "body": "- drop Python 3.8 support"
+    },
+    {
+      "heading": "Security",
+      "body": "- reject path traversal in artifact names"
+    },
+    {
+      "heading": "Added",
+      "body": "- add retry helper with exponential backoff"
+    },
+    {
+      "heading": "Changed",
+      "body": "- stream large manifests instead of loading them"
+    },
+    {
+      "heading": "Fixed",
+      "body": "- silently dropped last record without trailing newline"
+    },
+    {
+      "heading": "Deprecated",
+      "body": "- mark legacy_fetch for removal in 2.0"
+    }
+  ],
+  "generatedFrom": "log-file:evals/fixtures/git-log-sample.txt",
+  "needsReview": []
+}

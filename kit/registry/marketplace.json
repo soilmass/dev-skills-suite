@@ -301,6 +301,16 @@
       "tier": "situational",
       "shape-out": "status-report",
       "shape-in": "plan-doc"
+    },
+    {
+      "name": "release-publisher",
+      "description": "Publishes a GitHub release for a version: takes the notes release-notes-writer prepared and the CI verdict ci-status-gate gave, checks that no release or draft for the tag already exists, that the notes are complete, reviewed, and name this version, and that CI passed — then creates the release, tag included, only after an explicit high-risk confirmation, since a published release notifies every watcher and cannot be un-sent. Use when cutting a release, when asked to publish, tag, or ship a version, or when finalizing a draft release.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "irreversible",
+      "tier": "situational",
+      "shape-out": "status-report",
+      "shape-in": "status-report, decision-doc"
     }
   ]
 }

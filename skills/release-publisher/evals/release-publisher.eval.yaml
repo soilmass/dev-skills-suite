@@ -1,0 +1,196 @@
+# Table-driven eval file for release-publisher (SDS-S-090).
+#
+# A rung-6 Command Skill. The assessment is exercised offline: the notes
+# are a frozen recording of release-notes-writer's real output
+# (frozen-release-notes-writer-report.json — which still withholds two
+# commits, so it drives the hold-for-review row; notes-reviewed.json is
+# the same recording after review cleared them), the CI verdicts are frozen
+# recordings of ci-status-gate's real output (frozen-ci-status-gate-*.json)
+# — consumer-driven contracts, SDS-C-063 — and GitHub/git state comes
+# from --release-json-file fixtures with an injected --as-of clock
+# (SDS-S-064, SDS-S-065). The checkpoint store runs against the
+# gitignored evals/fixtures/state-scratch/ (build-state-scratch.sh,
+# SDS-S-096). gh release create is never run by this suite (SDS-S-092).
+
+skill: release-publisher
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): complete notes, CI pass, no release yet -> publish, with the rendered body.
+  - name: happy-path-publish
+    input:
+      command: "python3 scripts/assess_release_readiness.py . --version v1.4.0 --notes-file evals/fixtures/notes-reviewed.json --ci-decision-file evals/fixtures/frozen-ci-status-gate-pass.json --release-json-file evals/fixtures/release-none.json --as-of 2026-09-05T12:00:00Z"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "chosenOption is publish; justification says the notes name 1.4.0 and CI passed"
+        - "decisionDrivers say tag v1.4.0 will be created at HEAD, release none, notes 6 section(s) 0 withheld, and ci-status-gate pass"
+        - "facts.body begins with '## Breaking changes' and contains six '## ' headings; facts.tagExists is false; facts.ciConsulted is true"
+
+  # A published release already exists -> already-published, no matter what the notes say.
+  - name: boundary-already-published
+    input:
+      command: "python3 scripts/assess_release_readiness.py . --version v1.4.0 --notes-file evals/fixtures/notes-reviewed.json --release-json-file evals/fixtures/release-published.json --as-of 2026-09-05T12:00:00Z"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "chosenOption is already-published; justification carries the publishedAt timestamp; facts.tagExists is true with the fixture's sha"
+
+  # A draft exists -> finalize-draft.
+  - name: boundary-draft-exists
+    input:
+      command: "python3 scripts/assess_release_readiness.py . --version v1.4.0 --notes-file evals/fixtures/notes-reviewed.json --release-json-file evals/fixtures/release-draft.json --as-of 2026-09-05T12:00:00Z"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "chosenOption is finalize-draft; facts.draftExists is true"
+
+  # The real upstream recording still carries two withheld commits -> hold-for-review. The publish-path rows use
+  # notes-reviewed.json, the same notes after review cleared needsReview.
+  - name: boundary-notes-need-review
+    input:
+      command: "python3 scripts/assess_release_readiness.py . --version v1.4.0 --notes-file evals/fixtures/frozen-release-notes-writer-report.json --release-json-file evals/fixtures/release-none.json --as-of 2026-09-05T12:00:00Z"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "chosenOption is hold-for-review; justification says 2 commit(s) were withheld"
+
+  # Notes for a different version -> notes-mismatch.
+  - name: boundary-notes-mismatch
+    input:
+      command: "python3 scripts/assess_release_readiness.py . --version v2.0.0 --notes-file evals/fixtures/notes-reviewed.json --release-json-file evals/fixtures/release-none.json --as-of 2026-09-05T12:00:00Z"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "chosenOption is notes-mismatch; justification says the summary does not name version 2.0.0"
+
+  # CI still running -> wait-for-ci; CI failed -> fix-ci. Same notes, same state; only the CI decision differs.
+  - name: boundary-ci-wait
+    input:
+      command: "python3 scripts/assess_release_readiness.py . --version v1.4.0 --notes-file evals/fixtures/notes-reviewed.json --ci-decision-file evals/fixtures/frozen-ci-status-gate-wait.json --release-json-file evals/fixtures/release-none.json --as-of 2026-09-05T12:00:00Z"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "chosenOption is wait-for-ci"
+
+  - name: boundary-ci-fail
+    input:
+      command: "python3 scripts/assess_release_readiness.py . --version v1.4.0 --notes-file evals/fixtures/notes-reviewed.json --ci-decision-file evals/fixtures/frozen-ci-status-gate-fail.json --release-json-file evals/fixtures/release-none.json --as-of 2026-09-05T12:00:00Z"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "chosenOption is fix-ci"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): notes with no sections -> fix-notes, a valid decision-doc with an empty body.
+  - name: boundary-empty-notes
+    input:
+      command: "python3 scripts/assess_release_readiness.py . --version v1.4.0 --notes-file evals/fixtures/notes-empty.json --release-json-file evals/fixtures/release-none.json --as-of 2026-09-05T12:00:00Z"
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "chosenOption is fix-notes; facts.body is an empty string"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-notes
+    input:
+      command: "python3 scripts/assess_release_readiness.py . --version v1.4.0 --notes-file evals/fixtures/notes-malformed.json --release-json-file evals/fixtures/release-none.json --as-of 2026-09-05T12:00:00Z"
+    expected:
+      kind: failure
+      failureCode: notes-unparseable
+      assertions:
+        - "exit code is 1 and stderr says notes-unparseable"
+
+  - name: boundary-invalid-version
+    input:
+      command: "python3 scripts/assess_release_readiness.py . --version release-candidate --notes-file evals/fixtures/notes-reviewed.json --release-json-file evals/fixtures/release-none.json --as-of 2026-09-05T12:00:00Z"
+    expected:
+      kind: failure
+      failureCode: version-invalid
+      assertions:
+        - "exit code is 1 and stderr says version-invalid"
+
+  - name: boundary-malformed-ci-decision
+    input:
+      command: "python3 scripts/assess_release_readiness.py . --version v1.4.0 --notes-file evals/fixtures/notes-reviewed.json --ci-decision-file evals/fixtures/notes-empty.json --release-json-file evals/fixtures/release-none.json --as-of 2026-09-05T12:00:00Z"
+    expected:
+      kind: failure
+      failureCode: ci-decision-unparseable
+      assertions:
+        - "exit code is 1 and stderr says ci-decision-unparseable (a status-report is not a decision-doc)"
+
+  - name: boundary-malformed-release-state
+    input:
+      command: "python3 scripts/assess_release_readiness.py . --version v1.4.0 --notes-file evals/fixtures/notes-reviewed.json --release-json-file evals/fixtures/notes-malformed.json --as-of 2026-09-05T12:00:00Z"
+    expected:
+      kind: failure
+      failureCode: release-state-unparseable
+      assertions:
+        - "exit code is 1 and stderr says release-state-unparseable"
+
+  - name: boundary-missing-as-of
+    input:
+      command: "python3 scripts/assess_release_readiness.py . --version v1.4.0 --notes-file evals/fixtures/notes-reviewed.json --release-json-file evals/fixtures/release-none.json"
+    expected:
+      kind: failure
+      failureCode: as-of-invalid
+      assertions:
+        - "exit code is 1 and stderr says as-of-invalid"
+
+  - name: boundary-invalid-repo-path
+    input:
+      command: "python3 scripts/assess_release_readiness.py evals/fixtures/release-none.json --version v1.4.0 --notes-file evals/fixtures/notes-reviewed.json --release-json-file evals/fixtures/release-none.json --as-of 2026-09-05T12:00:00Z"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 — the repository path is a file"
+
+  # Checkpoint round trip (SDS-S-053): pending before the publish call, completed after.
+  - name: happy-path-checkpoint-round-trip
+    input:
+      command: >-
+        evals/fixtures/build-state-scratch.sh &&
+        python3 scripts/checkpoint.py release-publisher v1.4.0 --step publish --status pending
+          --compensating-action "none — this step must be last" --state-dir evals/fixtures/state-scratch &&
+        python3 scripts/checkpoint.py release-publisher v1.4.0 --step publish --status completed --state-dir evals/fixtures/state-scratch &&
+        python3 scripts/checkpoint.py release-publisher v1.4.0 --show --state-dir evals/fixtures/state-scratch
+    expected:
+      kind: success
+      assertions:
+        - "the record at evals/fixtures/state-scratch/release-publisher/v1.4.0.json has one step, publish, status completed, with startedAt and completedAt"
+
+  # N/A — shape-out is status-report, not finding-list (SDS-S-095).
+  - name: mutation-fixture
+    expected:
+      kind: not-applicable
+      reason: "release-publisher does not search for known problems; shape-out is status-report."
+
+  # N/A — shape-in is the pair (status-report, decision-doc), which is not the single shape-out (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-in is two artifacts (release notes status-report plus a CI decision-doc); the skill's own status-report is not an input to it."
+
+  # REQUIRED — contract (SDS-C-063): both frozen upstream recordings validate against their registered shapes, and the assessment consumes them unchanged.
+  - name: contract-with-upstream-producers
+    input:
+      command: "python3 -c \"import json,jsonschema; R='$(git rev-parse --show-toplevel)/kit/shapes/'; jsonschema.validate(json.load(open('evals/fixtures/frozen-release-notes-writer-report.json')), json.load(open(R+'status-report.schema.json'))); jsonschema.validate(json.load(open('evals/fixtures/frozen-ci-status-gate-pass.json')), json.load(open(R+'decision-doc.schema.json'))); print('upstream shapes OK')\" && python3 scripts/assess_release_readiness.py . --version v1.4.0 --notes-file evals/fixtures/notes-reviewed.json --ci-decision-file evals/fixtures/frozen-ci-status-gate-pass.json --release-json-file evals/fixtures/release-none.json --as-of 2026-09-05T12:00:00Z | python3 -c \"import json,sys,jsonschema; jsonschema.validate(json.load(sys.stdin), json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/decision-doc.schema.json'))); print('decision-doc OK')\""
+    expected:
+      kind: success
+      shape: decision-doc
+      assertions:
+        - "the frozen release-notes-writer report validates as status-report, the frozen ci-status-gate decision validates as decision-doc, and the assessment they feed validates as decision-doc"
+
+---
+# Non-executed by design: gh release create / gh release edit are never
+# run by this suite (SDS-S-092). A live, read-only smoke check of the
+# assessment (asserting SHAPE only):
+#   python3 scripts/assess_release_readiness.py . --version v0.0.0-smoke --notes-file evals/fixtures/frozen-release-notes-writer-report.json | python3 -c "import json,sys,jsonschema; jsonschema.validate(json.load(sys.stdin), json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/decision-doc.schema.json')))"
+# requires gh auth against a real repository and is not a gate.
