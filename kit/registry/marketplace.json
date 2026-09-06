@@ -181,6 +181,16 @@
       "tier": "situational",
       "shape-out": "freeform",
       "shape-in": "freeform"
+    },
+    {
+      "name": "dead-code-finder",
+      "description": "Finds Python functions and classes that nothing in the repository references — by static name counting over the syntax tree, so it deliberately does not report names exported in __all__, referenced from strings, or shaped like tests or dunders — and lists them as a finding-list for human review, never for automatic deletion. Use before a cleanup, when a module has grown suspiciously, or when asked what code is unused.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
     }
   ]
 }

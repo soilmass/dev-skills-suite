@@ -1,0 +1,88 @@
+# Table-driven eval file for dead-code-finder (SDS-S-090).
+#
+# A rung-1 Query Skill over a planted tree that covers every exclusion
+# the scanner promises: a used helper, a class used only in its own
+# module, a definition reached through a string key, a name exported
+# in __all__, a test-shaped name, a dunder, and two genuinely
+# unreferenced definitions. Every row is deterministic and offline.
+
+skill: dead-code-finder
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): exactly the planted dead definitions are reported.
+  - name: happy-path-planted-tree
+    input:
+      command: "python3 scripts/find_dead_code.py evals/fixtures/planted-src"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "exactly three findings: orphan (function, unused.py), Abandoned (class, unused.py), private_leftover (function, exported.py)"
+        - "helper, UsedByHelper, plugin_hook, public_api, test_helper_shape, and main are NOT reported"
+        - "every finding has properties.confidence 'static' and a message naming the scan's blind spots"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted orphan is found at its line.
+  - name: mutation-fixture-planted-orphan
+    input:
+      command: "python3 scripts/find_dead_code.py evals/fixtures/planted-src"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "a dead/unreferenced-definition result exists for name orphan at unused.py line 4, level warning"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # Happy path: --exclude removes a directory's definitions from consideration.
+  - name: happy-path-exclude
+    input:
+      command: "python3 scripts/find_dead_code.py evals/fixtures --exclude broken-src,empty-src"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "scanning the fixtures root with broken-src excluded does not fail on the syntax error and reports the same three planted-src findings (paths prefixed planted-src/)"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): no Python files -> empty results.
+  - name: boundary-empty-tree
+    input:
+      command: "python3 scripts/find_dead_code.py evals/fixtures/empty-src"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; the document is otherwise complete and schema-valid"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast): a syntax error stops the scan.
+  - name: boundary-malformed-source
+    input:
+      command: "python3 scripts/find_dead_code.py evals/fixtures/broken-src"
+    expected:
+      kind: failure
+      failureCode: source-unparseable
+      assertions:
+        - "exit code is 1 and stderr names broken.py and says source-unparseable"
+
+  - name: boundary-invalid-path
+    input:
+      command: "python3 scripts/find_dead_code.py evals/fixtures/planted-src/main.py"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 — the path is a file, not a directory"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/find_dead_code.py evals/fixtures/planted-src | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"
