@@ -36,6 +36,9 @@ jobs:
       - name: Lint every skill (warnings fail)
         run: python kit/scripts/lint-skill.py --all skills --strict --no-review
 
+      - name: Linter negative tests
+        run: python kit/tests/test_lint_negative.py
+
       - name: Validate the registry
         run: |
           python - <<'EOF'

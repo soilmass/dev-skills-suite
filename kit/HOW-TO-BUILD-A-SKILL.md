@@ -239,7 +239,8 @@ manifests against Claude Code's own schema.
 
 0. Run `python3 kit/scripts/lint-skill.py skills/<skill>`; zero
    ERRORs (SDS-K-070). Read the trailing REVIEW checklist and answer
-   each item honestly.
+   each item honestly. The linter's own tests live in `kit/tests/`;
+   run them with `python3 kit/tests/test_lint_negative.py`.
 1. Validate the SKILL.md frontmatter's `metadata` block by hand
    against Step 1/Step 2's choices — rung and shape must match what
    the Procedure actually does, not what's convenient to declare.
