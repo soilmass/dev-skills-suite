@@ -25,6 +25,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
@@ -47,6 +49,9 @@ jobs:
           jsonschema.validate(reg, json.load(open("kit/registry/marketplace.schema.json")))
           print(f"registry OK: {len(reg['skills'])} skills, version {reg['version']}")
           EOF
+
+      - name: Shapes compatible with the last tag
+        run: bash kit/scripts/check-shapes.sh
 
       - name: Generated files match the registry
         run: |
