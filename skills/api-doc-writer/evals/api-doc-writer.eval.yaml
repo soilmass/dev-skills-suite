@@ -1,0 +1,115 @@
+# Table-driven eval file for api-doc-writer (SDS-S-090).
+#
+# A rung-4 Command Skill whose only mutation is writing a markdown
+# page, so the Act path runs for real against a gitignored output
+# directory (SDS-S-096). Extraction is ast-only (no import), so every
+# row is deterministic and offline against a planted package: a
+# documented class, one undocumented method, a private method and a
+# private module that must be excluded, a raise statement that must be
+# reported, and a stale reference page planted with two drift entries.
+#
+# Before running: evals/fixtures/docs-out is generated, not checked in.
+#   evals/fixtures/build-docs-out.sh
+
+skill: api-doc-writer
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): extraction of the planted package.
+  - name: happy-path-extract
+    input:
+      command: "python3 scripts/extract_api.py evals/fixtures/sample_pkg"
+    expected:
+      kind: success
+      assertions:
+        - "modules are sample_pkg, sample_pkg.client, sample_pkg.util — never sample_pkg._private"
+        - "symbols include Client, Client.__init__, Client.get, Client.post, Client.host, retry — never Client._sign or _backoff"
+        - "Client.get has documented true, raises ['ValueError'], signature 'get(self, path: str, *, timeout: float | None = None) -> dict'"
+        - "Client.post has documented false and summary null; Client.host has decorators ['property']"
+
+  # Happy path: dry-run render marks the undocumented symbol and cites raises.
+  - name: happy-path-render-dry-run
+    input:
+      command: "evals/fixtures/build-docs-out.sh && python3 scripts/extract_api.py evals/fixtures/sample_pkg > evals/fixtures/docs-out/extract.json && python3 scripts/render_api_docs.py evals/fixtures/docs-out/extract.json --out evals/fixtures/docs-out/reference.md --dry-run"
+    expected:
+      kind: success
+      assertions:
+        - "symbols is 6 and undocumented is 1"
+        - "rendered contains '### `Client.post`' followed by the literal undocumented marker, and 'Raises: `ValueError`' under Client.get"
+        - "rendered contains no 'Drift' section; nothing was written (dry run)"
+
+  # Happy path: real write.
+  - name: happy-path-write-reference
+    input:
+      command: "evals/fixtures/build-docs-out.sh && python3 scripts/extract_api.py evals/fixtures/sample_pkg > evals/fixtures/docs-out/extract.json && python3 scripts/render_api_docs.py evals/fixtures/docs-out/extract.json --out evals/fixtures/docs-out/reference.md"
+    expected:
+      kind: success
+      assertions:
+        - "evals/fixtures/docs-out/reference.md exists, begins with '# API Reference', and contains the undocumented marker exactly once"
+
+  # Happy path: drift against the planted stale reference.
+  - name: happy-path-drift-detection
+    input:
+      command: "python3 scripts/extract_api.py evals/fixtures/sample_pkg --existing evals/fixtures/existing-reference.md"
+    expected:
+      kind: success
+      assertions:
+        - "drift has exactly 2 entries: Client.old_fetch removed, and Client.get signature-changed with the documented and actual signatures"
+        - "Client.host produces no drift (its documented signature matches)"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): a package with no public symbols renders '_No public symbols._'.
+  - name: boundary-empty-package
+    input:
+      command: "evals/fixtures/build-docs-out.sh && python3 scripts/extract_api.py evals/fixtures/empty_pkg > evals/fixtures/docs-out/extract.json && python3 scripts/render_api_docs.py evals/fixtures/docs-out/extract.json --out evals/fixtures/docs-out/reference.md --dry-run"
+    expected:
+      kind: success
+      assertions:
+        - "extract has one module (empty_pkg) with an empty symbols list; render reports symbols 0 and includes '_No public symbols._'"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-source
+    input:
+      command: "python3 scripts/extract_api.py evals/fixtures/broken_pkg"
+    expected:
+      kind: failure
+      failureCode: source-unparseable
+      assertions:
+        - "exit code is 1 and stderr names broken.py and says source-unparseable"
+
+  - name: boundary-missing-source
+    input:
+      command: "python3 scripts/extract_api.py evals/fixtures/existing-reference.md"
+    expected:
+      kind: failure
+      failureCode: source-missing
+      assertions:
+        - "exit code is 1 — a markdown file is neither a .py file nor a package"
+
+  - name: boundary-invalid-extract
+    input:
+      command: "python3 scripts/render_api_docs.py evals/fixtures/existing-reference.md --out evals/fixtures/docs-out/reference.md --dry-run"
+    expected:
+      kind: failure
+      failureCode: extract-unparseable
+      assertions:
+        - "exit code is 1 — markdown is not an extract JSON"
+
+  # N/A — shape-out is freeform, not finding-list (SDS-S-095).
+  - name: mutation-fixture
+    expected:
+      kind: not-applicable
+      reason: "api-doc-writer does not search for known problems; shape-out is freeform."
+
+  # N/A — shape-out and shape-in are both freeform, which is not a self-composability signal (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out and shape-in are both freeform; per SDS-S-094 that is not self-composability, and the skill does not feed its own page back in as input."
+
+  # REQUIRED — contract (SDS-C-063): the extract validates against this skill's own asset schema, the interface between its two scripts.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/extract_api.py evals/fixtures/sample_pkg --existing evals/fixtures/existing-reference.md | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('assets/api-extract.schema.json'))); print('api-extract OK', sum(len(m['symbols']) for m in d['modules']), 'symbols', len(d['drift']), 'drift')\""
+    expected:
+      kind: success
+      assertions:
+        - "the extract validates against assets/api-extract.schema.json, which render_api_docs.py (the downstream consumer) requires"

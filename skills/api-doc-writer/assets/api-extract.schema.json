@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skills.local/skills/api-doc-writer/api-extract.schema.json",
+  "title": "api-extract",
+  "description": "api-doc-writer's own intermediate shape: the output of scripts/extract_api.py and the input of scripts/render_api_docs.py. A per-skill asset (SDS-S-080: it is not a family shape and must not be confused with one); the skill's shape-out remains freeform (the rendered markdown).",
+  "type": "object",
+  "required": ["modules", "drift"],
+  "properties": {
+    "modules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["module", "path", "symbols"],
+        "properties": {
+          "module": { "type": "string" },
+          "path": { "type": "string" },
+          "symbols": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["kind", "name", "signature", "documented", "raises", "decorators", "lineno"],
+              "properties": {
+                "kind": { "enum": ["class", "function", "method"] },
+                "name": { "type": "string" },
+                "signature": { "type": "string" },
+                "summary": { "type": ["string", "null"] },
+                "doc": { "type": ["string", "null"] },
+                "documented": { "type": "boolean" },
+                "raises": { "type": "array", "items": { "type": "string" } },
+                "decorators": { "type": "array", "items": { "type": "string" } },
+                "lineno": { "type": "integer", "minimum": 1 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "drift": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["symbol", "issue", "documented"],
+        "properties": {
+          "symbol": { "type": "string" },
+          "issue": { "enum": ["removed", "signature-changed"] },
+          "documented": { "type": "string" },
+          "actual": { "type": "string" }
+        }
+      }
+    }
+  }
+}
