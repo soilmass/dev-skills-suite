@@ -1,0 +1,7 @@
+{
+  "name": "shop",
+  "build": { "dockerfile": "Dockerfile" },
+  "remoteUser": "vscode",
+  "features": { "ghcr.io/devcontainers/features/node:1": { "version": "20" } },
+  "postCreateCommand": "pip install -e .[dev]"
+}

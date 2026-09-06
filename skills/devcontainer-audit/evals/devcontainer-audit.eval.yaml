@@ -1,0 +1,88 @@
+# Table-driven eval file for devcontainer-audit (SDS-S-090).
+#
+# A rung-1 Query Skill over planted repositories: a definition (JSONC,
+# with comments and a trailing comma) building a Dockerfile that
+# carries every pattern; a clean definition that must stay silent; a
+# repository with no definition; and a malformed definition. Every row
+# is deterministic and offline — nothing is built or pulled.
+
+skill: devcontainer-audit
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): every planted pattern is reported at its file and line.
+  - name: happy-path-planted-definition
+    input:
+      command: "python3 scripts/audit_devcontainer.py evals/fixtures/planted-repo"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "container/unpinned-image fires for FROM python (Dockerfile line 2, no tag) and for the feature ghcr.io/devcontainers/features/node:latest (definition); not for the pinned docker feature"
+        - "container/copy-before-install at Dockerfile line 6 with copyLine 5; container/secret-in-build for ARG NPM_TOKEN (line 3); container/apt-no-cleanup at line 4; container/root-user (no USER, no remoteUser); container/no-post-create"
+        - "tool.properties.definition is .devcontainer/devcontainer.json; the JSONC comments and trailing comma parsed; warnings are ordered before infos"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted cache-busting COPY is found at its line.
+  - name: mutation-fixture-copy-before-install
+    input:
+      command: "python3 scripts/audit_devcontainer.py evals/fixtures/planted-repo"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "a container/copy-before-install result exists at .devcontainer/Dockerfile line 6 with properties.copyLine 5, level warning"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): a clean definition -> empty results.
+  - name: boundary-empty-findings-clean-definition
+    input:
+      command: "python3 scripts/audit_devcontainer.py evals/fixtures/clean-repo"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array (pinned image with digest, USER vscode, manifests copied before install, apt cleanup, postCreateCommand, pinned feature)"
+
+  # No definition at all is a valid, informational result.
+  - name: boundary-no-definition
+    input:
+      command: "python3 scripts/audit_devcontainer.py evals/fixtures/no-devcontainer-repo"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "exactly one result, container/no-definition at level info; tool.properties.definition is null"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-definition
+    input:
+      command: "python3 scripts/audit_devcontainer.py evals/fixtures/broken-repo"
+    expected:
+      kind: failure
+      failureCode: definition-unparseable
+      assertions:
+        - "exit code is 1 and stderr names devcontainer.json and says definition-unparseable"
+
+  - name: boundary-invalid-path
+    input:
+      command: "python3 scripts/audit_devcontainer.py evals/fixtures/planted-repo/.devcontainer/Dockerfile"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 — the path is a file, not a directory"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/audit_devcontainer.py evals/fixtures/planted-repo | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"

@@ -422,6 +422,16 @@
       "tier": "situational",
       "shape-out": "finding-list",
       "shape-in": "freeform"
+    },
+    {
+      "name": "devcontainer-audit",
+      "description": "Audits a repository's dev container — the Dev Container definition and the Dockerfile it builds — for the choices that make it slow, irreproducible, or unsafe: unpinned base images and features, everything running as root, the whole tree copied before the dependency install so every edit rebuilds it, secrets in build arguments, apt caches left in layers, and no post-create step — as a finding-list, leaving the call on what this team can live with to a human. Use when the container is slow to rebuild, when newcomers hit root-owned files, or when asked to review a Dockerfile or dev container.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
     }
   ]
 }
