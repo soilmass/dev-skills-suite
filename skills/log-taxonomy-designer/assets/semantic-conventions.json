@@ -1,0 +1,21 @@
+{
+  "description": "Canonical log attribute names (OpenTelemetry semantic conventions where one exists) and the variants seen in the wild that mean the same thing. The inventory script maps every logged field name onto a canonical name through this table, so two spellings of one concept surface as one finding. Edit to add a repository's own vocabulary; keep OTel names for the concepts OTel covers.",
+  "canonical": {
+    "user.id": ["user_id", "userId", "userid", "uid", "user", "account_id", "accountId"],
+    "session.id": ["session_id", "sessionId", "sid"],
+    "http.request.method": ["method", "http_method", "httpMethod", "verb"],
+    "http.response.status_code": ["status", "status_code", "statusCode", "http_status", "httpStatus", "code"],
+    "url.path": ["path", "url", "route", "endpoint", "uri"],
+    "server.address": ["host", "hostname", "server"],
+    "client.address": ["ip", "client_ip", "clientIp", "remote_addr", "remoteAddr"],
+    "error.type": ["error", "err", "exception", "exc", "error_type", "errorType"],
+    "error.message": ["error_message", "errorMessage", "err_msg", "reason"],
+    "duration_ms": ["duration", "elapsed", "elapsed_ms", "latency", "latency_ms", "took", "time_ms"],
+    "order.id": ["order_id", "orderId", "oid"],
+    "db.query.text": ["query", "sql", "statement"],
+    "db.namespace": ["database", "db", "db_name", "dbName", "schema_name"],
+    "messaging.message.id": ["message_id", "messageId", "msg_id"],
+    "trace_id": ["trace", "traceId", "trace_id", "correlation_id", "correlationId", "request_id", "requestId"]
+  },
+  "sensitive": ["password", "passwd", "secret", "token", "access_token", "refresh_token", "api_key", "apiKey", "authorization", "cookie", "ssn", "card_number", "cardNumber", "cvv", "credit_card"]
+}

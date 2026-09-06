@@ -351,6 +351,16 @@
       "tier": "situational",
       "shape-out": "finding-list",
       "shape-in": "freeform"
+    },
+    {
+      "name": "log-taxonomy-designer",
+      "description": "Inventories every logging call in a Python repository — levels, message templates, field names — maps the field names onto OpenTelemetry semantic conventions, reports the drift as a finding-list (one attribute logged under three spellings, failures logged at info, secrets in fields, messages built by interpolation, exceptions logged without their traceback), and then designs the taxonomy: the canonical attribute names, what every event must carry, and the rename map. Use when logs are hard to query, before adopting structured logging or a log pipeline, or when asked to standardise logging.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
     }
   ]
 }
