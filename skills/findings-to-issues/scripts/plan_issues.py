@@ -59,8 +59,11 @@ def load_issues(path):
 
 
 def live_issues(repo):
-    r = subprocess.run(["gh", "issue", "list", "--state", "open", "--limit", "200", "--json", "number,title,body,labels"],
-                       cwd=repo, capture_output=True, text=True)
+    try:
+        r = subprocess.run(["gh", "issue", "list", "--state", "open", "--limit", "200", "--json", "number,title,body,labels"],
+                           cwd=repo, capture_output=True, text=True, timeout=60)
+    except subprocess.TimeoutExpired:
+        sys.exit("ERROR: gh issue list timed out after 60s (gh-unreachable)")
     if r.returncode != 0:
         sys.exit(f"ERROR: gh issue list failed (gh-unreachable): {r.stderr.strip()}")
     try:
