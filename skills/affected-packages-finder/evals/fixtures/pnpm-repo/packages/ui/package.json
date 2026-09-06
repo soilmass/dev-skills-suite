@@ -1,0 +1,1 @@
+{"name": "@shop/ui", "version": "1.0.0", "dependencies": {"@shop/core": "workspace:*", "react": "^18.2.0"}}

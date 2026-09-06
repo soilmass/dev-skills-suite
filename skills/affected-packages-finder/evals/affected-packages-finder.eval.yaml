@@ -1,0 +1,115 @@
+# Table-driven eval file for affected-packages-finder (SDS-S-090).
+#
+# A rung-1 Query Skill over a planted pnpm workspace (core <- ui <- app,
+# plus an independent tools package) and a planted Cargo workspace, with
+# change lists injected as files (SDS-S-065). Every row is deterministic
+# and offline — no git command runs inside the script.
+
+skill: affected-packages-finder
+
+rows:
+  # REQUIRED — happy path (SDS-S-099): a change in core affects ui and app through the chain, in build order; tools is untouched.
+  - name: happy-path-core-change
+    input:
+      command: "python3 scripts/find_affected.py evals/fixtures/pnpm-repo --changed-files evals/fixtures/changes-core.txt"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "affected/direct for @shop/core with files [packages/core/src/index.ts]; affected/dependent for @shop/ui via [@shop/core, @shop/ui] and for @shop/app via [@shop/core, @shop/ui, @shop/app]; no finding for @shop/tools"
+        - "affected/unowned-file for docs/README.md; tool.properties.buildOrder is [@shop/core, @shop/ui, @shop/app]; rootChanges is empty"
+        - "warnings are ordered before infos"
+
+  # REQUIRED for audit/finder skills — mutation fixture (SDS-S-095): the planted transitive dependent is found with its chain.
+  - name: mutation-fixture-transitive-dependent
+    input:
+      command: "python3 scripts/find_affected.py evals/fixtures/pnpm-repo --changed-files evals/fixtures/changes-core.txt"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "an affected/dependent result exists at apps/app with properties.package @shop/app and via [@shop/core, @shop/ui, @shop/app], level warning"
+        - "output validates against kit/shapes/finding-list.schema.json"
+
+  # A root lockfile change affects every package.
+  - name: boundary-root-lockfile-change
+    input:
+      command: "python3 scripts/find_affected.py evals/fixtures/pnpm-repo --changed-files evals/fixtures/changes-lockfile.txt"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "four affected/root-change results (every member) with rootFiles [pnpm-lock.yaml]; buildOrder contains all four with @shop/core before @shop/ui before @shop/app"
+
+  # Cargo workspaces are discovered from Cargo.toml [workspace] members.
+  - name: boundary-cargo-workspace
+    input:
+      command: "python3 scripts/find_affected.py evals/fixtures/cargo-repo --changed-files evals/fixtures/changes-cargo.txt"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "affected/direct for shop-core; affected/dependent for shop-cli via [shop-core, shop-cli]; buildOrder [shop-core, shop-cli]"
+
+  # REQUIRED — boundary: empty input (SDS-C-005, SDS-C-033): an empty change list -> empty results and build order.
+  - name: boundary-empty-change-list
+    input:
+      command: "python3 scripts/find_affected.py evals/fixtures/pnpm-repo --changed-files evals/fixtures/changes-empty.txt"
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "runs[0].results is an empty array; tool.properties.buildOrder is empty; members lists all four packages"
+
+  # REQUIRED — boundary: malformed input (SDS-C-019 fail-fast).
+  - name: boundary-malformed-manifest
+    input:
+      command: "python3 scripts/find_affected.py evals/fixtures/broken-repo --changed-files evals/fixtures/changes-core.txt"
+    expected:
+      kind: failure
+      failureCode: manifest-malformed
+      assertions:
+        - "exit code is 1 and stderr names the member package.json and says manifest-malformed"
+
+  - name: boundary-no-workspace
+    input:
+      command: "python3 scripts/find_affected.py evals/fixtures/no-workspace-repo --changed-files evals/fixtures/changes-core.txt"
+    expected:
+      kind: failure
+      failureCode: workspace-not-found
+      assertions:
+        - "exit code is 1 and stderr says workspace-not-found"
+
+  - name: boundary-unreadable-changes
+    input:
+      command: "python3 scripts/find_affected.py evals/fixtures/pnpm-repo --changed-files evals/fixtures/pnpm-repo"
+    expected:
+      kind: failure
+      failureCode: changes-unreadable
+      assertions:
+        - "exit code is 1 — a directory cannot be read as the change list — and stderr says changes-unreadable"
+
+  - name: boundary-invalid-path
+    input:
+      command: "python3 scripts/find_affected.py evals/fixtures/changes-core.txt --changed-files evals/fixtures/changes-core.txt"
+    expected:
+      kind: failure
+      failureCode: repo-invalid
+      assertions:
+        - "exit code is 1 — the repository path is a file"
+
+  # N/A — shape-out finding-list != shape-in freeform (SDS-S-094).
+  - name: fixed-point
+    expected:
+      kind: not-applicable
+      reason: "shape-out finding-list differs from shape-in freeform; the skill is not self-composable."
+
+  # REQUIRED — contract (SDS-C-063): SARIF-compatible for any downstream finding-list consumer.
+  - name: contract-with-downstream-consumer
+    input:
+      command: "python3 scripts/find_affected.py evals/fixtures/pnpm-repo --changed-files evals/fixtures/changes-core.txt | python3 -c \"import json,sys,jsonschema; d=json.load(sys.stdin); jsonschema.validate(d, json.load(open('$(git rev-parse --show-toplevel)/kit/shapes/finding-list.schema.json'))); print('finding-list OK', len(d['runs'][0]['results']))\""
+    expected:
+      kind: success
+      shape: finding-list
+      assertions:
+        - "the actual output validates against kit/shapes/finding-list.schema.json"

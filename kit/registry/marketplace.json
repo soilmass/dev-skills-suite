@@ -472,6 +472,16 @@
       "tier": "situational",
       "shape-out": "finding-list",
       "shape-in": "freeform"
+    },
+    {
+      "name": "affected-packages-finder",
+      "description": "Maps a set of changed files in a monorepo — npm, yarn, pnpm, or Cargo workspaces — to the packages they affect: the ones changed directly, the ones that depend on those through the internal dependency graph (with the chain), every package when a root manifest or lockfile changed, and the changed files no package owns — as a finding-list carrying the affected set in build order for CI to consume. Use when deciding what to build, test, or release for a change, when a monorepo CI runs everything, or when asked what a change touches.",
+      "version": "0.1.0",
+      "status": "built",
+      "effect-tier": "local-read-only",
+      "tier": "situational",
+      "shape-out": "finding-list",
+      "shape-in": "freeform"
     }
   ]
 }
